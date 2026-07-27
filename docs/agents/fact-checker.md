@@ -24,6 +24,9 @@ Structured output per `structured_output_schema.md`, where `deliverables` contai
 - Corrected wording for every claim not rated supported.
 - Overall verdict: publishable / publishable with corrections / not publishable.
 - Claims that could not be checked and why.
+- Verdict maps to `status`: publishable → `complete`, publishable with corrections →
+  `partial`, not publishable → `blocked`. The verdict text still appears in `summary`;
+  `status` is what the orchestrator reads.
 
 ## Rules and guardrails
 - Check the claim the draft makes, not a weaker version of it.

@@ -26,6 +26,8 @@ Structured output per `structured_output_schema.md`, where `deliverables` contai
 - Root cause, or explicitly "not determined" plus the leading hypotheses.
 - Containment and rollback steps, in order, with prerequisites.
 - Prevention items, separated into now and later.
+- Data loss, data exposure, or credential compromise returns `blocked` immediately on
+  discovery, before any containment action, with the trigger named in `next_step`.
 
 ## Rules and guardrails
 - Diagnose before acting. No blind restarts, no speculative config changes.

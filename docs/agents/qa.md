@@ -25,6 +25,8 @@ Structured output per `structured_output_schema.md`, where `deliverables` contai
 - Defects, each with steps, expected, actual, and severity (blocker / major / minor).
 - Flows tested and flows not tested, listed separately.
 - Go / no-go recommendation with the blocking items named.
+- Verdict maps to `status`: go → `complete`, no-go → `blocked`. The verdict text still
+  appears in `summary`; `status` is what the orchestrator reads.
 
 ## Rules and guardrails
 - Untested is not passed. Anything not exercised goes in the not-tested list.

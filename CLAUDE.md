@@ -133,10 +133,18 @@ Debunk), `ops`. Example: `20260727-ff-014`.
 | `complete` | Success criteria met in full | Accept, continue pipeline |
 | `partial` | Some criteria met, gaps named in `risks` | Return to manager for accept-or-retry |
 | `failed` | Could not complete; reason in `summary` | One retry with corrected brief, then report |
-| `blocked` | Hit an approval gate or missing prerequisite | **Halt. Return to operator.** No retry |
+| `blocked` | Hit an approval gate or missing prerequisite, OR is a gate returning closed (risk-review hold, fact-checker not-publishable, qa no-go, legal-review counsel-required) | **Halt. Return to operator.** No retry |
 
 `summary`, `risks`, and `next_step` are prose for humans. Never parse them for control flow.
 A `blocked` return names the gate in `next_step`.
+
+Any escalation case returns `blocked`, naming the trigger in `next_step`.
+A stop condition outside the escalation list returns `failed`.
+
+> **Open:** manager accept/revise/reject verdicts are control flow but are not
+> schema-bound. Resolve during orchestrator design — either a minimal manager
+> verdict schema or a verify-only invocation. Do not auto-accept on `status`
+> alone; Step 7 verification still applies to `complete` returns.
 
 **Manager to operator (chat):** prose or bullets. Short answer, what failed, what needs
 approval, recommended next step. The strict schema does not apply here.

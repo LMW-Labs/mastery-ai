@@ -26,6 +26,9 @@ Structured output per `structured_output_schema.md`, where `deliverables` contai
 - A lower-risk alternative wording or approach per issue, where one exists.
 - An explicit counsel-required list, with the question to bring to counsel.
 - Standard disclaimer that this is not legal advice.
+- Verdict maps to `status`: no counsel-required items → `complete`, any counsel-required
+  item → `blocked`. legal-review never signals clearance. The verdict text still appears
+  in `summary`; `status` is what the orchestrator reads.
 
 ## Rules and guardrails
 - Always state that this is not legal advice and no attorney relationship exists.

@@ -24,6 +24,9 @@ Structured output per `structured_output_schema.md`, where `deliverables` contai
 - Verdict: clear / clear with edits / hold.
 - Each flag with: the exact excerpt, the risk category, severity, and a concrete rewrite.
 - Categories checked and found clean.
+- Verdict maps to `status`: clear → `complete`, clear with edits → `partial`,
+  hold → `blocked`. The verdict text still appears in `summary`; `status` is what the
+  orchestrator reads.
 
 ## Rules and guardrails
 - Quote the offending text exactly. Do not paraphrase a flag.
