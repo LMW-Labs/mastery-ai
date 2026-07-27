@@ -144,7 +144,7 @@ A stop condition outside the escalation list returns `failed`.
 > **Open:** manager accept/revise/reject verdicts are control flow but are not
 > schema-bound. Resolve during orchestrator design — either a minimal manager
 > verdict schema or a verify-only invocation. Do not auto-accept on `status`
-> alone; Step 7 verification still applies to `complete` returns.
+> alone; manager verification still applies to `complete` returns.
 
 **Manager to operator (chat):** prose or bullets. Short answer, what failed, what needs
 approval, recommended next step. The strict schema does not apply here.
