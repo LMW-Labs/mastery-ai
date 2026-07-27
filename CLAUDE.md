@@ -123,8 +123,20 @@ Debunk), `ops`. Example: `20260727-ff-014`.
 **Delegated task in:** `task_brief_template.md`, fully filled. No blank sections.
 
 **Delegated task out:** strict JSON per `structured_output_schema.md`.
-`additionalProperties: false`. All of `task_id`, `summary`, `deliverables`, `risks`,
-`next_step` required. Validation failure is a task failure, not something to patch.
+`additionalProperties: false`. All of `task_id`, `status`, `summary`, `deliverables`,
+`risks`, `next_step` required. Validation failure is a task failure, not something to patch.
+
+`status` is the only field the orchestrator branches on. It is never inferred from prose.
+
+| status | Meaning | Orchestrator action |
+|---|---|---|
+| `complete` | Success criteria met in full | Accept, continue pipeline |
+| `partial` | Some criteria met, gaps named in `risks` | Return to manager for accept-or-retry |
+| `failed` | Could not complete; reason in `summary` | One retry with corrected brief, then report |
+| `blocked` | Hit an approval gate or missing prerequisite | **Halt. Return to operator.** No retry |
+
+`summary`, `risks`, and `next_step` are prose for humans. Never parse them for control flow.
+A `blocked` return names the gate in `next_step`.
 
 **Manager to operator (chat):** prose or bullets. Short answer, what failed, what needs
 approval, recommended next step. The strict schema does not apply here.
