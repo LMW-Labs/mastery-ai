@@ -99,18 +99,23 @@ It does not proceed, queue, or assume approval. Gate triggers:
 ## Orchestrator requirements
 
 These are code requirements, not instructions to a model. A model cannot enforce them.
-Confirm and set the actual values in config; the numbers below are the starting proposal.
+The enforced values live in `mastery/config.py`; the table below is the current setting
+and where it is applied.
 
-| Requirement | Value |
-|---|---|
-| Max delegations per operator request | 5 |
-| Max turns, manager | 12 |
-| Max turns, sub-agent | 6 |
-| Max context bytes per delegation | set explicitly; reject over-limit briefs |
-| Retries per failed task | 1, then fail honestly |
-| Spawn depth | 1 (flat; sub-agents do not delegate) |
-| Task timeout | 300s |
-| Output validation | reject on schema failure; do not repair silently |
+| Requirement | Value | Enforced in |
+|---|---|---|
+| Max delegations per operator request | 5 | `orchestrator._charge_delegation` |
+| Max turns, manager | 12 (unused; manager is code, verification takes 1 turn) | — |
+| Max turns, sub-agent | 6 | `delegate.run_task` → `max_turns` |
+| Max context bytes per delegation | 60,000; over-limit briefs rejected, never truncated | `brief.validate` |
+| Retries per failed task | 1, then fail honestly | `orchestrator.execute` |
+| Spawn depth | 1 — the `Agent` tool is denied to sub-agents | `delegate.SdkRunner` |
+| Task timeout | 300s | `delegate.run_task` |
+| Output validation | reject on schema failure; no repair path exists | `schema.parse` |
+
+Context isolation is enforced by `setting_sources=[]` on every delegation: the SDK does
+not auto-load this file, project settings, or user settings into a sub-agent. The only
+context a sub-agent sees is the brief's payload.
 
 Additional: no silent retry escalation, no silent model upgrade, no silent billable
 fallback, no fabricated completion, no filling missing context with assumptions.
@@ -141,10 +146,19 @@ A `blocked` return names the gate in `next_step`.
 Any escalation case returns `blocked`, naming the trigger in `next_step`.
 A stop condition outside the escalation list returns `failed`.
 
-> **Open:** manager accept/revise/reject verdicts are control flow but are not
-> schema-bound. Resolve during orchestrator design — either a minimal manager
-> verdict schema or a verify-only invocation. Do not auto-accept on `status`
-> alone; manager verification still applies to `complete` returns.
+**Manager verdict:** accept / revise / reject is control flow and is schema-bound, per
+`structured_output_schema.md`'s sibling `manager_verdict_schema.md`. It is produced by a
+**verify-only** manager invocation — one turn, no tools, given the brief's success
+criteria and the return, and nothing else. `complete` is never auto-accepted; every
+`complete` and `partial` return is verified before the pipeline continues.
+
+| verdict | Meaning | Orchestrator action |
+|---|---|---|
+| `accept` | Every success criterion is met by what was returned | Continue pipeline |
+| `revise` | A nameable gap a corrected brief could close; `revision_note` required | Retry, within the retry cap |
+| `reject` | Wrong work, or a gap retrying cannot close | Report to operator |
+
+A `revise` consumes the same retry budget as a `failed` return. Two attempts, then report.
 
 **Manager to operator (chat):** prose or bullets. Short answer, what failed, what needs
 approval, recommended next step. The strict schema does not apply here.
@@ -161,6 +175,12 @@ approval, recommended next step. The strict schema does not apply here.
 
 - FaithFeed is live on Google Play. Apple is planned, not started.
 - The system must stay usable from a VPS and a mobile shell.
-- Claude Code CLI and the agent runtime share the same subscription auth — usage limits are
-  a shared budget. There is no per-role model routing; `delegation.model` is global.
-- Orchestrator code location: `<fill in>`.
+- There is no per-role model routing; `delegation.model` is global.
+- **Auth is unconfirmed.** The Agent SDK documents `ANTHROPIC_API_KEY`, and Anthropic's
+  terms restrict offering claude.ai login for products built on it. `auth.mode="inherit"`
+  (the default) passes no auth env and lets the bundled binary resolve whatever credential
+  the invoking user already has — fine for a single operator on his own machine, not
+  something to ship. `auth.mode="api_key"` is the documented path and bills separately.
+  Confirm which one this system actually runs on before the first billable run.
+- Orchestrator code location: `mastery/`. Entry point `mastery.cli`; `mastery check`
+  validates config, roster, and schemas without making a model call.

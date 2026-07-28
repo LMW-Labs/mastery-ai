@@ -36,12 +36,14 @@ System-level rules, pipelines, caps, and contracts live in the root `CLAUDE.md`.
 ## Shared contracts
 - Task brief in: `task_brief_template.md`
 - Structured output: `structured_output_schema.md`
+- Manager verdict: `manager_verdict_schema.md` — accept / revise / reject
 - Routing logic: `manager_decision_rubric.md` — rewritten for the full 18-agent roster
 
 ## Enforcement note
 Nothing in these files is self-enforcing. Caps, retries, timeouts, tool allowlists, pipeline
 sequencing, and output validation are the orchestrator's job. Each `Rules and guardrails`
-section is a spec for code that must already exist.
+section is a spec for code that must already exist — that code is `mastery/`, and
+`docs/orchestrator.md` maps each guardrail to the module that enforces it.
 
 Agent docs are **not** auto-loaded for delegated sub-agents. The manager must pass the
 relevant doc in the `context` payload or the sub-agent has no role definition.

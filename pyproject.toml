@@ -1,0 +1,22 @@
+[project]
+name = "mastery-ai"
+version = "0.1.0"
+description = "Personal agent operating system. Guardrails enforced in orchestrator code."
+requires-python = ">=3.10"
+dependencies = [
+    "claude-agent-sdk>=0.1.0",
+    "jsonschema>=4.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+mastery = "mastery.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["mastery*"]

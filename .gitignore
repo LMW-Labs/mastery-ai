@@ -1,2 +1,14 @@
 # Local, machine-specific permission grants — not shared
 .claude/settings.local.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+
+# Run logs — one JSONL per operator request, local to a machine.
+.runs/
