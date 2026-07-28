@@ -25,7 +25,7 @@ from typing import Protocol
 
 from .brief import TaskBrief
 from .config import Config
-from .errors import TaskTimeout
+from .errors import DelegationFailed, TaskTimeout
 
 SYSTEM_PROMPT = """You are a sub-agent in a code-owned multi-agent system, running one \
 scoped task. Your role definition is the agent doc in your context payload — read \
@@ -69,17 +69,38 @@ review gate) you are returning closed. Name the trigger in next_step.
 
 
 @dataclass(frozen=True)
+class RunnerResult:
+    """What a runner observed. Telemetry travels with the text.
+
+    `permission_denials` is the guardrail's own audit trail: every tool call the
+    permission layer refused. An empty list on a normal run is the expected
+    state; entries mean a sub-agent reached for something outside its allowlist,
+    which is worth seeing in the run log rather than only in a probe.
+    """
+
+    text: str
+    num_turns: int = 0
+    cost_usd: float | None = None
+    permission_denials: tuple = ()
+
+
+@dataclass(frozen=True)
 class Invocation:
     """One model call's raw outcome. Parsing and validation happen upstream."""
 
     raw: str
     duration_s: float
+    num_turns: int = 0
+    cost_usd: float | None = None
+    permission_denials: tuple = ()
 
 
 class Runner(Protocol):
     """The seam between the orchestrator and the SDK."""
 
-    async def run(self, *, system_prompt: str, prompt: str, max_turns: int) -> str: ...
+    async def run(
+        self, *, system_prompt: str, prompt: str, max_turns: int
+    ) -> RunnerResult: ...
 
 
 class SdkRunner:
@@ -88,7 +109,9 @@ class SdkRunner:
     def __init__(self, config: Config):
         self.config = config
 
-    async def run(self, *, system_prompt: str, prompt: str, max_turns: int) -> str:
+    async def run(
+        self, *, system_prompt: str, prompt: str, max_turns: int
+    ) -> RunnerResult:
         # Imported here so the rest of the package works without the SDK
         # installed — tests, schema validation, and brief assembly do not need it.
         from claude_agent_sdk import (  # noqa: PLC0415
@@ -102,9 +125,9 @@ class SdkRunner:
             system_prompt=system_prompt,
             model=d.model,
             max_turns=max_turns,
-            # Read-only by default. A brief that genuinely needs more should
-            # widen this explicitly rather than the default being permissive.
-            allowed_tools=["Read", "Glob", "Grep"],
+            # Pre-approved only. What actually blocks everything else is
+            # permission_mode — see the note on that field in config.py.
+            allowed_tools=list(d.allowed_tools),
             disallowed_tools=list(d.denied_tools),
             permission_mode=d.permission_mode,
             # Empty: no CLAUDE.md, no project settings, no user settings.
@@ -113,11 +136,24 @@ class SdkRunner:
             env=self.config.auth.env(),
         )
 
-        final = ""
-        async for message in query(prompt=prompt, options=options):
-            if isinstance(message, ResultMessage):
-                final = message.result or ""
-        return final
+        result = RunnerResult(text="")
+        try:
+            async for message in query(prompt=prompt, options=options):
+                if isinstance(message, ResultMessage):
+                    result = RunnerResult(
+                        text=message.result or "",
+                        num_turns=message.num_turns or 0,
+                        cost_usd=message.total_cost_usd,
+                        permission_denials=tuple(message.permission_denials or ()),
+                    )
+        except Exception as exc:
+            # The SDK raises instead of yielding a ResultMessage when a
+            # delegation ends without one — turn exhaustion is the common case,
+            # and it is an ordinary outcome, not a crash. Convert it into a task
+            # failure so the orchestrator can retry or report it.
+            raise DelegationFailed(f"delegation ended without a result: {exc}") from exc
+
+        return result
 
 
 async def run_task(brief: TaskBrief, runner: Runner, config: Config) -> Invocation:
@@ -129,7 +165,7 @@ async def run_task(brief: TaskBrief, runner: Runner, config: Config) -> Invocati
     prompt = f"{brief.render()}\n\n{brief.render_context()}"
     started = time.monotonic()
     try:
-        raw = await asyncio.wait_for(
+        result = await asyncio.wait_for(
             runner.run(
                 system_prompt=SYSTEM_PROMPT,
                 prompt=prompt,
@@ -142,7 +178,13 @@ async def run_task(brief: TaskBrief, runner: Runner, config: Config) -> Invocati
             f"{brief.task_id} ({brief.agent}) exceeded "
             f"{config.caps.task_timeout_seconds}s"
         ) from exc
-    return Invocation(raw=raw, duration_s=time.monotonic() - started)
+    return Invocation(
+        raw=result.text,
+        duration_s=time.monotonic() - started,
+        num_turns=result.num_turns,
+        cost_usd=result.cost_usd,
+        permission_denials=result.permission_denials,
+    )
 
 
 async def run_verdict(prompt: str, runner: Runner, config: Config) -> Invocation:
@@ -153,7 +195,7 @@ async def run_verdict(prompt: str, runner: Runner, config: Config) -> Invocation
     """
     started = time.monotonic()
     try:
-        raw = await asyncio.wait_for(
+        result = await asyncio.wait_for(
             runner.run(
                 system_prompt=(
                     "You verify one completed task against its brief. "
@@ -166,4 +208,10 @@ async def run_verdict(prompt: str, runner: Runner, config: Config) -> Invocation
         )
     except asyncio.TimeoutError as exc:
         raise TaskTimeout("manager verification timed out") from exc
-    return Invocation(raw=raw, duration_s=time.monotonic() - started)
+    return Invocation(
+        raw=result.text,
+        duration_s=time.monotonic() - started,
+        num_turns=result.num_turns,
+        cost_usd=result.cost_usd,
+        permission_denials=result.permission_denials,
+    )

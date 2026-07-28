@@ -28,8 +28,9 @@ actually enforced, and where.
 | No proceeding, queuing, or assuming approval | `gates` has no `approve()`; approval arrives as a new operator request |
 | `status` is the only branch; never inferred from prose | `schema.ACTION_FOR` maps the enum; `summary` is never parsed |
 | Validation failure is a task failure | `schema.parse` raises; `orchestrator` counts it as an attempt |
-| Never pass CLAUDE.md or history to a sub-agent | `setting_sources=[]` plus a prompt built only from the brief's payload |
-| Spawn depth 1 | The `Agent` tool is in `delegation.denied_tools` |
+| Never pass CLAUDE.md or history to a sub-agent | `setting_sources=[]` plus a prompt built only from the brief's payload — **verified**, probe 5 |
+| Spawn depth 1 | The `Agent` tool is in `delegation.denied_tools` — **verified**, probe 6 |
+| Delegations are read-only | `permission_mode="dontAsk"` — **verified**, probe 7. Not `allowed_tools`; see below |
 | Context is opt-in, assembled by hand | `brief.build` takes an explicit item list; oversize is rejected, not truncated |
 | Two attempts, then report | `caps.retries_per_failed_task`, counted across both failed returns and `revise` verdicts |
 | Pipelines cannot be skipped or reordered | `pipelines.Pipeline.advance` is the only traversal; the stage callback cannot choose a stage |
@@ -42,6 +43,41 @@ use that for delegation, because it would move two decisions into a model that C
 puts in code: which agent handles a task, and what context that agent sees. Instead each
 delegation is its own `query()` with a hand-built prompt, a locked-down tool set, and no
 filesystem-loaded settings.
+
+## `allowed_tools` does not restrict anything
+
+The SDK advertises its full tool set — 25 tools — to every delegation, whatever
+`allowed_tools` says. That field only *pre-approves*: listed tools run without
+prompting, unlisted ones fall through to `permission_mode`. So `WebSearch`,
+`WebFetch`, `SendMessage`, `PushNotification`, and the scheduling tools are all
+visible to a sub-agent, and what actually stops them is `permission_mode="dontAsk"`.
+
+This matters because the failure is silent. Setting `permission_mode` to
+`acceptEdits` or `bypassPermissions` gives every delegation network egress and
+write access while `allowed_tools=["Read","Glob","Grep"]` still reads as
+read-only. Probe 7 asserts the denial directly — run it after touching that field.
+
+`ResultMessage.permission_denials` carries the same signal in production: it lands
+in the run log on every delegation, so a sub-agent reaching outside its allowlist
+is visible without going looking for it.
+
+## Verifying
+
+Two suites, and they cover different things:
+
+```
+python -m unittest discover -s tests -t .   # 70 tests, offline, no credential
+python scripts/probe.py                     # 3 guardrails, real calls, ~$0.5 quota
+```
+
+The unit suite proves the orchestrator is internally consistent against a fake
+runner. It **cannot** prove the guardrails, because the guardrails are SDK
+behaviour — a fake runner will happily agree that `setting_sources=[]` works.
+`scripts/probe.py` is what makes them real, and each probe isolates one claim so
+a failure localizes itself. Probe 5 uses a control run (`setting_sources=["project"]`)
+so its negative result is evidence rather than a model simply saying "I don't know".
+
+Run the probes after an SDK upgrade or any change to `delegation` in `config.py`.
 
 ## Running it
 
@@ -56,9 +92,15 @@ provable against a scripted fake runner (`tests/test_orchestrator.py`).
 
 ## Open
 
-- **Auth is unconfirmed** — see the note in CLAUDE.md. `auth.mode` defaults to `inherit`.
+- **Schema compliance is unmeasured.** No real sub-agent has yet been asked to return
+  the strict JSON contract. `retries_per_failed_task` is 1, so if the true malformed-return
+  rate is above a few percent that is a design problem, not a flake. Needs ~20 samples
+  across a couple of agent docs before trusting the retry budget.
 - **`max_context_bytes` is a guess at 60,000.** It has never been checked against a real
   brief. Revisit once a few have actually been sent.
+- **Quota, not dollars.** On subscription auth a trivial call reported ~$0.125 notional.
+  A five-delegation pipeline carrying real agent docs is not cheap in quota, and nothing
+  currently handles hitting a limit mid-pipeline.
 - **`max_turns` for the manager is unused.** The manager is code; its one model call is
   verify-only and takes a single turn. The cap stays in config in case a conversational
   manager loop is ever added.

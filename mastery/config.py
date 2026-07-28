@@ -60,38 +60,66 @@ class Delegation:
 
     model: str = "sonnet"
 
-    # Refused for every delegation. `Agent` enforces spawn_depth=1: a sub-agent
-    # that cannot call Agent cannot delegate. The rest keep a scoped task from
-    # reaching the network or the shell unless the brief asked for it.
-    denied_tools: tuple[str, ...] = ("Agent", "Task", "Bash", "Write", "Edit")
+    # Pre-approved: these run without prompting. This is an ALLOW list, not a
+    # restriction — see permission_mode below for what actually blocks things.
+    allowed_tools: tuple[str, ...] = ("Read", "Glob", "Grep")
+
+    # Hard-denied regardless of permission_mode. `Agent` is the one that
+    # enforces spawn_depth=1: a sub-agent with no Agent tool cannot delegate.
+    # Verified absent from the advertised tool set by scripts/probe.py.
+    denied_tools: tuple[str, ...] = ("Agent", "Bash", "Write", "Edit", "NotebookEdit")
 
     # Not loaded from `.claude/` or `~/.claude/`. An empty list means the SDK
     # does not auto-load CLAUDE.md, project settings, or user settings into a
-    # delegation — context is opt-in and assembled by hand.
-    setting_sources: tuple[str, ...] = ()
-
-    # No interactive prompts in a delegated run; unapproved calls are denied
-    # rather than blocking on a human who is not watching.
+    # delegation — context is opt-in and assembled by hand. Verified by
+    # scripts/probe.py against a control run.
     permission_mode: str = "dontAsk"
+    """Load-bearing. This is what makes a delegation read-only.
+
+    The SDK advertises its full tool set (~26 tools) to every delegation
+    regardless of `allowed_tools` — that field only pre-approves. Anything not
+    pre-approved is refused at call time *by this mode*, which is what keeps
+    WebSearch, WebFetch, SendMessage, and the scheduling tools out of reach.
+
+    Changing this to `acceptEdits` or `bypassPermissions` silently removes that
+    protection while `allowed_tools` still looks correct. scripts/probe.py
+    asserts a non-allowlisted tool is actually denied; run it after any change
+    here.
+    """
+
+    setting_sources: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
 class Auth:
-    """Which credential the SDK uses.
+    """Which credential the SDK uses. Asserted, never inherited.
 
-    The Agent SDK documents `ANTHROPIC_API_KEY` (and the cloud-provider env
-    vars). It does not document running on a Claude subscription credential,
-    and Anthropic's terms restrict offering claude.ai login to third parties.
-    `mode="inherit"` passes no auth env explicitly and lets the bundled binary
-    resolve whatever credential the invoking user already has — fine for a
-    single-operator system on Austin's own machine, not something to ship to
-    other people. `mode="api_key"` is the documented path.
+    An earlier version of this had an `inherit` mode that passed no auth env
+    and let the bundled binary resolve whatever the shell happened to have.
+    That is the wrong shape for this system: a set `ANTHROPIC_API_KEY` silently
+    shadows the Claude Code OAuth credential, so the same config would bill the
+    API account on one machine and the subscription on another, with no error
+    and no log line. That is the "silent billable fallback" CLAUDE.md forbids.
+
+    Both modes below therefore assert the environment matches the declared
+    intent, and fail loudly when it does not.
+
+      subscription — the Claude Code OAuth credential in ~/.claude/. Draws down
+                     the same budget as interactive Claude Code usage.
+      api_key      — metered API billing. Crosses the money gate; choose it
+                     deliberately, not by leaving a variable exported.
     """
 
-    mode: str = "inherit"  # "inherit" | "api_key"
+    mode: str = "subscription"  # "subscription" | "api_key"
     api_key_env: str = "ANTHROPIC_API_KEY"
 
     def env(self) -> dict[str, str]:
+        """Auth env for the delegation subprocess, after checking intent.
+
+        The SDK's `env` is additive over the inherited environment, so an
+        exported key cannot be unset from here — it can only be detected and
+        refused.
+        """
         if self.mode == "api_key":
             key = os.environ.get(self.api_key_env)
             if not key:
@@ -99,7 +127,19 @@ class Auth:
                     f"auth.mode is 'api_key' but {self.api_key_env} is unset"
                 )
             return {"ANTHROPIC_API_KEY": key}
-        return {}
+
+        if self.mode == "subscription":
+            if os.environ.get(self.api_key_env):
+                raise RuntimeError(
+                    f"auth.mode is 'subscription' but {self.api_key_env} is set in the "
+                    f"environment. It would shadow the OAuth credential and bill the API "
+                    f"account instead. Unset it, or set auth.mode='api_key' on purpose."
+                )
+            return {}
+
+        raise RuntimeError(
+            f"unknown auth.mode {self.mode!r}; want 'subscription' or 'api_key'"
+        )
 
 
 @dataclass(frozen=True)

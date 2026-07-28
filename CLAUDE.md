@@ -176,11 +176,11 @@ approval, recommended next step. The strict schema does not apply here.
 - FaithFeed is live on Google Play. Apple is planned, not started.
 - The system must stay usable from a VPS and a mobile shell.
 - There is no per-role model routing; `delegation.model` is global.
-- **Auth is unconfirmed.** The Agent SDK documents `ANTHROPIC_API_KEY`, and Anthropic's
-  terms restrict offering claude.ai login for products built on it. `auth.mode="inherit"`
-  (the default) passes no auth env and lets the bundled binary resolve whatever credential
-  the invoking user already has — fine for a single operator on his own machine, not
-  something to ship. `auth.mode="api_key"` is the documented path and bills separately.
-  Confirm which one this system actually runs on before the first billable run.
+- **Auth runs on the Claude Code OAuth credential** (`~/.claude/.credentials.json`),
+  verified working with claude-agent-sdk 0.2.128. `auth.mode="subscription"` asserts no
+  `ANTHROPIC_API_KEY` is present, because a set key would silently shadow OAuth and bill
+  the API account instead — the "silent billable fallback" this file forbids. Usage draws
+  down the same budget as interactive Claude Code, so it is quota, not dollars.
+  `auth.mode="api_key"` remains available and crosses the money gate deliberately.
 - Orchestrator code location: `mastery/`. Entry point `mastery.cli`; `mastery check`
   validates config, roster, and schemas without making a model call.

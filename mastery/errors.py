@@ -55,3 +55,13 @@ class RoutingError(OrchestratorError):
 
 class TaskTimeout(OrchestratorError):
     """A delegation exceeded task_timeout_seconds."""
+
+
+class DelegationFailed(OrchestratorError):
+    """The SDK ended a delegation without producing a result.
+
+    Turn exhaustion is the common case: `query()` raises rather than yielding a
+    ResultMessage when a sub-agent burns its turn budget. That is a normal
+    outcome, not a crash, so it is converted here into a task failure the
+    orchestrator can retry or report.
+    """

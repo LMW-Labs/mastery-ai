@@ -25,6 +25,7 @@ from .brief import TaskBrief
 from .config import Config
 from .errors import (
     CapExceeded,
+    DelegationFailed,
     GateHit,
     OrchestratorError,
     SchemaViolation,
@@ -127,9 +128,11 @@ class Orchestrator:
             try:
                 invocation = await delegate.run_task(current, self.runner, self.config)
                 result = parse_result(invocation.raw, expected_task_id=current.task_id)
-            except (SchemaViolation, TaskTimeout) as exc:
-                # Both are task failures. A schema violation is not repaired,
-                # and a timeout is not silently extended.
+            except (SchemaViolation, TaskTimeout, DelegationFailed) as exc:
+                # All three are task failures. A schema violation is not
+                # repaired, a timeout is not silently extended, and a delegation
+                # that ended without a result (turn exhaustion) is reported
+                # rather than crashing the run.
                 self.log.failure(
                     kind=type(exc).__name__, detail=str(exc), task_id=current.task_id
                 )
@@ -151,6 +154,9 @@ class Orchestrator:
                 agent=current.agent,
                 status=result.status.value,
                 duration_s=invocation.duration_s,
+                num_turns=invocation.num_turns,
+                cost_usd=invocation.cost_usd,
+                permission_denials=list(invocation.permission_denials),
             )
 
             action = result.action

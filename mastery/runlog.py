@@ -54,13 +54,33 @@ class RunLog:
             attempt=attempt,
         )
 
-    def delegation_end(self, *, task_id: str, agent: str, status: str, duration_s: float) -> None:
+    def delegation_end(
+        self,
+        *,
+        task_id: str,
+        agent: str,
+        status: str,
+        duration_s: float,
+        num_turns: int = 0,
+        cost_usd: float | None = None,
+        permission_denials: list | None = None,
+    ) -> None:
+        """Close out a delegation.
+
+        `permission_denials` is the guardrail's audit trail — every tool call
+        the permission layer refused. Normally empty; a non-empty list means a
+        sub-agent reached outside its allowlist, which is worth noticing in
+        production and not only when a probe goes looking.
+        """
         self.write(
             "delegation_end",
             task_id=task_id,
             agent=agent,
             status=status,
             duration_s=round(duration_s, 2),
+            num_turns=num_turns,
+            cost_usd=cost_usd,
+            permission_denials=permission_denials or [],
         )
 
     def verdict(self, *, task_id: str, verdict: str, reason: str) -> None:

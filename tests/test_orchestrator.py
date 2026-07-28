@@ -15,7 +15,8 @@ from pathlib import Path
 from mastery import pipelines
 from mastery.brief import ContextItem, build
 from mastery.config import Caps, Config
-from mastery.errors import CapExceeded
+from mastery.delegate import RunnerResult
+from mastery.errors import CapExceeded, DelegationFailed
 from mastery.orchestrator import Orchestrator, Outcome, summarize
 
 
@@ -39,21 +40,28 @@ def verdict_json(task_id="20260727-ff-014", verdict="accept", **overrides) -> st
 
 
 class ScriptedRunner:
-    """Returns queued replies in order and records every prompt it was sent."""
+    """Returns queued replies in order and records every prompt it was sent.
 
-    def __init__(self, replies: list[str]):
+    A queued item may be an Exception, which is raised instead of returned —
+    that is how SDK-level failures (turn exhaustion) are simulated.
+    """
+
+    def __init__(self, replies: list):
         self.replies = list(replies)
         self.prompts: list[str] = []
         self.system_prompts: list[str] = []
         self.max_turns: list[int] = []
 
-    async def run(self, *, system_prompt: str, prompt: str, max_turns: int) -> str:
+    async def run(self, *, system_prompt: str, prompt: str, max_turns: int) -> RunnerResult:
         self.prompts.append(prompt)
         self.system_prompts.append(system_prompt)
         self.max_turns.append(max_turns)
         if not self.replies:
             raise AssertionError("runner called more times than the test scripted")
-        return self.replies.pop(0)
+        reply = self.replies.pop(0)
+        if isinstance(reply, Exception):
+            raise reply
+        return RunnerResult(text=reply, num_turns=1)
 
 
 def a_brief(**overrides):
@@ -216,6 +224,57 @@ class TestFailureHandling(OrchestratorTestCase):
 
         self.assertIs(outcome.outcome, Outcome.ACCEPTED)
         self.assertIn("no JSON object found", runner.prompts[1])
+
+    async def test_turn_exhaustion_is_a_task_failure_not_a_crash(self):
+        """The SDK raises instead of returning a result when turns run out.
+
+        Observed against claude-agent-sdk 0.2.128: a sub-agent that burns its
+        turn budget raises rather than yielding a ResultMessage. That is an
+        ordinary outcome and must not take the run down.
+        """
+        orch, runner = self.orch(
+            [
+                DelegationFailed("delegation ended without a result: max turns (6)"),
+                result_json(),
+                verdict_json(),
+            ]
+        )
+        outcome = await orch.execute(a_brief())
+
+        self.assertIs(outcome.outcome, Outcome.ACCEPTED)
+        self.assertEqual(outcome.attempts, 2)
+        failures = [e for e in orch.log.read() if e["event"] == "failure"]
+        self.assertEqual(failures[0]["kind"], "DelegationFailed")
+
+    async def test_turn_exhaustion_twice_reports_cleanly(self):
+        orch, _ = self.orch(
+            [DelegationFailed("max turns"), DelegationFailed("max turns")]
+        )
+        outcome = await orch.execute(a_brief())
+
+        self.assertIs(outcome.outcome, Outcome.FAILED)
+        self.assertIn("max turns", outcome.detail)
+
+    async def test_permission_denials_reach_the_run_log(self):
+        """A sub-agent reaching outside its allowlist must be visible in prod."""
+
+        class DenyingRunner(ScriptedRunner):
+            async def run(self, **kw):
+                base = await super().run(**kw)  # keeps the scripted reply order
+                return RunnerResult(
+                    text=base.text,
+                    num_turns=2,
+                    cost_usd=0.12,
+                    permission_denials=({"tool_name": "WebSearch"},),
+                )
+
+        runner = DenyingRunner([result_json(), verdict_json()])
+        orch = Orchestrator(self.config, runner, run_id="test")
+        await orch.execute(a_brief())
+
+        end = next(e for e in orch.log.read() if e["event"] == "delegation_end")
+        self.assertEqual(end["permission_denials"], [{"tool_name": "WebSearch"}])
+        self.assertEqual(end["cost_usd"], 0.12)
 
     async def test_manager_revise_triggers_a_retry(self):
         orch, runner = self.orch(
