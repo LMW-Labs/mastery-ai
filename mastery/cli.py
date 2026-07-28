@@ -4,7 +4,9 @@ Deliberately thin, and usable from a VPS or a mobile shell — no TUI, no
 interactive prompts, output is plain text.
 
     mastery check                 validate config, roster, and schemas
+    mastery draft <request>       propose briefs from a raw request; runs nothing
     mastery run <brief.json>      run one delegation from a brief file
+    mastery verify <brief.json>   verify a delegation already in the run log
 """
 
 from __future__ import annotations
@@ -90,6 +92,44 @@ async def _run(config: Config, brief_path: Path) -> int:
     return 0 if outcome.accepted else 1
 
 
+async def _verify(config: Config, brief_path: Path, run_id: str | None) -> int:
+    """Verify a delegation that already ran, from the run log.
+
+    The delegation is the expensive half. When a manager-side fault loses the
+    verdict — a one-turn call that blew up, a crash after the return landed —
+    the work is still on disk and re-running the task would pay for it twice.
+    This runs the missing half only.
+
+    It is not a way around verification: the same prompt, the same schema, the
+    same three verdicts. The only thing it skips is repeating work already done.
+    """
+    from . import verdict as verdict_mod
+    from .delegate import run_verdict
+    from .runlog import recover_result
+
+    brief = _load_brief(brief_path)
+    found = recover_result(config.log_dir, brief.task_id, run_id=run_id)
+    if found is None:
+        where = f"run {run_id}" if run_id else str(config.log_dir)
+        print(f"no completed delegation for {brief.task_id} in {where}", file=sys.stderr)
+        return 2
+
+    result, source_run = found
+    print(f"verifying {brief.task_id} ({brief.agent}) from run {source_run}")
+    print(f"  returned status: {result.status.value}, {len(result.deliverables)} deliverable(s)")
+
+    invocation = await run_verdict(
+        verdict_mod.build_prompt(brief, result), SdkRunner(config), config
+    )
+    mv = verdict_mod.parse(invocation.raw, expected_task_id=brief.task_id)
+
+    print(f"\nverdict: {mv.verdict.value}")
+    print(f"reason : {mv.reason}")
+    if mv.revision_note:
+        print(f"revise : {mv.revision_note}")
+    return 0 if mv.accepted else 1
+
+
 async def _draft(config: Config, request: str, attachments: list[str], out: Path) -> int:
     """Turn a raw operator request into reviewable briefs. Never executes."""
     from . import drafter
@@ -152,6 +192,12 @@ def main(argv: list[str] | None = None) -> int:
     run_cmd = sub.add_parser("run", help="run one delegation from a brief file")
     run_cmd.add_argument("brief", type=Path)
 
+    verify_cmd = sub.add_parser(
+        "verify", help="run the manager verdict against a delegation already in the run log"
+    )
+    verify_cmd.add_argument("brief", type=Path)
+    verify_cmd.add_argument("--run", default=None, help="run id; defaults to the most recent")
+
     draft_cmd = sub.add_parser(
         "draft", help="turn a raw request into reviewable briefs (does not run them)"
     )
@@ -170,6 +216,8 @@ def main(argv: list[str] | None = None) -> int:
             return _check(config)
         if args.command == "run":
             return asyncio.run(_run(config, args.brief))
+        if args.command == "verify":
+            return asyncio.run(_verify(config, args.brief, args.run))
         if args.command == "draft":
             text = args.file.read_text(encoding="utf-8") if args.file else args.request
             if not text or not text.strip():

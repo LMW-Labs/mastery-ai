@@ -27,9 +27,27 @@ class Caps:
     max_delegations_per_request: int = 5
 
     # Reserved for a future conversational manager loop. The manager is currently
-    # code, not a model, so it takes no turns — see verdict.py for the one
-    # model call made on the manager's behalf (verify-only, single turn).
+    # code, not a model; the only model calls made on its behalf are the two
+    # below — verifying a return, and drafting a plan.
     max_manager_turns: int = 12
+
+    # delegate.run_verdict(): the verify-only invocation.
+    #
+    # This is a budget, not a guardrail. What makes the call safe is that it is
+    # handed no tools at all (`tools=()`) and cannot go looking for anything;
+    # the turn count only decides whether it gets to finish.
+    #
+    # It was 1, on the reasoning that checking a return against criteria is a
+    # single judgement. Measured, that is wrong twice over: a budget of 1 never
+    # returns a result, and turn usage is not deterministic — the same prompt
+    # failed at 3 and succeeded at 3 on consecutive runs. A verdict that dies
+    # here destroys a completed delegation, so the budget is set well clear of
+    # the observed range rather than trimmed to it.
+    verdict_turns: int = 6
+
+    # delegate.run_draft(): proposing a plan. Larger because the output is a
+    # whole structured plan, not one verdict.
+    draft_turns: int = 8
 
     # delegate.run_task(): passed to ClaudeAgentOptions.max_turns.
     max_subagent_turns: int = 6

@@ -112,3 +112,42 @@ class RunLog:
             for line in self.path.read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
+
+
+def recover_result(log_dir: Path, task_id: str, *, run_id: str | None = None):
+    """Rebuild the last returned result for a task from the log.
+
+    `delegation_end` records every field of the return, so a delegation that
+    completed is recoverable even if the run died afterwards. That matters
+    because the expensive half is the delegation: when a manager-side fault
+    loses the verdict, re-running the task would pay twice for one result.
+
+    Returns None when the task has no completed delegation on record — a run
+    that died mid-delegation genuinely has nothing to recover, and inventing
+    something here would be exactly the fabricated success the project forbids.
+    """
+    from .schema import Status, TaskResult  # noqa: PLC0415 — avoids an import cycle
+
+    logs = sorted(log_dir.glob("*.jsonl"), key=lambda p: p.stat().st_mtime)
+    if run_id is not None:
+        logs = [p for p in logs if p.stem == run_id]
+
+    for path in reversed(logs):  # newest first
+        records = RunLog(path=path, run_id=path.stem).read()
+        for record in reversed(records):
+            if record.get("event") != "delegation_end":
+                continue
+            if record.get("task_id") != task_id:
+                continue
+            return (
+                TaskResult(
+                    task_id=record["task_id"],
+                    status=Status(record["status"]),
+                    summary=record.get("summary", ""),
+                    deliverables=tuple(record.get("deliverables") or ()),
+                    risks=tuple(record.get("risks") or ()),
+                    next_step=record.get("next_step", ""),
+                ),
+                path.stem,
+            )
+    return None

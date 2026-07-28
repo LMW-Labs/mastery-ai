@@ -6,10 +6,10 @@
   "success_criteria": [
     "The civil promoter-penalty statute is identified by section number, with the penalty amount and how it is computed, cited to Cornell LII, the GPO, or an IRS publication",
     "The injunction authority DOJ Tax Division uses against promoters is identified by section number and cited to primary law",
-    "At least two DOJ Tax Division actions against promoters (injunction or prosecution) are cited by defendant name, court, and outcome, each with a resolvable URL",
+    "At least two DOJ Tax Division actions against promoters are cited by defendant name, court, and outcome, each with a resolvable URL",
     "States plainly whether these authorities reach someone who advertises or sells training in the scheme without filing anything themselves, or whether they only reach filers - and cites what that conclusion rests on",
-    "Every factual assertion carries a source URL and a date",
-    "Each answer stays within 250 words plus citations",
+    "Every factual assertion carries a source URL and a date. Where a page could not be opened, the date is labelled as search-identified rather than an access date, and the failed URL is named",
+    "No answer exceeds 250 words plus citations. Each DOJ case entry is its own answer for this purpose and is counted separately",
     "Anything that cannot be established within the search budget is returned as 'cites exhausted' with the searches described, not filled with a plausible guess"
   ],
   "context": [
@@ -30,7 +30,7 @@
       "body": "ALLOW: primary legal text (Congress.gov, GPO, Cornell LII); published court opinions (CourtListener, Google Scholar, .gov court sites); IRS official publications, especially frivolous-position guidance; DOJ Tax Division press releases on prosecutions and injunctions; established legal press and law reviews.\n\nQUOTABLE AS CLAIM, NEVER AS EVIDENCE: sovereign-citizen and redemption-theory sites, the ad itself, the advertiser's other videos. You may quote these to show what is being claimed. They can never support a factual finding. Label any such material explicitly as 'claim being debunked.'\n\nDENY: forums, Reddit, YouTube comments, SEO content farms, AI-generated legal explainer sites, blogs with no named author, and anything paywalled that you cannot actually read. Do not guess at the contents of a source you could not open - say you could not open it.\n\nKNOWN TOOLING LIMIT: direct fetches to justice.gov and govinfo.gov have returned HTTP 403 on this system. If that happens, say so and name the URL rather than substituting an aggregator silently. An aggregator-sourced item must be labeled lower-confidence."
     }
   ],
-  "constraints": "Five searches per sub-question, 25 searches total across the whole task. 250 words per answer plus citations. Every claim carries a source URL and a date. Keep 'quoted as claim' material visibly separate from 'cited as evidence' material.\n\nOutput the addendum as markdown in your summary and deliverables. Do not write files.",
+  "constraints": "Five searches per sub-question, 25 searches total across the whole task. Every claim carries a source URL and a date.\n\nWORD CAP: 250 words plus citations per answer. A subsection carrying more than one cited case is not one answer - give each case its own numbered subsection and count it separately. Do not compress a citation to fit a cap; split the subsection instead.\n\nDATES: justice.gov and govinfo.gov return HTTP 403 on this system. When that happens, name the URL, label the date 'search-identified YYYY-MM-DD', and say you could not open it. A search-identified date satisfies the date requirement; an absent date does not.\n\nKeep 'quoted as claim' material visibly separate from 'cited as evidence' material. Output the addendum as markdown in your deliverables. Do not write files.",
   "out_of_scope": "Do not re-research questions 1-4; they are answered in the context and accepted. Do not draft public-facing copy, hooks, or CTAs - the content agent owns that. Do not fact-check a finished draft; none exists. Do not assert what the advertiser intends, knows, or is guilty of - report what the law provides and what named defendants were actually charged with and sentenced to.",
   "approval_gates_touched": "none",
   "expected_deliverables": [

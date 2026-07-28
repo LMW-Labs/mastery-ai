@@ -197,7 +197,38 @@ class Orchestrator:
 
             # complete or partial: the manager still verifies. A `complete`
             # status is a claim, not a clearance — see verdict.py.
-            mv = await self._verify(current, result)
+            try:
+                mv = await self._verify(current, result)
+            except (SchemaViolation, TaskTimeout, DelegationFailed) as exc:
+                # The verification failed, not the task. The delegation is
+                # already done and paid for, so the work must survive — before
+                # this was caught, a one-turn verdict call blowing up took a
+                # 30-turn research run down with it and the only copy left was
+                # the run log.
+                #
+                # It is still not an accept: an unverified return has not been
+                # checked against its criteria, and this is the one place that
+                # check happens. Report it as failed, attach the work, and name
+                # verification as the cause so it is not mistaken for the
+                # sub-agent's failure. No retry — re-running the delegation
+                # would pay for the same work twice to fix a manager-side fault.
+                self.log.failure(
+                    kind=f"verification/{type(exc).__name__}",
+                    detail=str(exc),
+                    task_id=result.task_id,
+                )
+                return DelegationOutcome(
+                    Outcome.FAILED,
+                    result.task_id,
+                    current.agent,
+                    result=result,
+                    detail=(
+                        f"the task returned {result.status.value}, but the manager "
+                        f"verdict could not be produced: {exc}. The work is attached "
+                        f"and logged; it has not been verified against the brief."
+                    ),
+                    attempts=attempt,
+                )
 
             if mv.verdict is Verdict.ACCEPT:
                 return DelegationOutcome(

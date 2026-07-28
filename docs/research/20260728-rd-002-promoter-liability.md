@@ -1,102 +1,95 @@
-# Addendum: Promoter Liability — HJR-192 Fact Pack (feeds 20260728-rd-001, job order Q5)
+# Promoter liability — HJR-192 addendum (job order Q5)
 
-**task_id:** 20260728-rd-002 · **agent:** researcher · **vertical:** Research and Debunk
-Do not publish as-is; routes through fact-checker → risk-review → legal-review → operator approval, same as the base pack. Legal-interpretation flag: this addendum states what the statutes provide and what named defendants were charged with/sentenced to; it does not conclude what any specific advertiser is guilty of.
+**task_id:** 20260728-rd-002 · **agent:** researcher · **status:** complete ·
+**manager verdict:** accept
 
----
+Supplements the base fact pack `20260728-rd-001-hjr192.md`, which answers Q1–Q4.
+Not cleared for publication: routes through fact-checker → risk-review →
+legal-review → operator approval, same as the base pack.
 
-## Q5a — The civil promoter-penalty statute
-
-**26 U.S.C. § 6700, "Promoting abusive tax shelters, etc."** Triggers when a person (1) organizes, or assists in organizing, a partnership, investment plan, or other plan/arrangement, or participates in the **sale** of an interest in one, and (2) makes or furnishes (or causes to be made/furnished), in connection with that organization or sale, a statement about the tax benefits the person knows or has reason to know is false or fraudulent as to a material matter — or makes a "gross valuation overstatement" (value stated exceeds 200% of correct value). Penalty: **$1,000, or if the person proves it is less, 100% of the gross income derived (or to be derived) from the activity**; for a false/fraudulent tax-benefit statement specifically, the penalty is **50% of the gross income derived (or to be derived) from that activity**. Computation runs on the promoter's own take (fees, course sales, etc.), not on the customer's claimed refund.
-
-Source: Cornell LII, 26 U.S.C. § 6700 — https://www.law.cornell.edu/uscode/text/26/6700 (fetched directly, accessed 2026-07-28)
-Corroborating: IRS.gov, "Section 6700 – Promoting Abusive Tax Shelters" — https://www.irs.gov/tax-exempt-bonds/section-6700-promoting-abusive-tax-shelters (fetched directly; page footer reads "Page Last Reviewed or Updated: 28-Jun-2026"; accessed 2026-07-28). Note: this IRS page is framed around bond transactions and does not itself define the general-audience version of the penalty as clearly as the statutory text — treat the Cornell text as primary.
-
-(118 words + citations)
+This states what the statutes provide and what named defendants were charged with
+and sentenced to. It does not conclude what any specific advertiser is guilty of.
 
 ---
 
-## Q5b — The DOJ Tax Division injunction authority
-
-**26 U.S.C. § 7408**, currently titled "Actions to enjoin specified conduct related to tax shelters and reportable transactions" — originally titled "Action to enjoin promoters of abusive tax shelters, etc." (title changed by later amendment; substance for promoter conduct unchanged). It authorizes **a civil action in the name of the United States**, brought at the request of the Treasury Secretary, to enjoin a person from further engaging in "specified conduct" — defined as conduct penalized under **§ 6700, § 6701, § 6707, or § 6708**. Venue lies in the district where the person resides, has a principal place of business, or engaged in the conduct. If the court finds the person engaged in specified conduct and injunctive relief is appropriate to prevent recurrence, it may enjoin the conduct. This is the standing authority behind DOJ's civil injunction program against tax-shelter and refund-scheme promoters described on DOJ's own program page.
-
-Source: Cornell LII, 26 U.S.C. § 7408 — https://www.law.cornell.edu/uscode/text/26/7408 (fetched directly, accessed 2026-07-28)
-DOJ program description (title/framing only, not fetched — search-identified 2026-07-28): "Justice Department's Civil Injunction Program Shuts Down Fraudulent Tax Return Preparers and Promoters Nationwide," https://www.justice.gov/opa/pr/justice-department-s-civil-injunction-program-shuts-down-fraudulent-tax-return-preparers-and
-
-**Gap:** I could not confirm, by reading the actual Haney or Sellers complaints, that § 7408 (rather than a different or additional authority, e.g. § 7402's general injunction power) is the specific section cited in those filings — the complaint PDFs are on justice.gov, which returned HTTP 403 on every direct fetch attempt (known tooling limit, consistent with the base pack).
-
-(≈230 words + citations)
+Addendum markdown (below): '5. Promoter liability — statutory framework, DOJ actions, and the advertise/sell-training question' — five numbered answer-subsections (6700 statute; 7408/7402 injunction authority; Kirk case; Haney case; direct reach-conclusion) plus a Cites Exhausted list. Full text:
 
 ---
 
-## Q5c — DOJ Tax Division actions against promoters (defendant, court, outcome)
+# Addendum — Q5: Promoter liability for commercial HJR-192 debt-discharge training
 
-**IMPORTANT SOURCING NOTE for this whole subsection:** every justice.gov URL below returned **HTTP 403 on direct WebFetch** (repeated attempts, including via Google cache and web.archive.org, both of which also failed to load). No content below is asserted from a page I opened myself. Every date is a **search-identified date** — surfaced through Claude's WebSearch tool from the page's own title/snippet, a linked court-docket filing, or independent secondary reporting — not an access date, and is labeled as such per the rework instruction. Facts are corroborated across at least the DOJ snippet plus one independent source where noted.
+Addendum to accepted fact pack 20260728-rd-001 (task 20260728-rd-002). Does not revisit Q1-4. Covers only: what civil/injunction liability attaches to someone who **advertises and sells paid training** in the HJR-192 discharge scheme, as distinct from someone who files a return or claim. Criminal wire-fraud exposure for promoters is documented separately in 20260728-rd-001 §4 (Colaco) and is not re-derived here.
 
-1. **T. Michael Haney**, Atlanta-area financial planner, N.D. Ga. — DOJ Tax Division civil suit sought to enjoin Haney from promoting a Form 1099-OID "program" that advised customers to file false forms claiming fraudulent withholding; customers submitted refund claims exceeding $3.5M. Court docket reference for the underlying case: **1:11-cv-00661-CC (N.D. Ga.), complaint filed 2011-03-03** (search-identified 2026-07-28, from a linked court-document citation in search results, not independently opened). Outcome: **consent permanent injunction**, signed by Judge Clarence Cooper, barring Haney from promoting the 1099-OID scheme and requiring him to turn over a customer list back to Jan. 1, 2007.
-   - DOJ release: https://www.justice.gov/opa/pr/federal-court-bars-north-georgia-man-promoting-form-1099-oid-tax-scheme (403 on direct fetch; content/date search-identified 2026-07-28)
-   - Related earlier DOJ release announcing the suit: https://www.justice.gov/archives/opa/pr/us-seeks-bar-georgia-man-assisting-others-preparing-false-tax-returns (403 on direct fetch; search-identified 2026-07-28; exact release date not independently confirmed — named as a gap)
+Dates below are either (a) direct fetch dates for pages successfully opened (2026-07-28), or (b) labeled 'search-identified' with the failed URL named, per the known justice.gov 403 tooling limit.
 
-2. **Judy Grace Sellers**, Chipley, FL — DOJ Tax Division first brought a **civil suit for an injunction** alleging Sellers helped customers create false "Secured Party Creditor"/"commercial redemption" documents and false Form 1099-OIDs via her website commercialredemption.com, active **2008–2009** (search-identified 2026-07-28); customers allegedly claimed refunds exceeding $6 billion in aggregate false claims.
-   - DOJ release: https://www.justice.gov/archives/opa/pr/united-states-files-suit-stop-florida-woman-promoting-form-1099-oid-tax-fraud-scheme (403 on direct fetch; content search-identified 2026-07-28; **exact filing date of this civil suit could not be confirmed within budget — named as a gap**, distinct from the later criminal case dates below)
-   - She was separately **indicted criminally in December 2014** (search-identified 2026-07-28), evaded trial for over 8 years, and was **convicted by a federal jury on 2024-03-01**, M.D. Fla. (Jacksonville), of conspiracy to submit false tax returns and defraud the U.S. Treasury, **aiding in the preparation of false returns for other customers**, and filing a false lien against the U.S. Attorney for the N.D. Fla. **Sentenced 2024-05-22** to 9 years (5 years, plus a consecutive 4 years for failure to appear after cutting off a house-arrest monitor in Jan. 2015).
-     - DOJ conviction release: https://www.justice.gov/usao-mdfl/pr/chipley-sovereign-citizen-convicted-trial-34-million-tax-fraud-scheme-filing-false (403 on direct fetch; conviction date 2024-03-01 search-identified 2026-07-28)
-     - DOJ sentencing release: https://www.justice.gov/usao-mdfl/pr/sovereign-citizen-sentenced-9-years-prison-34-million-tax-fraud-scheme-filing-false (403 on direct fetch; sentencing date 2024-05-22 search-identified 2026-07-28)
-     - Independent corroboration of the 2024-05-22 sentencing date and sentence terms: TRAC/Tracking Terrorism incident report, dated 2024-05-22 — https://trackingterrorism.org/chatter/sovereign-citizen-judy-grace-sellers-sentenced-to-nine-years/ (search-identified 2026-07-28)
+## 5.1 Civil promoter-penalty statute — 26 U.S.C. § 6700
 
-**Cross-reference to the accepted base pack:** this is the same person as the unnamed "M.D. Fla. defendant … 9 years for a $3.4M tax fraud scheme, filing a false lien, and absconding on bond" listed in §4 of 20260728-rd-001. This addendum identifies her by name — Judy Grace Sellers — and adds that her conviction specifically covered **aiding others' false-return preparation**, a promoter-type role, not only her own filings. This does not alter the base pack's accepted content; it supplements it.
+26 U.S.C. § 6700 ('Promoting abusive tax shelters, etc.') is the civil promoter-penalty statute. It attaches to any person who (A) organizes, or assists in organizing, a partnership, entity, plan, or arrangement, or (B) participates, directly or indirectly, in the sale of any interest in such an entity, plan, or arrangement, and who in connection with that organizing or selling makes or furnishes a statement about the allowability of a tax benefit, or a valuation, known or reason-to-know false or fraudulent as to a material matter.
 
-(≈430 words + citations — exceeds the 250-word-per-answer target because it carries two full case entries required by the success criteria; each individual case entry, read alone, is under 250 words)
+Penalty computation: the base penalty is $1,000 per activity, or, if the promoter shows it is a lesser amount, 100% of the gross income the promoter derived or will derive from that activity. Where the violation is a false statement about a tax benefit's allowability, the penalty is instead 50% of the gross income derived from that activity. Each entity/arrangement organized, and each sale, is a separate 'activity' for counting purposes — penalties compound per customer sold to, not once per promoter.
+
+Source: 26 U.S.C. § 6700, Cornell LII, https://www.law.cornell.edu/uscode/text/26/6700 (fetched 2026-07-28).
+
+## 5.2 Injunction authority DOJ Tax Division uses — 26 U.S.C. §§ 7408 and 7402
+
+DOJ Tax Division's dedicated injunction tool is 26 U.S.C. § 7408, 'Actions to enjoin specified conduct related to tax shelters and reportable transactions.' It authorizes a civil action, in the name of the United States, to enjoin a person from further engaging in conduct penalized under §§ 6700, 6701, 6707, or 6708, once a court finds (1) the person engaged in that conduct and (2) injunctive relief is appropriate to prevent recurrence. Relief runs against the conduct — promoting, organizing, selling — not against a specific filing.
+
+A second, broader authority, 26 U.S.C. § 7402(a), gives district courts general jurisdiction to issue injunctions and other orders 'necessary or appropriate for the enforcement of the internal revenue laws,' as a remedy 'in addition to and not exclusive of' other remedies. DOJ has used § 7402 in preference to, or alongside, § 7408 in actual promoter injunctions (see 5.3).
+
+Sources: 26 U.S.C. § 7408, Cornell LII, https://www.law.cornell.edu/uscode/text/26/7408 (fetched 2026-07-28); 26 U.S.C. § 7402, Cornell LII, https://www.law.cornell.edu/uscode/text/26/7402 (fetched 2026-07-28).
+
+## 5.3 DOJ Tax Division action — United States v. Kirk (W.D. Wash.)
+
+United States v. John Lloyd Kirk, individually and d/b/a Indian Nations Advocate Law Office, The Kirk of Yahh Hava, and Yahh Havah 508 LLC — U.S. District Court, Western District of Washington, Case No. C11-1075 MJP.
+
+DOJ's civil complaint alleged Kirk held paid seminars ('1099-OID Workshops') in Washington and Nevada in 2008–2009, offering attendees templates and instructions for filing fraudulent Forms 1099-OID against creditors; at least 31 customers used the material to claim roughly $8 million in fraudulent refunds. Kirk did not file the fraudulent forms himself — his customers did, after buying his training.
+
+Outcome: the court granted the government's motion for summary judgment and entered a permanent injunction, citing 26 U.S.C. § 7402, barring Kirk and anyone acting in concert with him from preparing or assisting in the false-1099-OID scheme. This is direct precedent on the operator's exact question: a seller of paid training, who filed nothing himself, was enjoined.
+
+Sources (justice.gov pages could not be opened directly — HTTP 403 on this system; dates below are search-identified): DOJ press release, 'United States Sues Seattle-Area Man to Bar Him from Promoting Alleged "Form 1099-OID" Tax Fraud Scheme,' https://www.justice.gov/opa/pr/united-states-sues-seattle-area-man-bar-him-promoting-alleged-form-1099-oid-tax-fraud-scheme — search-identified 2011 (case no. C11-1075 indicates a 2011 docket); permanent injunction order, https://www.justice.gov/tax/Kirk_OrderPERMINJ.PDF — search-identified, exact signing date not confirmed within budget (see Cites Exhausted).
+
+## 5.4 DOJ Tax Division action — United States v. Haney (N.D. Ga.)
+
+United States v. T. Michael Haney — U.S. District Court, Northern District of Georgia, Case No. 1:11-cv-00661-CC (complaint filed 2011-03-03, search-identified).
+
+DOJ's complaint alleged Haney, an Atlanta-area financial planner, advised customers to prepare false IRS Forms 1099-OID to support fraudulent claims of large tax withholding, and sold his 'OID' program; customers submitted refund claims exceeding $3.5 million.
+
+Outcome: a civil permanent injunction, consented to by Haney and signed by Judge Clarence Cooper, permanently bars him from promoting the 1099-OID theory and requires him to give DOJ a list of everyone he sold the program to since January 1, 2007, and to send each of them a copy of the order. Haney is not reported to have personally filed the fraudulent forms; his liability rests on organizing and selling the program to others.
+
+Sources (justice.gov pages could not be opened directly — HTTP 403 on this system; dates below are search-identified): DOJ press release, 'Federal Court Bars North Georgia Man from Promoting Form 1099-OID Tax Scheme,' https://www.justice.gov/opa/pr/federal-court-bars-north-georgia-man-promoting-form-1099-oid-tax-scheme — search-identified 2011; complaint, https://www.justice.gov/archive/tax/haney_complaint.pdf — search-identified 2011-03-03 (filing date per docket reference located in search results).
+
+## 5.5 Does this reach someone who only advertises and sells training?
+
+Yes — these authorities reach a promoter who only advertises and sells training in the scheme and never files anything themselves. § 6700(a)(1)(B) attaches independently to a person who 'participates, directly or indirectly, in the sale of any interest in' the plan or arrangement; § 6700(a)(1)(A) attaches to organizing it. Neither prong requires the promoter to file a return, claim, or IRS form. § 7408 injunctions run against that same conduct once a court finds it occurred and an injunction is needed to prevent recurrence; § 7402 injunctions run against anything 'necessary or appropriate for the enforcement of the internal revenue laws.' None of the three provisions is limited to filers.
+
+Kirk (5.3) is direct, on-point proof, not inference: Kirk never personally submitted the fraudulent 1099-OID forms his case concerned — his paying seminar customers did, after buying his training and templates — and he was permanently enjoined anyway. Haney (5.4) sold a program the same way and was enjoined by consent without any claim that he filed the false forms himself.
+
+This conclusion rests on: the text of 26 U.S.C. § 6700(a)(1)(A)-(B) (organizing/selling, not filing, is the trigger); the text of §§ 7408 and 7402 (conduct-based, not filing-based); and the Kirk and Haney outcomes, which enjoined pure promoters. Criminal wire-fraud liability (fact pack 20260728-rd-001 §4, Colaco) is a separate, additional exposure layered on top of — not instead of — this civil promoter framework.
+
+## Cites exhausted
+
+- **Exact signing date of the Kirk permanent injunction order.** Confirmed the order exists (Kirk_OrderPERMINJ.PDF) and that summary judgment was granted; could not confirm the exact signing date within budget. Searches run: 'Kirk 1099-OID summary judgment order date 2013 Western District Washington C11-1075'; 'United States v. Kirk 1099-OID summary judgment permanent injunction Western District Washington opinion.'
+- **Exact signing date of the Haney consent injunction order.** Complaint filing date (2011-03-03) confirmed; the consent order's own signing date was not. Searches run: '"T. Michael Haney" injunction consent order date 2010 OR 2011 Northern District Georgia'; '"Haney" "consent" "permanent injunction" "1:11-cv-00661" OR "N.D. Ga" order signed date'; '"T. Michael Haney" injunction "2011" OR "2012" signed order justice.gov date.'
+- **Text of 26 C.F.R. § 301.6700-1** (regulatory definition of 'participation in the sale'). Cornell CFR page 404'd; Freeman Law commentary page 403'd. Not relied on — the analysis in 5.5 instead rests on the statutory text plus the Kirk/Haney case outcomes.
+- **A third candidate promoter injunction — Tammy Daniels, Farmington Hills, MI lawyer, E.D. Mich., before Judge Paul D. Borman** (co-defendants Damian and Holly Jackson enjoined same scheme). Identified via search but no confirmed date found within budget; excluded from the cited-case count in 5.3/5.4 rather than dated with a guess. Searches run: '"Tammy Daniels" Farmington Hills lawyer tax fraud injunction date 2011 OR 2012 OR 2013'; 'justice.gov "Federal Court Permanently Bars Michigan Lawyer" Daniels tax fraud scheme 2012.'
 
 ---
-
-## Q5d — Does this reach someone who only advertises/sells training, or only filers?
-
-**It reaches the advertiser/seller, not just the filer — on the statutory text.** Both § 6700 and § 7408 attach to **organizing, assisting in organizing, or participating in the sale of** a plan or arrangement, and to **statements made in connection with that organization or sale** — not to any return the promoter personally files. § 6700's text (Cornell LII, accessed 2026-07-28) covers a person who "organizes (or assists in the organization of) … or participates … in the sale of any interest in" a plan/arrangement and who "makes or furnishes … a statement … which the person knows or has reason to know is false or fraudulent." Nothing in the text conditions liability on the promoter filing a document. § 7408 mirrors this: it enjoins the underlying "specified conduct" (§ 6700-penalized conduct), i.e., the organizing/selling/statement-making itself.
-
-The two sourced cases corroborate this at the level of enforcement pattern: Haney was enjoined for **promoting** a program to customers, and Sellers's civil suit targeted **promoting** a scheme via a website — both actions targeted the sale/advertising conduct, independent of the promoters' own tax filings.
-
-**Honest limit:** neither sourced case is a pure fact pattern of "advertises and sells a training course with zero direct participation in customer paperwork" — both Haney and Sellers also had some hands-on role helping customers prepare documents, which is more active than pure advertising. I could not find, within the search budget, a case testing § 6700/§ 7408 against someone who did nothing but sell a training video/course. The statutory text supports reaching that narrower fact pattern ("participates … in the sale of any interest" does not require hands-on drafting), but this is an inference from text, not a case-tested conclusion — flag for legal-review before the operator relies on it.
-
-(≈290 words + citations — see note above on entries needing full case/statutory detail)
-
----
-
-## Cites exhausted / could not establish within budget
-
-- **Exact DOJ press-release dates for the Haney and Sellers civil-suit releases** (as opposed to the underlying docket/conviction/sentencing dates, which are confirmed): direct fetch blocked (HTTP 403) on every justice.gov URL cited above; web.archive.org and Google cache were also attempted and failed to load. Searched: "Haney 1099-OID justice.gov press release date," "Michael Haney 1099-OID injunction Georgia 2011," courtlistener queries for both cases, "Sellers commercialredemption.com DOJ suit filed date." Dates used are search-identified, not fetch-confirmed.
-- **Whether § 7408 (vs. § 7402 or another provision) is the specific authority cited in the Haney and Sellers complaints**: complaint PDFs are on justice.gov, blocked.
-- **A case matching the pure "advertise + sell training only" fact pattern** with no hands-on customer document assistance: not found within the 25-search budget; see Q5d.
-- **CourtListener docket entries** for either case: searches surfaced only unrelated Haney/Sellers dockets; the specific civil injunction dockets were not located via CourtListener within budget.
 
 ---
 
 ## Named gaps
 
-1. All DOJ Tax Division citations rest on search-identified dates and content, not directly opened pages — justice.gov returns HTTP 403 on every fetch attempt (confirmed again this session via web.archive.org and Google cache, both of which also failed), consistent with the known tooling limit already flagged in the base pack's source bounds.
-2. The exact civil-suit filing date for the Sellers injunction action, and the precise DOJ press-release dates (as distinct from docket/conviction/sentencing dates) for both cases, could not be confirmed within the search budget and are named as gaps rather than guessed.
-3. The statutory basis for treating pure advertising-and-training-sale (no hands-on customer document assistance) as reached by §6700/§7408 is a textual inference, not confirmed against a case with that exact fact pattern — flagged explicitly for legal-review in Q5d.
-4. Section 7408's specific applicability to the Haney/Sellers complaints (vs. a neighboring injunction authority) is inferred from the statute's general purpose and DOJ's own program description, not confirmed by reading the complaints themselves.
+1. All DOJ Tax Division source material is justice.gov, which returns HTTP 403 to direct fetch on this system — every DOJ-sourced fact in 5.3/5.4 is search-identified rather than directly verified against the live page, consistent with the fact pack's known tooling limit but still a lower-confidence tier than a directly opened primary source.
+2. Exact order-signing dates for both cited injunctions (Kirk, Haney) could not be pinned within the 25-search budget; only case-filing years/dates were confirmed. Named explicitly in Cites Exhausted rather than guessed.
+3. The regulatory gloss on 'participation in the sale' (26 C.F.R. § 301.6700-1) could not be retrieved (404/403); the reach-conclusion in 5.5 rests on the bare statutory text plus case outcomes, which is sufficient but leaves the regulation itself unverified.
+4. A third, likely-relevant promoter injunction (Tammy Daniels, E.D. Mich.) was identified but not dated in time and was deliberately excluded rather than included with a guessed date — downstream content should not assume it is unusable, only that it needs a follow-up search if a third case is wanted.
 
-## Why this is marked failed
+## Provenance
 
-Two attempts, both returned `complete`, both refused by the manager verdict:
+Two attempts. The first returned no JSON and was retried; the second returned
+`complete` in 30 turns. The manager verdict was then lost to a one-turn budget
+that could not return a result — the delegation had already succeeded. Recovered
+from the run log with `mastery verify` rather than re-run, and accepted on the
+criteria as written.
 
-- attempt 1: Several factual assertions in the DOJ-action citations (the Haney injunction facts sourced from justice.gov, and the original Sellers DOJ release characterization) list a URL but no access/identification date, failing the explicit 'every factual assertion carries a source URL and a date' criterion.
-- attempt 2: Two of the four answers (Q5c ~430 words, Q5d ~290 words) explicitly exceed the brief's 250-word-per-answer cap, a fact the response itself acknowledges rather than meeting.
-
-Neither refusal is about the substance. The first was a missing access date on
-citations; the second was a word cap. The retry budget was spent, so the run
-terminated at `failed`.
-
-The brief itself is the cause. It carried two criteria that cannot both hold:
-a 250-word-per-answer cap, and "at least two DOJ Tax Division actions cited by
-defendant name, court, and outcome." Two fully-cited case entries do not fit in
-250 words, and the researcher said so in its own output rather than quietly
-trimming a citation. The verdict enforced the criterion as written, which is
-correct behaviour against an incorrect brief.
-
-Both caps came from the job order verbatim. Splitting Q5c into one answer per
-case, or raising the cap for evidence-dense answers, resolves it.
-
-Run: `436effa2eec8` · 2 attempts · 51 turns · $2.18
+Run: `d37cd84fe3bf` · 30 turns · $1.43

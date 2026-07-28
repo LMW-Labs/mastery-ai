@@ -104,7 +104,7 @@ class Runner(Protocol):
         system_prompt: str,
         prompt: str,
         max_turns: int,
-        tools: tuple[str, ...] = (),
+        tools: tuple[str, ...] | None = None,
     ) -> RunnerResult: ...
 
 
@@ -120,7 +120,7 @@ class SdkRunner:
         system_prompt: str,
         prompt: str,
         max_turns: int,
-        tools: tuple[str, ...] = (),
+        tools: tuple[str, ...] | None = None,
     ) -> RunnerResult:
         # Imported here so the rest of the package works without the SDK
         # installed — tests, schema validation, and brief assembly do not need it.
@@ -138,7 +138,16 @@ class SdkRunner:
             # Pre-approved only, and per agent — a researcher needs the web, a
             # content agent must not have it. What blocks everything else is
             # permission_mode; see the note on that field in config.py.
-            allowed_tools=list(tools or d.allowed_tools),
+            #
+            # `None` means "unspecified, use the default"; `()` means "none, on
+            # purpose". These are not the same, and conflating them was a real
+            # bug: `tools or d.allowed_tools` treated the empty tuple as falsy,
+            # so every manager and verdict call — documented here and in
+            # CLAUDE.md as no-tools — was handed the full default allowlist.
+            # A verdict call then spent its single turn reaching for a tool and
+            # died with "Reached maximum number of turns (1)", destroying the
+            # completed delegation it was supposed to be verifying.
+            allowed_tools=list(d.allowed_tools if tools is None else tools),
             disallowed_tools=list(d.denied_tools),
             permission_mode=d.permission_mode,
             # Empty: no CLAUDE.md, no project settings, no user settings.
@@ -213,7 +222,8 @@ async def run_manager(
 
     Both current uses — verifying a return, and drafting a plan — are judgement
     on material already in the prompt. Neither looks anything up, so neither
-    gets tools, and one turn is enough.
+    gets tools. Callers pass `tools=()` explicitly: `None` means "use the
+    default allowlist", which is not what a manager call wants.
     """
     started = time.monotonic()
     try:
@@ -249,18 +259,30 @@ DRAFT_SYSTEM_PROMPT = (
 
 
 async def run_draft(prompt: str, runner: Runner, config: Config) -> Invocation:
-    # More than one turn: the plan is a large structured object, and a denied
-    # tool attempt costs a turn. One turn is enough for a verdict, not for this.
+    # The plan is a large structured object and needs room. Low budgets are not
+    # a guardrail here — `tools=()` is — and a budget of 1 does not return a
+    # result at all; see the note in run_verdict.
     return await run_manager(
-        prompt, runner, config, system_prompt=DRAFT_SYSTEM_PROMPT, max_turns=8
+        prompt, runner, config, system_prompt=DRAFT_SYSTEM_PROMPT,
+        max_turns=config.caps.draft_turns,
     )
 
 
 async def run_verdict(prompt: str, runner: Runner, config: Config) -> Invocation:
     """The manager's verify-only invocation.
 
-    One turn, no tools. The manager is checking a return against the brief's
-    criteria — it has nothing to look up.
+    No tools — that is the guardrail, and it is now enforced directly by passing
+    `tools=()` rather than inferred from a turn budget.
+
+    The budget is 3, not 1. "One turn" was a proxy for "it has nothing to look
+    up", and it was a bad one: `max_turns=1` never returns a result at all. The
+    CLI's own accounting makes a budget of 1 unreachable — the same call that
+    fails at 1 succeeds at 3 and then reports having used one turn. Measured,
+    not reasoned about, after a one-turn verdict call destroyed a completed
+    30-turn research delegation.
+
+    Turn count is a budget, not a guardrail. The property that matters is that
+    the manager cannot go looking for anything, and `tools=()` says so.
     """
     started = time.monotonic()
     try:
@@ -271,7 +293,8 @@ async def run_verdict(prompt: str, runner: Runner, config: Config) -> Invocation
                     "Reply with one JSON object and nothing else."
                 ),
                 prompt=prompt,
-                max_turns=1,
+                max_turns=config.caps.verdict_turns,
+                tools=(),
             ),
             timeout=config.caps.task_timeout_seconds,
         )

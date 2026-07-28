@@ -105,13 +105,19 @@ and where it is applied.
 | Requirement | Value | Enforced in |
 |---|---|---|
 | Max delegations per operator request | 5 | `orchestrator._charge_delegation` |
-| Max turns, manager | 12 (unused; manager is code, verification takes 1 turn) | — |
-| Max turns, sub-agent | 6 | `delegate.run_task` → `max_turns` |
+| Max turns, sub-agent | 6 default; per-agent override in the roster (researcher 30, fact-checker 20) | `delegate.run_task` → `max_turns` |
+| Max turns, manager | 3 verifying, 8 drafting | `delegate.run_verdict`, `run_draft` |
+| Tools, manager | none — `tools=()`, passed explicitly | `delegate.run_manager`, `run_verdict` |
 | Max context bytes per delegation | 60,000; over-limit briefs rejected, never truncated | `brief.validate` |
 | Retries per failed task | 1, then fail honestly | `orchestrator.execute` |
 | Spawn depth | 1 — the `Agent` tool is denied to sub-agents | `delegate.SdkRunner` |
-| Task timeout | 300s | `delegate.run_task` |
+| Task timeout | 300s default; per-agent override (researcher 900s, fact-checker 600s) | `delegate.run_task` |
 | Output validation | reject on schema failure; no repair path exists | `schema.parse` |
+
+Turn budgets are budgets, not guardrails. A low `max_turns` was once used as a proxy for
+"this call cannot go looking for anything"; it is a bad proxy, and `max_turns=1` does not
+return a result at all. The guardrails are the tool list, `permission_mode`, and
+`setting_sources=[]` — all passed explicitly, none inferred.
 
 Context isolation is enforced by `setting_sources=[]` on every delegation: the SDK does
 not auto-load this file, project settings, or user settings into a sub-agent. The only
@@ -148,8 +154,9 @@ A stop condition outside the escalation list returns `failed`.
 
 **Manager verdict:** accept / revise / reject is control flow and is schema-bound, per
 `structured_output_schema.md`'s sibling `manager_verdict_schema.md`. It is produced by a
-**verify-only** manager invocation — one turn, no tools, given the brief's success
-criteria and the return, and nothing else. `complete` is never auto-accepted; every
+**verify-only** manager invocation — no tools, given the brief's success criteria and
+the return, and nothing else. "No tools" is enforced by passing an empty tool list, not
+by a low turn budget; a budget of 1 does not return a result at all. `complete` is never auto-accepted; every
 `complete` and `partial` return is verified before the pipeline continues.
 
 | verdict | Meaning | Orchestrator action |

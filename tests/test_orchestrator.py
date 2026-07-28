@@ -59,7 +59,7 @@ class ScriptedRunner:
         system_prompt: str,
         prompt: str,
         max_turns: int,
-        tools: tuple = (),
+        tools: tuple | None = None,
     ) -> RunnerResult:
         self.prompts.append(prompt)
         self.system_prompts.append(system_prompt)
@@ -113,7 +113,10 @@ class TestHappyPath(OrchestratorTestCase):
         self.assertIsNotNone(outcome.manager_verdict)
         # two calls: the delegation, then the verify-only invocation
         self.assertEqual(len(runner.prompts), 2)
-        self.assertEqual(runner.max_turns, [self.config.caps.max_subagent_turns, 1])
+        self.assertEqual(
+            runner.max_turns,
+            [self.config.caps.max_subagent_turns, self.config.caps.verdict_turns],
+        )
 
     async def test_delegation_prompt_carries_only_the_context_payload(self):
         orch, runner = self.orch([result_json(), verdict_json()])
@@ -300,6 +303,49 @@ class TestFailureHandling(OrchestratorTestCase):
         end = next(e for e in orch.log.read() if e["event"] == "delegation_end")
         self.assertEqual(end["permission_denials"], [{"tool_name": "WebSearch"}])
         self.assertEqual(end["cost_usd"], 0.12)
+
+    async def test_the_verdict_call_is_given_no_tools(self):
+        """"One turn, no tools" has to be true, not just documented.
+
+        `()` and `None` are different requests: none-on-purpose versus
+        unspecified. While the runner conflated them, every verdict call was
+        handed the full default allowlist, and a one-turn call that reaches for
+        a tool has no turn left to answer in.
+        """
+        orch, runner = self.orch([result_json(), verdict_json()])
+        await orch.execute(a_brief())
+
+        task_tools, verdict_tools = runner.tools
+        self.assertEqual(verdict_tools, ())
+        self.assertIsNotNone(task_tools)
+        self.assertIn("Read", task_tools)
+
+    async def test_a_failed_verdict_does_not_destroy_the_completed_work(self):
+        """The delegation is already paid for. Losing it to a verdict fault is
+        the most expensive way this can fail, and it happened for real."""
+        orch, runner = self.orch(
+            [result_json(), DelegationFailed("Reached maximum number of turns (1)")]
+        )
+        outcome = await orch.execute(a_brief())
+
+        self.assertIs(outcome.outcome, Outcome.FAILED)
+        self.assertIsNotNone(outcome.result)
+        self.assertEqual(outcome.result.deliverables, ("FeedViewModel.kt",))
+        self.assertIn("verdict could not be produced", outcome.detail)
+        # Attributable: this was the manager's fault, not the sub-agent's.
+        failure = next(e for e in orch.log.read() if e["event"] == "failure")
+        self.assertTrue(failure["kind"].startswith("verification/"))
+        # And it is not silently retried — that would pay twice for one result.
+        self.assertEqual(outcome.attempts, 1)
+
+    async def test_an_unverified_return_is_never_accepted(self):
+        """Preserving the work must not become a back door to accepting it."""
+        orch, _ = self.orch([result_json(status="complete"), DelegationFailed("boom")])
+        outcome = await orch.execute(a_brief())
+
+        self.assertIsNot(outcome.outcome, Outcome.ACCEPTED)
+        self.assertFalse(outcome.accepted)
+        self.assertIsNone(outcome.manager_verdict)
 
     async def test_manager_revise_triggers_a_retry(self):
         orch, runner = self.orch(
