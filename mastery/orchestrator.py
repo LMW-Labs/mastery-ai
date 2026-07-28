@@ -157,6 +157,13 @@ class Orchestrator:
                 num_turns=invocation.num_turns,
                 cost_usd=invocation.cost_usd,
                 permission_denials=list(invocation.permission_denials),
+                # The work product itself. A `failed` run can still carry
+                # usable output, and without this it survives only in
+                # terminal scrollback.
+                summary=result.summary,
+                deliverables=list(result.deliverables),
+                risks=list(result.risks),
+                next_step=result.next_step,
             )
 
             action = result.action

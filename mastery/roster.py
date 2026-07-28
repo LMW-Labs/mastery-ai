@@ -20,6 +20,10 @@ from .errors import RoutingError
 AGENT_DOC_DIR = REPO_ROOT / "docs" / "agents"
 
 
+# Read-only default. Anything beyond this is granted per agent, below.
+READ_ONLY: tuple[str, ...] = ("Read", "Glob", "Grep")
+
+
 @dataclass(frozen=True)
 class Agent:
     name: str
@@ -29,6 +33,22 @@ class Agent:
     # Gate agents return `blocked` when they return closed, rather than
     # reporting a successful task that happens to say "no". See schema.py.
     is_gate: bool = False
+    # Pre-approved tools for this agent. Global read-only is the floor; network
+    # access is granted only where the role genuinely requires it, because
+    # `permission_mode` refuses everything not listed here. A researcher with no
+    # WebSearch cannot research, and a content agent with WebSearch could go
+    # sourcing claims that fact-checker is supposed to adjudicate.
+    tools: tuple[str, ...] = READ_ONLY
+    # Turn budget for this agent, falling back to caps.max_subagent_turns.
+    # Work shape differs enormously: a research pass spends a turn per search
+    # and per fetch, while a content agent writing two hooks needs almost
+    # none. A budget that is too low does not degrade — the SDK ends the
+    # delegation with no result at all.
+    max_turns: int | None = None
+    # Wall-clock budget, falling back to caps.task_timeout_seconds. A web
+    # research pass is slow; 300s cut one off mid-flight and, worse, spent the
+    # retry that the actual quality gap then needed.
+    timeout_seconds: int | None = None
 
     @property
     def doc_path(self) -> Path:
@@ -45,7 +65,15 @@ _AGENTS: tuple[Agent, ...] = (
     # Tier 1 — always available
     Agent("manager", 1, "Routing, context delegation, verification, approvals", "Execution work"),
     Agent("mobile-dev", 1, "App code, builds, release prep", "Design decisions, QA sign-off"),
-    Agent("researcher", 1, "External evidence discovery", "Verifying finished drafts"),
+    Agent(
+        "researcher",
+        1,
+        "External evidence discovery",
+        "Verifying finished drafts",
+        tools=READ_ONLY + ("WebSearch", "WebFetch"),
+        max_turns=30,
+        timeout_seconds=900,
+    ),
     Agent("qa", 1, "Regression, edge cases, release readiness", "Fixing what it finds", is_gate=True),
     Agent("marketing", 1, "Campaign decisions, publishing workflow", "Producing its own metrics"),
     Agent("risk-review", 1, "Platform, policy, reputational, safety risk", "Legal opinions", is_gate=True),
@@ -54,7 +82,18 @@ _AGENTS: tuple[Agent, ...] = (
     # Tier 2 — on demand
     Agent("ui-ux", 2, "Flows, screens, component specs", "Code, release scope"),
     Agent("content", 2, "Copy, hooks, CTAs, scripts", "Choosing the angle, verifying claims"),
-    Agent("fact-checker", 2, "Verification pass on drafted output", "New evidence discovery", is_gate=True),
+    Agent(
+        "fact-checker",
+        2,
+        "Verification pass on drafted output",
+        "New evidence discovery",
+        is_gate=True,
+        # WebFetch to check a cited source; no WebSearch, because open-ended
+        # discovery is the researcher's job, not a verification pass.
+        tools=READ_ONLY + ("WebFetch",),
+        max_turns=20,
+        timeout_seconds=600,
+    ),
     Agent("legal-review", 2, "Legal exposure, counsel escalation", "Platform policy, publication clearance", is_gate=True),
     Agent("metrics-agent", 2, "KPI definition, measurement, trend detection", "Recommending decisions"),
     Agent("incident-response-agent", 2, "Triage, RCA, rollback, postmortem", "Steady-state ops"),

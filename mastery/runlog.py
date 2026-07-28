@@ -64,6 +64,10 @@ class RunLog:
         num_turns: int = 0,
         cost_usd: float | None = None,
         permission_denials: list | None = None,
+        summary: str = "",
+        deliverables: list | None = None,
+        risks: list | None = None,
+        next_step: str = "",
     ) -> None:
         """Close out a delegation.
 
@@ -81,6 +85,10 @@ class RunLog:
             num_turns=num_turns,
             cost_usd=cost_usd,
             permission_denials=permission_denials or [],
+            summary=summary,
+            deliverables=deliverables or [],
+            risks=risks or [],
+            next_step=next_step,
         )
 
     def verdict(self, *, task_id: str, verdict: str, reason: str) -> None:

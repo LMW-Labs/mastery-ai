@@ -1,0 +1,38 @@
+{
+  "task_id": "20260728-rd-001",
+  "agent": "researcher",
+  "urgency": "none",
+  "objective": "Establish what HJR-192 actually did and what documented consequences follow from acting on the 'discharge your debts' reading of it.",
+  "success_criteria": [
+    "What House Joint Resolution 192 (June 5, 1933) actually did, cited to a primary source",
+    "Whether it is currently operative law, and if not what superseded or repealed it, with citation",
+    "The named statutes, regulations, or penalties that apply to the practices this reading is used to justify, each with a citation",
+    "At least three documented enforcement actions or court decisions against people who acted on it, each with the outcome and sentence or penalty",
+    "The specific phrases from HJR-192 or related texts that are quoted out of context to support the claim, listed verbatim with what each actually means in context",
+    "Whether the IRS, DOJ, or federal courts have named this pattern explicitly, and what they call it"
+  ],
+  "context": [
+    {
+      "label": "the claim being debunked",
+      "body": "A paid Facebook advertisement claims that HJR-192 allows taxpayers to discharge their bills and debts, and offers to teach viewers how to generate residual income by doing so. The ad's hook references leaked Epstein files and asserts the U.S. financial system is 'a joke'. The account is a public entity running paid Meta ads, with roughly 30,000 likes and a similar number of shares."
+    },
+    {
+      "label": "what this research feeds",
+      "body": "A public-facing debunk post and a warning comment, both written later by content and adjudicated by fact-checker. This task establishes the evidence base only. Sourcing quality is the deliverable: every downstream claim must trace to something found here."
+    },
+    {
+      "label": "known adjacent terminology",
+      "body": "This reading of HJR-192 is associated with a family of related claims. Search terminology that may surface primary material includes redemption, acceptance for value, strawman, lawful money, and 1099-OID. Confirm or discard these as relevant; do not assume they apply."
+    }
+  ],
+  "constraints": "Prefer primary sources: statute text, court opinions, IRS and DOJ publications. A secondary source is acceptable only when it cites a primary one, and the primary must be named. Every finding must carry a resolvable citation. Do not paraphrase legal consequences without a citation attached.",
+  "out_of_scope": "Do not draft the post, the comment, or any copy — content owns that. Do not assess the advertiser's own legal exposure or characterize their intent — legal-review owns that. Do not adjudicate a finished draft — fact-checker owns that. Do not evaluate whether the debunk is safe to publish — risk-review owns that.",
+  "approval_gates_touched": "none",
+  "expected_deliverables": [
+    "sourced findings on what HJR-192 did and its current status",
+    "citation list, primary sources named",
+    "list of specific misquoted or out-of-context language, verbatim",
+    "documented enforcement outcomes with penalties",
+    "the official name given to this pattern by IRS/DOJ/courts, if one exists"
+  ]
+}

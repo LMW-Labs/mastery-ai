@@ -51,11 +51,20 @@ class ScriptedRunner:
         self.prompts: list[str] = []
         self.system_prompts: list[str] = []
         self.max_turns: list[int] = []
+        self.tools: list[tuple] = []
 
-    async def run(self, *, system_prompt: str, prompt: str, max_turns: int) -> RunnerResult:
+    async def run(
+        self,
+        *,
+        system_prompt: str,
+        prompt: str,
+        max_turns: int,
+        tools: tuple = (),
+    ) -> RunnerResult:
         self.prompts.append(prompt)
         self.system_prompts.append(system_prompt)
         self.max_turns.append(max_turns)
+        self.tools.append(tools)
         if not self.replies:
             raise AssertionError("runner called more times than the test scripted")
         reply = self.replies.pop(0)
@@ -124,6 +133,22 @@ class TestHappyPath(OrchestratorTestCase):
 
         self.assertIn("Does not crash on empty-feed refresh.", verify_prompt)
         self.assertNotIn("class FeedViewModel", verify_prompt)
+
+    async def test_tools_are_granted_per_agent_not_globally(self):
+        """A researcher needs the web; a content agent must not have it.
+
+        permission_mode refuses anything not pre-approved, so a too-narrow
+        allowlist silently disables an agent rather than erroring — the
+        researcher simply cannot research.
+        """
+        orch, runner = self.orch([result_json(), verdict_json()])
+        await orch.execute(a_brief(agent="researcher"))
+        self.assertIn("WebSearch", runner.tools[0])
+
+        orch2, runner2 = self.orch([result_json(), verdict_json()])
+        await orch2.execute(a_brief(agent="content"))
+        self.assertNotIn("WebSearch", runner2.tools[0])
+        self.assertIn("Read", runner2.tools[0])
 
     async def test_run_log_records_the_delegation(self):
         orch, _ = self.orch([result_json(), verdict_json()])

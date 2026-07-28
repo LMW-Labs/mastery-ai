@@ -99,7 +99,12 @@ class Runner(Protocol):
     """The seam between the orchestrator and the SDK."""
 
     async def run(
-        self, *, system_prompt: str, prompt: str, max_turns: int
+        self,
+        *,
+        system_prompt: str,
+        prompt: str,
+        max_turns: int,
+        tools: tuple[str, ...] = (),
     ) -> RunnerResult: ...
 
 
@@ -110,7 +115,12 @@ class SdkRunner:
         self.config = config
 
     async def run(
-        self, *, system_prompt: str, prompt: str, max_turns: int
+        self,
+        *,
+        system_prompt: str,
+        prompt: str,
+        max_turns: int,
+        tools: tuple[str, ...] = (),
     ) -> RunnerResult:
         # Imported here so the rest of the package works without the SDK
         # installed — tests, schema validation, and brief assembly do not need it.
@@ -125,9 +135,10 @@ class SdkRunner:
             system_prompt=system_prompt,
             model=d.model,
             max_turns=max_turns,
-            # Pre-approved only. What actually blocks everything else is
-            # permission_mode — see the note on that field in config.py.
-            allowed_tools=list(d.allowed_tools),
+            # Pre-approved only, and per agent — a researcher needs the web, a
+            # content agent must not have it. What blocks everything else is
+            # permission_mode; see the note on that field in config.py.
+            allowed_tools=list(tools or d.allowed_tools),
             disallowed_tools=list(d.denied_tools),
             permission_mode=d.permission_mode,
             # Empty: no CLAUDE.md, no project settings, no user settings.
@@ -162,6 +173,11 @@ async def run_task(brief: TaskBrief, runner: Runner, config: Config) -> Invocati
     The brief has already been validated and gate-checked by the orchestrator;
     this function does not re-decide whether the task should run.
     """
+    agent = brief.agent_def()
+    # Both budgets are agent-shaped. A research pass needs many turns and real
+    # wall-clock; a content agent writing two hooks needs neither. Getting these
+    # wrong does not degrade gracefully — the delegation ends with no result.
+    timeout = agent.timeout_seconds or config.caps.task_timeout_seconds
     prompt = f"{brief.render()}\n\n{brief.render_context()}"
     started = time.monotonic()
     try:
@@ -169,15 +185,13 @@ async def run_task(brief: TaskBrief, runner: Runner, config: Config) -> Invocati
             runner.run(
                 system_prompt=SYSTEM_PROMPT,
                 prompt=prompt,
-                max_turns=config.caps.max_subagent_turns,
+                max_turns=agent.max_turns or config.caps.max_subagent_turns,
+                tools=agent.tools,
             ),
-            timeout=config.caps.task_timeout_seconds,
+            timeout=timeout,
         )
     except asyncio.TimeoutError as exc:
-        raise TaskTimeout(
-            f"{brief.task_id} ({brief.agent}) exceeded "
-            f"{config.caps.task_timeout_seconds}s"
-        ) from exc
+        raise TaskTimeout(f"{brief.task_id} ({brief.agent}) exceeded {timeout}s") from exc
     return Invocation(
         raw=result.text,
         duration_s=time.monotonic() - started,
