@@ -1,0 +1,38 @@
+{
+  "task_id": "20260728-rd-005",
+  "agent": "fact-checker",
+  "urgency": "none",
+  "objective": "Verify every factual claim in the share post and comment drafts against the accepted fact pack.",
+  "success_criteria": [
+    "Every factual assertion in both drafts is traced to a specific cited line in the fact pack",
+    "Any claim in the drafts with no traceable support in the fact pack is flagged, not waved through",
+    "Overall verdict is either 'publishable' or 'not publishable', with reasons for any 'not publishable' flags",
+    "Confirms the drafts do not upgrade a 'quoted as claim' item from the fact pack into an asserted fact"
+  ],
+  "context": [
+    {
+      "label": "docs/agents/fact-checker.md",
+      "body": "<<< FILL: paste or reference the content >>>"
+    },
+    {
+      "label": "Accepted fact pack from task 20260728-rd-001",
+      "body": "<<< FILL: paste or reference the content >>>"
+    },
+    {
+      "label": "Share post draft from the content stage",
+      "body": "<<< FILL: paste or reference the content >>>"
+    },
+    {
+      "label": "Video-thread comment draft from the content stage",
+      "body": "<<< FILL: paste or reference the content >>>"
+    }
+  ],
+  "constraints": "Adjudicate only against the fact pack's cited content. Do not perform new research \u2014 if the fact pack lacks support for a claim, flag it rather than searching for a replacement source.",
+  "out_of_scope": "Does not discover new evidence. Does not rewrite the drafts. Does not assess platform/policy or legal risk \u2014 later stages own that.",
+  "approval_gates_touched": "none",
+  "expected_deliverables": [
+    "verification report",
+    "publishable / not-publishable verdict",
+    "list of flagged/unsupported lines, if any"
+  ]
+}

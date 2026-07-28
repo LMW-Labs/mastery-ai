@@ -1,0 +1,34 @@
+{
+  "task_id": "20260728-rd-006",
+  "agent": "risk-review",
+  "urgency": "none",
+  "objective": "Screen the fact-checked share post and comment for platform policy, reputational, and safety risk before publish.",
+  "success_criteria": [
+    "Assesses both drafts against Meta platform policy (targeted claims, harassment/personal-attack policy, misinformation rules)",
+    "Confirms the tone constraint is met: consequences to the viewer, no accusation against the advertiser",
+    "Returns a clear verdict: go or hold, with reasons for any hold",
+    "Notes explicitly whether the advertiser is identifiable enough in the drafts to warrant legal-review escalation"
+  ],
+  "context": [
+    {
+      "label": "docs/agents/risk-review.md",
+      "body": "<<< FILL: paste or reference the content >>>"
+    },
+    {
+      "label": "Fact-checker's 'publishable' verdict and drafts from the prior stage",
+      "body": "<<< FILL: paste or reference the content >>>"
+    },
+    {
+      "label": "Tone constraint: consequences to the viewer, not accusations against him",
+      "body": "<<< FILL: paste or reference the content >>>"
+    }
+  ],
+  "constraints": "Only proceeds if fact-checker returned 'publishable'. A 'hold' here halts the pipeline before operator approval.",
+  "out_of_scope": "Does not render a legal opinion (legal-review owns that, if escalated). Does not itself publish or schedule.",
+  "approval_gates_touched": "none",
+  "expected_deliverables": [
+    "risk verdict (go/hold)",
+    "policy notes",
+    "escalation recommendation (legal-review needed or not), with reasoning"
+  ]
+}

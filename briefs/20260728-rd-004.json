@@ -1,0 +1,37 @@
+{
+  "task_id": "20260728-rd-004",
+  "agent": "content",
+  "urgency": "none",
+  "objective": "Write a comment for the advertiser's video thread with a hook, a link to the share post, and a warning, using only the accepted fact pack.",
+  "success_criteria": [
+    "Opens with a hook line",
+    "Includes a placeholder link pointing to the share post from the prior content stage",
+    "Includes an explicit warning drawn from a fact-pack finding (e.g., documented consequences of filing on this theory)",
+    "Tone frames consequences to the viewer, not accusations against the video's creator",
+    "Comment stays under 100 words (assumed cap \u2014 no length given by operator, see open_questions)"
+  ],
+  "context": [
+    {
+      "label": "docs/agents/content.md",
+      "body": "<<< FILL: paste or reference the content >>>"
+    },
+    {
+      "label": "Accepted fact pack from task 20260728-rd-001 (researcher stage output only)",
+      "body": "<<< FILL: paste or reference the content >>>"
+    },
+    {
+      "label": "Share post draft from the prior content stage (for the link)",
+      "body": "<<< FILL: paste or reference the content >>>"
+    },
+    {
+      "label": "Tone constraint: consequences to the viewer, not accusations against him",
+      "body": "<<< FILL: paste or reference the content >>>"
+    }
+  ],
+  "constraints": "Content agent receives the fact pack and the share post only \u2014 no job order, no full research transcript. Must not state anything the fact pack does not support. Under 100 words.",
+  "out_of_scope": "Do not choose posting timing or whether to post at all (marketing/operator owns that). Do not verify its own claims. Do not name the advertiser.",
+  "approval_gates_touched": "none",
+  "expected_deliverables": [
+    "video-thread comment draft"
+  ]
+}

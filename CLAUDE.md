@@ -171,6 +171,11 @@ approval, recommended next step. The strict schema does not apply here.
   **not** auto-loaded for delegated sub-agents.
 - Include prior accepted outputs only when the new task depends on them.
 
+`mastery draft` proposes briefs from a raw request; it never runs them. It writes each
+stage's `context` as `<<< FILL >>>` placeholders and stops. Filling them is the operator's
+step, and it is the step that keeps this section true — a drafter that assembled context
+itself would move context selection into a model.
+
 ## Project-specific notes
 
 - FaithFeed is live on Google Play. Apple is planned, not started.
@@ -182,5 +187,12 @@ approval, recommended next step. The strict schema does not apply here.
   the API account instead — the "silent billable fallback" this file forbids. Usage draws
   down the same budget as interactive Claude Code, so it is quota, not dollars.
   `auth.mode="api_key"` remains available and crosses the money gate deliberately.
-- Orchestrator code location: `mastery/`. Entry point `mastery.cli`; `mastery check`
-  validates config, roster, and schemas without making a model call.
+- Orchestrator code location: `mastery/`. Entry point `mastery.cli`:
+  - `mastery check` — validates config, roster, and schemas without a model call.
+  - `mastery draft <request>` — proposes briefs. Does not run them.
+  - `mastery run <brief.json>` — runs one brief to a verified outcome.
+
+  The delegation cap is per operator request, and one `mastery run` is one request. A plan
+  whose stage count reaches the cap is run as separate `mastery run` invocations, not as a
+  single pipeline — otherwise the first retry raises `CapExceeded` with earlier stages
+  already spent.

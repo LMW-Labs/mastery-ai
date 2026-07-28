@@ -123,7 +123,28 @@ async def _draft(config: Config, request: str, attachments: list[str], out: Path
     return 0
 
 
+def _force_utf8_stdio() -> None:
+    """Make stdout survive the output it is asked to print.
+
+    Windows consoles default to a legacy codepage (cp1252 here), and agent
+    output is full of arrows, dashes, and section signs. Without this, a run
+    that fully succeeded dies in `print(summarize(...))` with UnicodeEncodeError
+    — the work is done, logged, and then thrown away at the last step. That is
+    the worst possible failure: expensive, silent about its real cause, and
+    indistinguishable at the shell from the task itself failing.
+
+    `errors="replace"` rather than "strict": a terminal that genuinely cannot
+    render a glyph should show a placeholder, not lose the whole report. The
+    run log is UTF-8 regardless and stays the faithful copy.
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="replace")
+
+
 def main(argv: list[str] | None = None) -> int:
+    _force_utf8_stdio()
     parser = argparse.ArgumentParser(prog="mastery")
     parser.add_argument("--config", type=Path, default=None)
     sub = parser.add_subparsers(dest="command", required=True)
