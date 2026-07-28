@@ -92,10 +92,16 @@ provable against a scripted fake runner (`tests/test_orchestrator.py`).
 
 ## Open
 
-- **Schema compliance is unmeasured.** No real sub-agent has yet been asked to return
-  the strict JSON contract. `retries_per_failed_task` is 1, so if the true malformed-return
-  rate is above a few percent that is a design problem, not a flake. Needs ~20 samples
-  across a couple of agent docs before trusting the retry budget.
+- **Schema compliance is measured on the happy path only.** `scripts/measure_schema.py`
+  ran 20 real delegations across five agent docs on `sonnet`: 20/20 schema-valid. Rule of
+  three puts the 95% upper bound on the per-call failure rate at ~15%, and a retry budget
+  of 1 exhausts only on two consecutive failures — ~2.2% at that bound. Defensible.
+
+  Two things that measurement does **not** cover, and they are the ones that matter:
+  every sample returned `complete`, so the `blocked` / `failed` / `partial` shapes are
+  untested — and `blocked` is what halts a pipeline. Separately, p² assumes independent
+  failures; a retry meets the same prompt and model, so correlated failure makes the real
+  two-consecutive rate higher than p². Re-run after changing `delegation.model`.
 - **`max_context_bytes` is a guess at 60,000.** It has never been checked against a real
   brief. Revisit once a few have actually been sent.
 - **Quota, not dollars.** On subscription auth a trivial call reported ~$0.125 notional.
