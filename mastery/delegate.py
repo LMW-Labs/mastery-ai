@@ -201,6 +201,61 @@ async def run_task(brief: TaskBrief, runner: Runner, config: Config) -> Invocati
     )
 
 
+async def run_manager(
+    prompt: str,
+    runner: Runner,
+    config: Config,
+    *,
+    system_prompt: str,
+    max_turns: int = 1,
+) -> Invocation:
+    """A manager-side model call: no tools, and it produces text, not actions.
+
+    Both current uses — verifying a return, and drafting a plan — are judgement
+    on material already in the prompt. Neither looks anything up, so neither
+    gets tools, and one turn is enough.
+    """
+    started = time.monotonic()
+    try:
+        result = await asyncio.wait_for(
+            runner.run(
+                system_prompt=system_prompt,
+                prompt=prompt,
+                max_turns=max_turns,
+                tools=(),
+            ),
+            timeout=config.caps.task_timeout_seconds,
+        )
+    except asyncio.TimeoutError as exc:
+        raise TaskTimeout("manager invocation timed out") from exc
+    return Invocation(
+        raw=result.text,
+        duration_s=time.monotonic() - started,
+        num_turns=result.num_turns,
+        cost_usd=result.cost_usd,
+        permission_denials=result.permission_denials,
+    )
+
+
+DRAFT_SYSTEM_PROMPT = (
+    "You are the manager, translating an operator's raw request into scoped task "
+    "briefs for a human to review. You are drafting a proposal, not running "
+    "anything.\n\n"
+    "You have no tools. Any file the operator mentions is a name you refer to in "
+    "context_needed, not something you can open — do not attempt to read it. "
+    "Work only from the text in this prompt.\n\n"
+    "Reply with one JSON object and nothing else."
+)
+
+
+async def run_draft(prompt: str, runner: Runner, config: Config) -> Invocation:
+    # More than one turn: the plan is a large structured object, and a denied
+    # tool attempt costs a turn. One turn is enough for a verdict, not for this.
+    return await run_manager(
+        prompt, runner, config, system_prompt=DRAFT_SYSTEM_PROMPT, max_turns=8
+    )
+
+
 async def run_verdict(prompt: str, runner: Runner, config: Config) -> Invocation:
     """The manager's verify-only invocation.
 

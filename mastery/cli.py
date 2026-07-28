@@ -90,6 +90,39 @@ async def _run(config: Config, brief_path: Path) -> int:
     return 0 if outcome.accepted else 1
 
 
+async def _draft(config: Config, request: str, attachments: list[str], out: Path) -> int:
+    """Turn a raw operator request into reviewable briefs. Never executes."""
+    from . import drafter
+    from .delegate import Invocation, SdkRunner, run_draft
+
+    runner = SdkRunner(config)
+    prompt = drafter.build_prompt(request, attachments=attachments)
+    invocation: Invocation = await run_draft(prompt, runner, config)
+    plan = drafter.parse(invocation.raw)
+
+    print(drafter.render(plan))
+
+    if not plan.scoped:
+        return 1
+
+    if drafter.over_cap(plan, config):
+        print(
+            f"\nNOTE: {len(plan.stages)} stages against a cap of "
+            f"{config.caps.max_delegations_per_request} delegations per operator request, "
+            f"and a retry costs a delegation too. Run these as separate requests, one "
+            f"`mastery run` per brief, rather than as a single pipeline."
+        )
+
+    from datetime import date
+
+    written = drafter.write_briefs(plan, out, stamp=date.today().strftime("%Y%m%d"))
+    print("\nbriefs written (context payloads are placeholders — fill them):")
+    for path in written:
+        print(f"  {path}")
+    print("\nNothing has run. Edit a brief, then: mastery run <brief>")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="mastery")
     parser.add_argument("--config", type=Path, default=None)
@@ -97,6 +130,16 @@ def main(argv: list[str] | None = None) -> int:
     sub.add_parser("check", help="validate config, roster, and schemas")
     run_cmd = sub.add_parser("run", help="run one delegation from a brief file")
     run_cmd.add_argument("brief", type=Path)
+
+    draft_cmd = sub.add_parser(
+        "draft", help="turn a raw request into reviewable briefs (does not run them)"
+    )
+    draft_cmd.add_argument("request", nargs="?", help="the request, in your own words")
+    draft_cmd.add_argument("--file", type=Path, help="read the request from a file instead")
+    draft_cmd.add_argument(
+        "--attach", action="append", default=[], help="a file the request refers to"
+    )
+    draft_cmd.add_argument("--out", type=Path, default=Path("briefs"))
 
     args = parser.parse_args(argv)
     config = Config.load(args.config)
@@ -106,6 +149,12 @@ def main(argv: list[str] | None = None) -> int:
             return _check(config)
         if args.command == "run":
             return asyncio.run(_run(config, args.brief))
+        if args.command == "draft":
+            text = args.file.read_text(encoding="utf-8") if args.file else args.request
+            if not text or not text.strip():
+                print("nothing to draft from", file=sys.stderr)
+                return 2
+            return asyncio.run(_draft(config, text, args.attach, args.out))
     except OrchestratorError as exc:
         print(f"{type(exc).__name__}: {exc}", file=sys.stderr)
         return 2
