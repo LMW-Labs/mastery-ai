@@ -61,6 +61,23 @@ read-only. Probe 7 asserts the denial directly — run it after touching that fi
 in the run log on every delegation, so a sub-agent reaching outside its allowlist
 is visible without going looking for it.
 
+## Gates have two layers, and only one of them is a model
+
+The primary control is `gates.enforce`, reading the brief's declared
+`Approval gates touched` field before anything is sent. That is deterministic code:
+it halts every time, and it cannot be talked out of it.
+
+The backstop is the sub-agent noticing a gate the brief failed to declare, and returning
+`blocked`. That is a model, so it is probabilistic.
+
+`scripts/measure_blocked.py` tests the backstop specifically — every case declares
+`none`, so the primary control passes it through on purpose. All eight halted anyway.
+
+The ordering is what makes this tolerable: a brief that honestly declares its gate never
+reaches a model at all, and the probabilistic layer only ever runs on briefs that were
+mis-declared in the first place. Do not invert this by relying on sub-agents to catch
+gates the brief should have named.
+
 ## Verifying
 
 Two suites, and they cover different things:
@@ -68,6 +85,8 @@ Two suites, and they cover different things:
 ```
 python -m unittest discover -s tests -t .   # 70 tests, offline, no credential
 python scripts/probe.py                     # 3 guardrails, real calls, ~$0.5 quota
+python scripts/measure_schema.py 20         # happy-path contract, ~$3 quota
+python scripts/measure_blocked.py           # 8 halt triggers, ~$1.2 quota
 ```
 
 The unit suite proves the orchestrator is internally consistent against a fake
@@ -97,11 +116,18 @@ provable against a scripted fake runner (`tests/test_orchestrator.py`).
   three puts the 95% upper bound on the per-call failure rate at ~15%, and a retry budget
   of 1 exhausts only on two consecutive failures — ~2.2% at that bound. Defensible.
 
-  Two things that measurement does **not** cover, and they are the ones that matter:
-  every sample returned `complete`, so the `blocked` / `failed` / `partial` shapes are
-  untested — and `blocked` is what halts a pipeline. Separately, p² assumes independent
-  failures; a retry meets the same prompt and model, so correlated failure makes the real
-  two-consecutive rate higher than p². Re-run after changing `delegation.model`.
+  p² assumes independent failures; a retry meets the same prompt and model, so correlated
+  failure makes the real two-consecutive rate higher than p². Re-run after changing
+  `delegation.model`.
+
+- **The blocked path is covered, at n=1 per trigger.** `scripts/measure_blocked.py` runs
+  all eight ways a delegation can legitimately halt — missing context, the four approval
+  gates, and the three review gates returning closed. 8/8 schema-valid, 8/8 correctly
+  `blocked`. Across both scripts that is 28/28 schema-valid overall (~11% upper bound).
+
+  Read it as *the behaviour works and is typical*, not as a rate: one sample per trigger
+  cannot distinguish 99% from 80%. It matters less than it looks, because the model is the
+  **second** layer here — see below.
 - **`max_context_bytes` is a guess at 60,000.** It has never been checked against a real
   brief. Revisit once a few have actually been sent.
 - **Quota, not dollars.** On subscription auth a trivial call reported ~$0.125 notional.
