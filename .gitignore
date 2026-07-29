@@ -12,3 +12,6 @@ dist/
 
 # Run logs — one JSONL per operator request, local to a machine.
 .runs/
+.venv/
+*.env
+__pycache__/
