@@ -522,7 +522,7 @@ class TestTelemetryIsLogged(OrchestratorTestCase):
             start["tool_tier"], ["Read", "Glob", "Grep", "WebSearch", "WebFetch"]
         )
 
-    async def test_delegation_end_carries_tokens_and_model_tier(self):
+    async def test_delegation_end_carries_tokens_and_model(self):
         orch, _ = self.telemetry_orch([result_json(), verdict_json()])
         await orch.execute(a_brief())
 
@@ -531,10 +531,23 @@ class TestTelemetryIsLogged(OrchestratorTestCase):
         self.assertEqual(end["output_tokens"], 830)
         self.assertEqual(end["cache_read_tokens"], 18_400)
         self.assertEqual(end["cache_creation_tokens"], 0)
-        self.assertEqual(end["model_tier"], "claude-sonnet-4-5")
+        self.assertEqual(end["model"], "claude-sonnet-4-5")
         # cost_usd is kept, not replaced: the dollar figure is what was billed,
         # the tokens are why.
         self.assertEqual(end["cost_usd"], 0.0912)
+
+    async def test_model_and_role_tier_are_different_fields(self):
+        """`model` is the resolved model id the SDK reported; `role_tier` is the
+        declared kind of work. Conflating them is why the old name was wrong."""
+        orch, _ = self.telemetry_orch([result_json(), verdict_json()])
+        await orch.execute(a_brief())
+
+        end = next(e for e in orch.log.read() if e["event"] == "delegation_end")
+        self.assertEqual(end["model"], "claude-sonnet-4-5")
+        # No roster agent is mechanical yet — the default keeps an unclassified
+        # role on the stronger side. See tiers.py.
+        self.assertEqual(end["role_tier"], "judgment")
+        self.assertNotIn("model_tier", end, "renamed; the old name must be gone")
 
     async def test_verdict_call_is_also_telemetered(self):
         """The verdict is a real model call. Leaving it untelemetered would
@@ -545,7 +558,9 @@ class TestTelemetryIsLogged(OrchestratorTestCase):
         v = next(e for e in orch.log.read() if e["event"] == "verdict")
         self.assertEqual(v["cost_usd"], 0.0912)
         self.assertEqual(v["input_tokens"], 1204)
-        self.assertEqual(v["model_tier"], "claude-sonnet-4-5")
+        self.assertEqual(v["model"], "claude-sonnet-4-5")
+        # The verify-only call grades a return against fixed criteria — mechanical.
+        self.assertEqual(v["role_tier"], "mechanical")
 
     async def test_stage_cost_joins_on_task_id(self):
         """A stage's true cost is its delegation_end plus every verdict sharing
@@ -576,7 +591,7 @@ class TestTelemetryIsLogged(OrchestratorTestCase):
         for end in ends:
             self.assertEqual(end["status"], "failed")
             self.assertEqual(end["cost_usd"], 0.0912)
-            self.assertEqual(end["model_tier"], "claude-sonnet-4-5")
+            self.assertEqual(end["model"], "claude-sonnet-4-5")
 
     def test_no_telemetry_field_exists_in_the_task_output_schema(self):
         """The no-fabrication guarantee, asserted rather than asserted-in-prose.
@@ -595,6 +610,8 @@ class TestTelemetryIsLogged(OrchestratorTestCase):
             "cache_read_tokens",
             "cache_creation_tokens",
             "model_tier",
+            "role_tier",
+            "model",
             "tool_tier",
             "cost_usd",
             "num_turns",

@@ -16,6 +16,7 @@ from pathlib import Path
 
 from .config import REPO_ROOT
 from .errors import RoutingError
+from .tiers import RoleTier
 
 AGENT_DOC_DIR = REPO_ROOT / "docs" / "agents"
 
@@ -49,6 +50,16 @@ class Agent:
     # research pass is slow; 300s cut one off mid-flight and, worse, spent the
     # retry that the actual quality gap then needed.
     timeout_seconds: int | None = None
+    # Declared kind of work. A label only — nothing reads it to pick a model, and
+    # `delegation.model` remains global. See tiers.py.
+    #
+    # Every roster agent defaults to `judgment` and none is marked mechanical
+    # yet, deliberately. STOP 6 reserves the tiering decision to the operator,
+    # and the one candidate its wording names — "fact-check retrieval" — is only
+    # half of what `fact-checker` does; the adjudication half is judgement. So no
+    # agent is classified here until that call is made, and the default keeps an
+    # unclassified role on the stronger side in the meantime.
+    role_tier: RoleTier = RoleTier.JUDGMENT
 
     @property
     def doc_path(self) -> Path:
