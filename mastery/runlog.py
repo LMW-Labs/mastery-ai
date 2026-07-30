@@ -45,13 +45,32 @@ class RunLog:
     def run_start(self, request: str) -> None:
         self.write("run_start", request=request)
 
-    def delegation_start(self, *, task_id: str, agent: str, context_bytes: int, attempt: int) -> None:
+    def delegation_start(
+        self,
+        *,
+        task_id: str,
+        agent: str,
+        context_bytes: int,
+        attempt: int,
+        tools: list | None = None,
+    ) -> None:
+        """Open a delegation.
+
+        `tools` is the agent's pre-approved allowlist — `tool_tier`, recorded by
+        name rather than as a tier label because the allowlist *is* the guardrail
+        (CLAUDE.md: "the guardrails are the tool list, `permission_mode`, and
+        `setting_sources=[]`"). It is read from `roster.py`, so it records what
+        the orchestrator actually dispatched with, not what an agent believed it
+        had. Pairs with `permission_denials` on the matching `delegation_end`:
+        together they show what was granted and what was refused.
+        """
         self.write(
             "delegation_start",
             task_id=task_id,
             agent=agent,
             context_bytes=context_bytes,
             attempt=attempt,
+            tool_tier=list(tools or []),
         )
 
     def delegation_end(
@@ -68,6 +87,7 @@ class RunLog:
         deliverables: list | None = None,
         risks: list | None = None,
         next_step: str = "",
+        usage: Any = None,
     ) -> None:
         """Close out a delegation.
 
@@ -75,6 +95,12 @@ class RunLog:
         the permission layer refused. Normally empty; a non-empty list means a
         sub-agent reached outside its allowlist, which is worth noticing in
         production and not only when a probe goes looking.
+
+        `usage` is a `delegate.Usage`, and every field in it came from the SDK.
+        Kept alongside `cost_usd` rather than replacing it: the dollar figure is
+        what was billed, the token counts are why, and the cache split is the
+        only way to see whether a static prefix is being re-billed per call.
+        Omitted when a run predates telemetry, so old logs stay readable.
         """
         self.write(
             "delegation_end",
@@ -89,10 +115,37 @@ class RunLog:
             deliverables=deliverables or [],
             risks=risks or [],
             next_step=next_step,
+            **(usage.as_log_fields() if usage is not None else {}),
         )
 
-    def verdict(self, *, task_id: str, verdict: str, reason: str) -> None:
-        self.write("verdict", task_id=task_id, verdict=verdict, reason=reason)
+    def verdict(
+        self,
+        *,
+        task_id: str,
+        verdict: str,
+        reason: str,
+        duration_s: float | None = None,
+        num_turns: int = 0,
+        cost_usd: float | None = None,
+        usage: Any = None,
+    ) -> None:
+        """Record a manager verdict, and what it cost.
+
+        The verdict is a real model call on the same budget as the delegation it
+        checks, so leaving it untelemetered would under-report the cost of a run
+        by one call per stage. `task_id` is the join key: a stage's true cost is
+        its `delegation_end` plus every `verdict` sharing that id.
+        """
+        self.write(
+            "verdict",
+            task_id=task_id,
+            verdict=verdict,
+            reason=reason,
+            duration_s=round(duration_s, 2) if duration_s is not None else None,
+            num_turns=num_turns,
+            cost_usd=cost_usd,
+            **(usage.as_log_fields() if usage is not None else {}),
+        )
 
     def gate_hit(self, *, gate: str, detail: str, task_id: str | None = None) -> None:
         self.write("gate_hit", gate=gate, detail=detail, task_id=task_id)

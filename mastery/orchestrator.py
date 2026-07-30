@@ -123,6 +123,9 @@ class Orchestrator:
                 agent=current.agent,
                 context_bytes=current.context_bytes(),
                 attempt=attempt,
+                # The allowlist this delegation is actually dispatched with,
+                # read from the roster — not what the agent reports having.
+                tools=list(current.agent_def().tools),
             )
 
             try:
@@ -164,6 +167,7 @@ class Orchestrator:
                 deliverables=list(result.deliverables),
                 risks=list(result.risks),
                 next_step=result.next_step,
+                usage=invocation.usage,
             )
 
             action = result.action
@@ -268,7 +272,15 @@ class Orchestrator:
         prompt = verdict_mod.build_prompt(brief, result)
         invocation = await delegate.run_verdict(prompt, self.runner, self.config)
         mv = verdict_mod.parse(invocation.raw, expected_task_id=brief.task_id)
-        self.log.verdict(task_id=mv.task_id, verdict=mv.verdict.value, reason=mv.reason)
+        self.log.verdict(
+            task_id=mv.task_id,
+            verdict=mv.verdict.value,
+            reason=mv.reason,
+            duration_s=invocation.duration_s,
+            num_turns=invocation.num_turns,
+            cost_usd=invocation.cost_usd,
+            usage=invocation.usage,
+        )
         return mv
 
     def _charge_delegation(self) -> None:

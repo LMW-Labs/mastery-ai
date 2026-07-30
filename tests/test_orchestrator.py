@@ -15,7 +15,7 @@ from pathlib import Path
 from mastery import pipelines
 from mastery.brief import ContextItem, build
 from mastery.config import Caps, Config
-from mastery.delegate import RunnerResult
+from mastery.delegate import RunnerResult, usage_from
 from mastery.errors import CapExceeded, DelegationFailed
 from mastery.orchestrator import Orchestrator, Outcome, summarize
 
@@ -434,6 +434,173 @@ class TestSummary(OrchestratorTestCase):
         self.assertIn("mobile-dev", text)
         self.assertIn("qa", text)
         self.assertIn("Nothing has been published or promoted.", text)
+
+
+# Shaped exactly like the SDK's dict[str, ModelUsage]: keyed by model string,
+# camelCase keys, passed through verbatim from the CLI.
+SDK_USAGE = {
+    "claude-sonnet-4-5-20250929": {
+        "inputTokens": 1204,
+        "outputTokens": 830,
+        "cacheReadInputTokens": 18_400,
+        "cacheCreationInputTokens": 0,
+        "costUSD": 0.0912,
+        "canonicalModel": "claude-sonnet-4-5",
+    }
+}
+
+
+class TestUsageFold(unittest.TestCase):
+    """`usage_from` is the only thing that reads the SDK's usage dict."""
+
+    def test_folds_camelcase_sdk_shape(self):
+        u = usage_from(SDK_USAGE)
+        self.assertEqual(u.input_tokens, 1204)
+        self.assertEqual(u.output_tokens, 830)
+        self.assertEqual(u.cache_read_tokens, 18_400)
+        self.assertEqual(u.cache_creation_tokens, 0)
+        self.assertEqual(u.model, "claude-sonnet-4-5")
+        self.assertEqual(u.total_tokens, 2034)
+
+    def test_cache_read_is_not_folded_into_the_total(self):
+        """The split is the whole point: a total that absorbs cache reads cannot
+        show whether a static prefix is being re-billed."""
+        u = usage_from(SDK_USAGE)
+        self.assertNotIn(u.cache_read_tokens, (u.total_tokens,))
+        self.assertEqual(u.total_tokens, u.input_tokens + u.output_tokens)
+
+    def test_missing_usage_is_zeroed_not_fatal(self):
+        """Absent telemetry must not fail a delegation that succeeded."""
+        for absent in (None, {}):
+            u = usage_from(absent)
+            self.assertEqual(u.total_tokens, 0)
+            self.assertEqual(u.model, "")
+
+    def test_multiple_models_sum_and_join(self):
+        """Dropping one model's usage would under-report real spend."""
+        u = usage_from(
+            {
+                "model-a": {"inputTokens": 10, "outputTokens": 5, "canonicalModel": "a"},
+                "model-b": {"inputTokens": 1, "outputTokens": 2, "canonicalModel": "b"},
+            }
+        )
+        self.assertEqual(u.input_tokens, 11)
+        self.assertEqual(u.output_tokens, 7)
+        self.assertEqual(u.model, "a+b")
+
+    def test_partial_entry_does_not_raise(self):
+        """Every ModelUsage key is optional in practice."""
+        u = usage_from({"m": {"inputTokens": 3}})
+        self.assertEqual(u.input_tokens, 3)
+        self.assertEqual(u.output_tokens, 0)
+        self.assertEqual(u.model, "m")
+
+
+class TelemetryRunner(ScriptedRunner):
+    """A ScriptedRunner that also reports token usage, as the SDK does."""
+
+    async def run(self, **kwargs) -> RunnerResult:
+        base = await super().run(**kwargs)
+        return replace(base, cost_usd=0.0912, usage=usage_from(SDK_USAGE))
+
+
+class TestTelemetryIsLogged(OrchestratorTestCase):
+    """STOP 1: cost and tier land in the run log, joined by task_id, and no
+    telemetry field is ever model-produced."""
+
+    def telemetry_orch(self, replies):
+        runner = TelemetryRunner(replies)
+        return Orchestrator(self.config, runner, run_id="test"), runner
+
+    async def test_tool_tier_comes_from_the_roster_not_the_agent(self):
+        orch, _ = self.telemetry_orch([result_json(), verdict_json()])
+        await orch.execute(a_brief(agent="researcher"))
+
+        start = next(e for e in orch.log.read() if e["event"] == "delegation_start")
+        # researcher's allowlist in roster.py, recorded as dispatched.
+        self.assertEqual(
+            start["tool_tier"], ["Read", "Glob", "Grep", "WebSearch", "WebFetch"]
+        )
+
+    async def test_delegation_end_carries_tokens_and_model_tier(self):
+        orch, _ = self.telemetry_orch([result_json(), verdict_json()])
+        await orch.execute(a_brief())
+
+        end = next(e for e in orch.log.read() if e["event"] == "delegation_end")
+        self.assertEqual(end["input_tokens"], 1204)
+        self.assertEqual(end["output_tokens"], 830)
+        self.assertEqual(end["cache_read_tokens"], 18_400)
+        self.assertEqual(end["cache_creation_tokens"], 0)
+        self.assertEqual(end["model_tier"], "claude-sonnet-4-5")
+        # cost_usd is kept, not replaced: the dollar figure is what was billed,
+        # the tokens are why.
+        self.assertEqual(end["cost_usd"], 0.0912)
+
+    async def test_verdict_call_is_also_telemetered(self):
+        """The verdict is a real model call. Leaving it untelemetered would
+        under-report a run's cost by one call per stage."""
+        orch, _ = self.telemetry_orch([result_json(), verdict_json()])
+        await orch.execute(a_brief())
+
+        v = next(e for e in orch.log.read() if e["event"] == "verdict")
+        self.assertEqual(v["cost_usd"], 0.0912)
+        self.assertEqual(v["input_tokens"], 1204)
+        self.assertEqual(v["model_tier"], "claude-sonnet-4-5")
+
+    async def test_stage_cost_joins_on_task_id(self):
+        """A stage's true cost is its delegation_end plus every verdict sharing
+        its task_id — that join is the DONE-WHEN."""
+        orch, _ = self.telemetry_orch([result_json(), verdict_json()])
+        await orch.execute(a_brief())
+
+        rows = [
+            e
+            for e in orch.log.read()
+            if e["event"] in ("delegation_end", "verdict")
+            and e["task_id"] == "20260727-ff-014"
+        ]
+        self.assertEqual(len(rows), 2)
+        self.assertAlmostEqual(sum(r["cost_usd"] for r in rows), 0.1824, places=4)
+
+    async def test_a_failed_return_is_telemetered_too(self):
+        """Cost is incurred whether or not the work succeeded, so a failure that
+        logged no cost would make runs look cheaper than they were."""
+        orch, _ = self.telemetry_orch(
+            [result_json(status="failed"), result_json(status="failed")]
+        )
+        outcome = await orch.execute(a_brief())
+
+        self.assertIs(outcome.outcome, Outcome.FAILED)
+        ends = [e for e in orch.log.read() if e["event"] == "delegation_end"]
+        self.assertEqual(len(ends), 2)  # first attempt plus the one retry
+        for end in ends:
+            self.assertEqual(end["status"], "failed")
+            self.assertEqual(end["cost_usd"], 0.0912)
+            self.assertEqual(end["model_tier"], "claude-sonnet-4-5")
+
+    def test_no_telemetry_field_exists_in_the_task_output_schema(self):
+        """The no-fabrication guarantee, asserted rather than asserted-in-prose.
+
+        A sub-agent cannot report a token count or a model tier because the
+        contract has no field for one, and `additionalProperties: false` rejects
+        any it invents. If someone later adds one, this fails.
+        """
+        from mastery.schema import schema
+
+        props = set(schema()["properties"])
+        telemetry = {
+            "tokens",
+            "input_tokens",
+            "output_tokens",
+            "cache_read_tokens",
+            "cache_creation_tokens",
+            "model_tier",
+            "tool_tier",
+            "cost_usd",
+            "num_turns",
+        }
+        self.assertEqual(props & telemetry, set())
+        self.assertFalse(schema()["additionalProperties"])
 
 
 if __name__ == "__main__":

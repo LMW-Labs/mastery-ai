@@ -8,69 +8,258 @@ North star: the governor layer (safe, cheap, auditable orchestration) is the pro
 - Stop and ask for approval at any money / prod / permissions / public-output decision.
 - This ledger is the Mastery OS build track ONLY. The FDE/GitHub portfolio track is separate and must not be interleaved.
 - If a stop reveals new work, log it under BACKLOG — do not expand the current stop.
+- A stop marked MET carries its evidence inline. A claim without a file, line, or log path is not evidence.
+
+Revised 2026-07-29 after auditing the stop list against the code. Four stops were already
+satisfied, one described a different codebase, and one contradicted CLAUDE.md. Those are
+recorded below as MET or CUT **with their evidence and reasons**, not deleted — a ledger
+that quietly drops its own errors cannot be audited either.
 
 ---
 
-## STOP 1 — Schema: telemetry + status
-- [ ] Add required `status` enum: `success | partial | failed | blocked`
-- [ ] Add `tokens` (int), `model_tier` (string), `tool_tier` (string) fields
-- [ ] Keep `additionalProperties: false`
-- DONE-WHEN: a failed task produces structurally different output than a success; schema still validates closed; every field populated on a dry run.
+## STOP 1 — Enforce status + orchestrator-side telemetry — MET
+- [x] Status enum: KEEP existing `complete` member — do NOT rename. Satisfied iff the enum also carries a distinct honest-failure state (failed/blocked/partial) AND `status` is required. If the enum is `complete`-only, THAT is the real work here.
+      - MET on inspection, no code change: `schema.py:33-39` defines all four members, and `structured_output_schema.md:4,10-13` has `status` in `required` with the four-value enum. Not `complete`-only.
+- [x] Record `model_tier` + `tool_tier` in `runlog.py` (orchestrator's own dispatch decision — no fabrication risk). Reuse existing `cost_usd` / `num_turns`; do not duplicate. Join to task output by `task_id`.
+- [x] Also capture token counts and the cache split — `inputTokens`, `outputTokens`, `cacheReadInputTokens`, `cacheCreationInputTokens` — from `ResultMessage.model_usage`. Not a duplicate of `cost_usd`: Stop 6's DONE-WHEN needs the cache-read vs cache-creation split, and a dollar figure cannot supply it. Verified present in claude-agent-sdk 0.2.128.
+- [x] Do NOT add `tokens`/`model_tier`/`tool_tier` to the task-output schema. A sub-agent cannot know SDK metadata; self-reported numbers = fabrication.
+- [x] Keep task-output schema `additionalProperties: false`.
+- DONE-WHEN: run log emits per-task cost + tier joined by `task_id`; honest failure is structurally distinguishable in output; no telemetry field is model-produced.
+
+**Verified 2026-07-29.** Suite 98 → **109 passed, 15 subtests**; `mastery check` exit 0.
+
+- WHAT CHANGED: `delegate.Usage` + `usage_from()` fold `ResultMessage.model_usage`
+  (camelCase, keyed by model) into typed counts; `SdkRunner.run` reads it at the one place
+  that sees a `ResultMessage`; it rides `RunnerResult` → `Invocation` → the log.
+  `runlog.delegation_start` records `tool_tier` from `roster.py`; `delegation_end` and
+  `verdict` both record tokens, the cache split, and `model_tier`.
+- COST JOIN: a stage's true cost is `delegation_end` **plus every `verdict` on that
+  `task_id`** — the verdict is a real model call, and omitting it under-reported every run
+  by one call per stage. Dry run: delegation $0.0912 + verdict $0.0071 = **$0.0983**, where
+  the old log would have shown $0.0912.
+- CACHE SPLIT: kept as two fields, never summed into a total. `total_tokens` is fresh
+  input + output only; folding cache reads in would hide the one thing the split exists to
+  show. This is what Stop 6 measures against.
+- MODEL: records the *resolved* model (`canonicalModel`, e.g. `claude-sonnet-4-5`), not the
+  requested alias — `config.delegation.model` is `"sonnet"`, which is neither what gets
+  billed nor what a tiering decision can be checked against.
+- NO FABRICATION: asserted, not asserted-in-prose. `test_no_telemetry_field_exists_in_the_task_output_schema`
+  fails if any telemetry field is ever added to the output contract. A sub-agent has no
+  field to report one in, and `additionalProperties: false` rejects any it invents.
+- HONEST FAILURE: a `failed` return is telemetered too — cost is incurred whether or not
+  the work succeeded, and a failure logging no cost would make runs look cheaper than they
+  were. Distinguishability is carried by `status`; the orchestrator branched on it alone,
+  parsing no prose.
+- GRACEFUL DEGRADATION: absent or partial `model_usage` yields a zeroed `Usage` rather than
+  raising. Missing telemetry must never fail a delegation that succeeded, and pre-telemetry
+  logs in `.runs/` stay readable.
 - NEXT → Stop 2
 
-## STOP 2 — Rubric: risk overlay + coverage + naming
-- [ ] Move approval/risk (money/prod/permissions/public) to a non-short-circuiting overlay evaluated BEFORE routing
-- [ ] Verify "deploy feature to prod" routes to approval, not Developer
-- [ ] Reconcile emitted names (`Developer`/`Designer`) with roster (`mobile-dev`/`ui-ux`)
-- [ ] Decide wire-or-cut for the 13 unreachable agents; remove or route each
-- DONE-WHEN: no defined-but-unreachable agent exists; every emitted route name matches a roster entry; the prod-deploy test hits approval.
-- NEXT → Stop 3
+## STOP 2 — Gate at the invocation boundary (UNBLOCKED — decided 2026-07-29)
+The original STOP 2 was mostly about a codebase that is not this one — see CUT. What
+survives is the real hole it pointed at: `gates.check()` reads the brief's **declared**
+`approval_gates_touched` (`gates.py:45-66`), so a brief whose objective is "deploy to prod"
+but which declares `none` passes untouched.
 
-## STOP 3 — Routing as pure code
-- [ ] Make route selection a deterministic code function (first-match-stop), zero LLM calls
-- [ ] `roster.py` validates the selected name
-- DONE-WHEN: routing spends 0 tokens; roster validation passes on all live routes.
+**OPERATOR RULING — the enforcement model, verbatim:**
+> The overlay must not ask the model "is this risky?" — that rebuilds the bypassable
+> guardrail.
+> - Gate keys off the observed tool/target being invoked, via a static tool→class map in
+>   code, at the invocation boundary. Not off the model's description of its own intent.
+> - Classes: `money | prod | permissions | public | irreversible` → require approval before
+>   execution.
+> - Fail closed: unknown or missing class → require approval. Never default to safe.
+
+This settles the tension that blocked the stop. Neither option originally on the table was
+right: cross-checking prose *is* asking a model about intent, and leaving the declaration
+load-bearing lets a mis-declared brief run. Keying off the observed invocation removes the
+model from the decision entirely.
+
+- [ ] Static `TOOL_CLASS` map in code: tool/target → one of `money | prod | permissions | public | irreversible`
+- [ ] Enforce at the invocation boundary, before execution — not at brief-validation time
+- [ ] Fail closed: an unmapped tool or a missing class requires approval. No default-safe branch, and no "unknown means fine" path
+- [ ] Keep the existing declared-gate pre-flight check (`gates.enforce`) as well. The two are different enforcement points, not competing ones: the declaration halts before spend, the tool→class map is the runtime backstop that cannot be talked past. Removing the pre-flight would trade a cheap halt for an expensive one.
+- [ ] Tests: a prod-target invocation requires approval; an unmapped tool requires approval; a declared-`none` brief attempting a mapped target still halts
+- DONE-WHEN: approval is required for every mapped class and for every unmapped tool, decided from the invocation and not from any model's description of it; a declared-`none` brief cannot reach a gated target.
+
+**Scope note for whoever implements this.** The invocation boundary is not one place:
+- SDK tool calls — currently moot by construction. `config.delegation.denied_tools` hard-denies `Agent`, `Bash`, `Write`, `Edit`, `NotebookEdit`, and `permission_mode="dontAsk"` refuses anything not pre-approved, so the sub-agent tool surface is read-only today. The map still gets built, because it must already exist the day a write tool is granted.
+- `integrations/` method calls — this is where the rule bites *now*. `meta_client.publish_ig_post` / `publish_page_post` / `reply_to_comment` / `delete_comment` are the real gated targets (`public`, `public`, `public`, `irreversible`). They currently `raise NotImplementedError`, which is fail-closed by accident; this stop makes it fail-closed on purpose, by class.
+- Supabase writes, once Stop 4 lands — `permissions` for schema/RLS changes, `irreversible` for deletes.
 - NEXT → Stop 4
 
-## STOP 4 — Persistent state layer (Supabase)
+## STOP 3 — Routing as pure code — MET
+- [x] Route selection is deterministic code, zero LLM calls
+- [x] `roster.py` validates the selected name
+- EVIDENCE: on the `mastery run` path the brief names the agent and `roster.get()` validates it (`roster.py:114-126`), raising `RoutingError` on anything not in the roster — no model call. The drafter also validates model-proposed routes in code (`drafter.py:161-163`). The only LLM routing anywhere is `mastery draft`, which by design proposes and never runs, and whose output the operator edits before it executes.
+- CONSIDERED AND REJECTED: converting the drafter to first-match keyword matching. The drafter also writes objectives, success criteria, and out-of-scope text; keyword matching cannot produce those. Zero-token routing is already true on the path that actually executes work.
+
+## STOP 4 — Persistent state layer (Supabase) — APPROVED 2026-07-29, two conditions
+Authorized as the state layer. Rationale recorded: Supabase is already in-stack, so this is
+an authorized dependency, not a silent paid failover — it does not trip the "no silent
+billable fallback" rule.
+
+**Condition 1 — isolation.** Separate Supabase project, or at minimum a separate schema,
+from FaithFeed prod. Agent state must not co-mingle with app or user data. RLS on.
+
+**Condition 2 — credentials.** Service-role key handled per the credential decision from
+the hermes thread. **RESOLVED:** the hermes `.env` turned out to be byte-identical to
+`.env.example` — zero secrets, nothing to inherit. So there is no hermes pattern to adopt,
+and the pattern to use is the one this project already established for Meta:
+`~/.config/mastery/<name>.env`, `chmod 600`, read via `os.environ` at the chokepoint, never
+committed, never passed into a brief payload. A service-role key bypasses RLS, so it is
+operator-only and must never reach a sub-agent's context.
+
+- [ ] Separate project or schema from FaithFeed prod; RLS enabled and verified
+- [ ] Service-role key at `~/.config/mastery/supabase.env`, `chmod 600`, gitignored
+- [ ] Single chokepoint module, same shape as `integrations/meta_client.py` — sub-agents call methods, never see the key, never build queries
+- [ ] Writes classified against the Stop 2 tool→class map before any write path is enabled
 - [ ] Persist research/debunk verdicts keyed by claim hash
 - [ ] Persist KPI history
 - [ ] Persist reject-with-reason as structured rows
-- DONE-WHEN: a repeat claim reuses a stored verdict instead of recomputing; a rejection writes a queryable row.
-- NEXT → Stop 5
+- DONE-WHEN: a repeat claim reuses a stored verdict instead of recomputing; a rejection writes a queryable row; agent state is provably in its own project/schema with RLS on; the service-role key is absent from the repo and from every brief payload.
+- NEXT → Stop 7 (Stop 6's second half is blocked behind Stop 7 — see below)
 
-## STOP 5 — Manager context from state, not inline
-- [ ] Manager reads sub-briefs/returns selectively from a state file/scratchpad
-- [ ] Stop carrying all returns inline across stages
-- DONE-WHEN: manager window does not grow linearly with stage count on a multi-stage run.
-- NEXT → Stop 6
+## STOP 5 — Manager context from state, not inline — MET
+- [x] Manager does not carry all returns inline across stages
+- [x] Manager window does not grow with stage count
+- EVIDENCE: every delegation and every verdict is a fresh stateless `query()`; no conversation accumulates across stages. `verdict.build_prompt` receives the brief's criteria and the return only — explicitly not the context payload (`verdict.py:65-71`). Stage-to-stage carry-forward is the `BriefFactory` callback, which passes only what it chooses (`orchestrator.py:75-78`). There is no linear growth to remove.
 
-## STOP 6 — Prompt cache + model tiering
-- [ ] Prompt-cache static prefix (system prompts, agent `.md`, rubric, schema)
-- [ ] Cheap model for routing/validation/verify/fact-check; expensive only for synthesis
-- DONE-WHEN: telemetry (Stop 1) shows correct tier per call; static prefix not re-billed per call.
+## STOP 6 — Cache measurement (first half open) + model tiering (BLOCKED behind Stop 7)
+
+### 6a — Cache measurement (runnable now)
+- [ ] Confirm from telemetry that the static prefix is served from cache — `cacheReadInputTokens` high, `cacheCreationInputTokens` near zero after the first call
+- DONE-WHEN: one run's telemetry shows the cache split. Stop 1 already emits both fields.
+- CUT: "prompt-cache static prefix." `ClaudeAgentOptions` exposes no `cache_control` knob; the CLI manages caching. Nothing to implement — only something to measure.
+
+### 6b — Model tiering — APPROVED 2026-07-29, and BLOCKED until Stop 7 is MET
+Approved, scoped, and dependency-gated.
+
+**HARD DEPENDENCY:** stays BLOCKED until Stop 7 (eval loop) is MET. Operator's reasoning,
+recorded because it is the whole point: *dropping to cheap tiers without the eval loop
+trades measured cost for unmeasured quality loss — that's the dishonest-success failure
+mode. Eval first, then tier.* Do not start 6b to "get ahead" while Stop 7 is open; a cost
+win that cannot be checked against a quality baseline is not a win, it is an unmeasured
+regression that looks like one.
+
+- [ ] BLOCKER: Stop 7 MET, with a quality baseline recorded on the strong model **before** any role is tiered down
+- [ ] Tier DOWN mechanical roles only: validation, verify-only (`delegate.run_verdict`), fact-check retrieval
+- [ ] Keep judgment and synthesis roles on the strong model: `risk-review`, `legal-review`, `strategy`
+- [ ] Routing needs no tier — it is already code and spends no tokens (Stop 3 MET)
+- [ ] Rewrite `CLAUDE.md:190` to scope the strong-model mandate to judgment roles rather than reversing it blanket — see the exact quote and proposed wording below
+- [ ] `delegation.model` becomes per-role; `config.py:76-79` comment updated in the same commit
+- DONE-WHEN: telemetry shows the correct tier per call; every judgment role is provably still on the strong model; quality scores after tiering are compared against the pre-tiering baseline and do not regress.
+
+**The line to be rewritten, quoted exactly as it stands today:**
+
+`CLAUDE.md:190`:
+> `- There is no per-role model routing; `delegation.model` is global.`
+
+`mastery/config.py:76` (the docstring on `Delegation`, which must move with it):
+> `    CLAUDE.md: no per-role model routing; `delegation.model` is global.`
+
+Proposed replacement for `CLAUDE.md:190`, scoped rather than reversed — **not yet applied,
+pending your sign-off on the wording:**
+> `- Model routing is per-role and scoped by kind of work, not global. Mechanical roles —`
+> `  validation, verify-only manager invocations, fact-check retrieval — may run on a cheaper`
+> `  model. Judgment and synthesis roles — `risk-review`, `legal-review`, `strategy` — run on`
+> `  the strong model, and tiering one down is a change to this file, not a config tweak.`
+> `  No role may be tiered down before the eval loop can show its quality did not regress.`
+
+The last sentence is what keeps the scoping from eroding later: it puts the Stop 7
+dependency in the governing doc rather than only in this ledger.
 - NEXT → Stop 7
 
 ## STOP 7 — Output-quality eval loop
+Now load-bearing: Stop 6b is blocked behind this one, so this is the gate that makes cost
+work honest rather than merely cheap.
+
 - [ ] Score output quality per run (not just orchestration mechanics)
 - [ ] Log scores so they trend run-over-run
-- DONE-WHEN: each run emits a quality score; scores are queryable over time.
-- NEXT → Decision Gate
+- [ ] Record a baseline on the **strong** model for every role Stop 6b intends to tier down, before anything is tiered
+- DONE-WHEN: each run emits a quality score; scores are queryable over time; a strong-model baseline exists for validation, verify-only, and fact-check retrieval.
+- NOTE: genuinely new, no conflict with existing code. Needs only somewhere to write scores — the run log suffices until Stop 4 exists.
 
-## DECISION GATE — before first live run
-- [ ] RESOLVE: agent runtime shares subscription limits vs. separate metered API key
-- DONE-WHEN: auth mode chosen and hardwired; no ambiguity at runtime.
-- NEXT → Stop 8
+## DECISION GATE — auth mode — MET, and already passed in practice
+- [x] Auth mode chosen and hardwired
+- EVIDENCE: `config.py:111-160`. `mode` defaults to `"subscription"`; that path asserts `ANTHROPIC_API_KEY` is absent and raises if it is set, because a set key would silently shadow OAuth and bill the API account. `api_key` mode is available and crosses the money gate deliberately. No runtime ambiguity.
+- NOTE: this gate was positioned "before first live run." Live runs already happened — see Stop 8 — so it confirms what is already running rather than preventing it. Nothing further unless the answer changes.
 
-## STOP 8 — First live run (staged)
-- [ ] Researcher only, stateless mode, hand-carry output between stages
-- [ ] Capture telemetry; observe each boundary
-- DONE-WHEN: one full stage runs live with telemetry recorded and no guardrail bypassed.
-- NEXT → iterate; system is now minimally complete on the governor track.
+## STOP 8 — First live run (staged) — MET
+- [x] Researcher, stateless, output hand-carried between stages
+- [x] Telemetry captured; no guardrail bypassed
+- EVIDENCE: five completed live delegations in `.runs/`, with real spend — researcher 30 turns/$1.43 (`d37cd84fe3bf`), 26 turns/$1.26 and 25 turns/$0.92 (`436effa2eec8`), 21 turns/$0.91 (`4457b266f514`), content 2 turns/$0.36 (`06f584d92f4d`). ~$5.19 recorded total. `permission_denials` empty on every one — no sub-agent reached outside its allowlist.
+- NOTE: what those runs did NOT record is token counts or the cache split, because nothing captured them. That gap is Stop 1, and it is why Stop 1 is first.
 
 ---
+
+## DECISIONS — all three resolved 2026-07-29
+1. **Gate enforcement — RESOLVED.** Not prose cross-checking. Keys off the observed
+   tool/target at the invocation boundary via a static tool→class map in code; classes
+   `money | prod | permissions | public | irreversible`; fail closed on unknown or missing
+   class. Full ruling recorded in Stop 2. Stop 2 UNBLOCKED.
+2. **Model tiering — APPROVED, scoped, and dependency-gated.** Mechanical roles tier down;
+   judgment roles stay strong; `CLAUDE.md:190` gets scoped, not reversed. **Blocked until
+   Stop 7 is MET.** Recorded in Stop 6b, with the current CLAUDE.md line quoted verbatim
+   and the proposed replacement awaiting sign-off on wording.
+3. **Supabase — APPROVED** as an in-stack authorized dependency, subject to isolation
+   (separate project/schema from FaithFeed prod, RLS on) and credential handling
+   (`~/.config/mastery/supabase.env`, `chmod 600`, never in a brief payload). Recorded in
+   Stop 4. Credential condition's upstream dependency is resolved: the hermes `.env` held
+   no secrets.
+
+## Open items not owned by a stop
+- **CLAUDE.md:190 rewrite wording** — proposed in Stop 6b, awaiting operator sign-off. Not
+  urgent: 6b is blocked behind Stop 7 regardless.
+- **hermes removal** — in progress; see the environment note below.
+
+## Environment note — hermes (2026-07-29)
+Not a Mastery OS stop, but it touched this repo's interpreter resolution, so it is recorded.
+`C:\Users\awyri\AppData\Local\hermes` (2.6 GB) had **two entries at the front of the
+persistent user PATH**, including `hermes-agent\venv\Scripts` — which is what shadowed
+`python` and made the test suite appear unrunnable earlier tonight.
+
+- DONE: both entries removed from `HKCU:\Environment` PATH (23 → 21 entries); prior value
+  backed up to `~/.config/hermes-salvage/user-PATH-before.txt`.
+- DONE: standalone `uv` installed via winget (`astral-sh.uv` 0.11.32) and on user PATH.
+  hermes's bundled `uv.exe` had been the **only** uv on the machine.
+- DONE: `auth.json` salvaged to `~/.config/hermes-salvage/` — it holds a `credential_pool`
+  with one `copilot` and one `anthropic` entry, `active_provider: "None"`.
+- FINDING: the 23,865-byte `.env` was byte-identical to `.env.example`. Zero secrets. This
+  is what resolved Stop 4's credential condition.
+- BLOCKED on operator: three live `uv.exe` processes from `hermes\bin`, parented to
+  `claude.exe`, are running Claude Desktop MCP extensions (`windows-mcp`, `blender-mcp`,
+  `tooluniverse-mcp`). Deleting the directory requires killing them, which stops those
+  three extensions until Claude Desktop is restarted on the new uv.
+
+## CUT from the original ledger, with reasons
+- **`Developer` / `Designer` name reconciliation.** Those strings appeared in exactly one
+  file in this repo — this ledger. Zero occurrences in `mastery/` or `docs/`. The roster
+  and the rubric already agree on `mobile-dev` and `ui-ux`.
+- **"13 unreachable agents."** All 17 delegatable agents appear in
+  `manager_decision_rubric.md:45-63`, verified programmatically against
+  `roster.DELEGATABLE`. There are no unreachable agents.
+- **"Move approval/risk to an overlay evaluated BEFORE routing."** Already before
+  routing: rubric Step 1 precedes Step 3, and `gates.enforce` runs before the delegation
+  is logged or sent (`orchestrator.py:109-119`).
+- **"Non-short-circuiting" gates.** `gates.py` halts hard and deliberately has no
+  `approve()` function; approval arrives as a fresh operator request, not a flag a run
+  sets on itself. Non-short-circuiting evaluation means continuing past a gate, which
+  weakens the guardrail. If the intent was "report every gate a brief touches, not just
+  the first match," that is a smaller and better change — logged in BACKLOG.
+- **STOP 1's `success` rename.** The code, CLAUDE.md, every brief in `briefs/`, and the
+  test suite all use `complete` (`schema.py:36`). Superseded by the operator's own edit.
+- **STOP 1's "failed produces structurally different output."** All four statuses share
+  identical required fields, so adding fields to every status makes success and failure
+  *more* alike. Real structural divergence needs conditional `if/then` schema, and since
+  the orchestrator branches on `status` alone (`schema.py:52-57`), it would buy nothing.
+  Distinguishability is carried by the `status` value itself.
 
 ## BACKLOG (log, do not action mid-stop)
 - Cap CONTEXT/history in brief with rolling summary
 - Bound `deliverables[]` item length
 - Fix filename typo `task_breif_template.md` (only if a path references it)
+- `gates.check()` returns only the first matching gate; consider returning all of them
+- No retention or purge path in `runlog.py` — logs hold operator prose and returned work indefinitely
+- `pyproject.toml` `packages.find` excludes `integrations/`, so `from integrations.meta_client import ...` breaks outside repo-root cwd — a portability gap against the VPS/mobile-shell requirement
+- `pipelines.needs_legal_review` is dead code, called nowhere; either wire it into `run_pipeline` or delete it. `drafter.py:250` prints a legal-review line that reads like enforcement but is not.
