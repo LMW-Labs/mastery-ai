@@ -123,8 +123,37 @@ Authorized as the state layer. Rationale recorded: Supabase is already in-stack,
 an authorized dependency, not a silent paid failover — it does not trip the "no silent
 billable fallback" rule.
 
-**Condition 1 — isolation.** Separate Supabase project, or at minimum a separate schema,
-from FaithFeed prod. Agent state must not co-mingle with app or user data. RLS on.
+**Condition 1 — isolation.** Mastery OS gets its **own dedicated Supabase project**,
+reserved for the governor. RLS on.
+
+Stated positively and self-standing, corrected 2026-07-30. It previously read "separate
+project, or at minimum a separate schema, from FaithFeed prod", which was wrong twice:
+
+- It defined the governor's own requirement *relative to a vertical* — the same defect
+  logged in BACKLOG about `pipelines.py`. The governor's store is its own because it is the
+  governor's, not because of what else exists in the account. The requirement holds if
+  every other project is deleted tomorrow.
+- **The schema fallback was unsafe and is removed.** A Supabase service-role key is scoped
+  to the *project* and bypasses RLS. A schema-level split sharing one project would hand
+  the governor's key full read/write over everything else in that project, so Condition 1
+  and Condition 2 contradicted each other. Schema separation is not a weaker version of
+  project separation here; it is not isolation at all.
+
+Naming: do not name the project after a vertical. It is the governor's store.
+
+**Account state as of 2026-07-30** (read-only check, nothing created): org
+`efufvmgzgxnlkpelrilg` (LMW-Labs's Org) holds four projects — `himsportsgroup`
+(ACTIVE_HEALTHY), `faithfeedAI` (INACTIVE), `hodge_performance` (INACTIVE), `lmwlabs-web`
+(INACTIVE). No governor project exists. A new project costs **$0/month**.
+
+**Open question before this stop starts — free-tier auto-pause.** Three of four existing
+projects are already INACTIVE. A paused project means the state layer is unavailable, which
+breaks this stop's own DONE-WHEN: a repeat claim cannot reuse a stored verdict from a
+database that is asleep. Decide whether the governor's store can tolerate pausing (and the
+orchestrator must then degrade honestly rather than silently recompute), or whether it needs
+to hold an always-on slot. This is a design decision, not a detail — a state layer that
+silently vanishes and gets silently recomputed is the fabricated-success failure mode
+wearing a different hat.
 
 **Condition 2 — credentials.** Service-role key handled per the credential decision from
 the hermes thread. **RESOLVED:** the hermes `.env` turned out to be byte-identical to
