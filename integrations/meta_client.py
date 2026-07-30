@@ -3,8 +3,9 @@
 Every Meta request in Mastery OS routes through this module. Sub-agents call
 these methods; they never see the token, never build URLs, never see raw JSON.
 
-Read methods are open. Write methods raise NotImplementedError until the
-approval gate exists.
+Read methods are open. Write methods halt at the approval gate, by class, from
+`mastery.gates` — the check keys off the target being invoked, not off any
+description of intent, and it fires before a request is built.
 """
 
 import os
@@ -12,6 +13,8 @@ import time
 from typing import Any
 
 import requests
+
+from mastery import gates
 
 GRAPH_VERSION = "v21.0"
 BASE_URL = f"https://graph.facebook.com/{GRAPH_VERSION}"
@@ -166,21 +169,29 @@ class MetaClient:
         data = self._request(f"{self.page_id}/insights", params)
         return {m["name"]: m.get("values", []) for m in data.get("data", [])}
 
-    # ---------- write: gated ----------
+    # ---------- write: gated at the invocation boundary ----------
+    #
+    # These were `raise NotImplementedError`, which is fail-closed by accident:
+    # it halts because nobody wrote the body, so the day someone does, the halt
+    # disappears with it. Now each one halts because of *what it is* — its class
+    # in `gates.TOOL_CLASS` — checked before any request is built.
+    #
+    # `require_approval` always raises. That is not a placeholder: approval
+    # arrives as a fresh operator request, never as a flag this process sets on
+    # itself, so there is no argument these methods could be passed that would
+    # let them proceed. When a body is eventually written it goes *after* the
+    # check, and the check stays.
 
     def publish_ig_post(self, *args, **kwargs):
-        raise NotImplementedError(
-            "Publishing is public output and requires the approval gate. "
-            "Not implemented until that exists."
-        )
+        gates.require_approval("meta_client.publish_ig_post")
 
     def publish_page_post(self, *args, **kwargs):
-        raise NotImplementedError("See publish_ig_post.")
+        gates.require_approval("meta_client.publish_page_post")
 
     def reply_to_comment(self, *args, **kwargs):
-        raise NotImplementedError("See publish_ig_post.")
+        gates.require_approval("meta_client.reply_to_comment")
 
     def delete_comment(self, *args, **kwargs):
-        raise NotImplementedError(
-            "Comment deletion is unrecoverable. Gate required, and prefer hide()."
-        )
+        # Classed `irreversible`, not `public`: the harm here is that it cannot
+        # be undone and it destroys someone else's words. Prefer hide().
+        gates.require_approval("meta_client.delete_comment")
