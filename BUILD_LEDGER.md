@@ -334,6 +334,54 @@ persistent user PATH**, including `hermes-agent\venv\Scripts` — which is what 
   Distinguishability is carried by the `status` value itself.
 
 ## BACKLOG (log, do not action mid-stop)
+
+### Governor layer names one vertical's roles and release vocabulary
+`pipelines.py:71-75` hardcodes `RELEASE = ("mobile-dev", "qa", OPERATOR_APPROVAL,
+"promote to track")`. Two separate leaks in one definition: the agent names, and
+**"promote to track", which is Google Play vocabulary**. `PUBLIC_OUTPUT` has the same
+shape and is only less conspicuous because `content`/`fact-checker`/`risk-review` read
+as generic roles rather than one vertical's org chart.
+
+Contradicts the north star directly: if agents are the commodity, the governor must not
+name any specific one.
+
+Shape of the fix — parameterise pipelines by **stage kind**, with the vertical supplying
+the concrete agents:
+
+    build -> verify -> approve -> promote
+
+- The governor defines the kinds and the ordering. It names no agent.
+- A vertical maps kinds to its own agents (FaithFeed: build=`mobile-dev`, verify=`qa`).
+- **The terminal stage must be generic too** — `promote` or `release` as the kind, with
+  the channel noun ("track", "store listing", "feed") supplied by the vertical.
+  Parameterising the agent names while leaving "promote to track" in place is a half-fix
+  that reads as done: the governor would still carry one distribution channel's
+  fingerprint.
+
+Why this dissolves two problems at once:
+1. The governor stops naming specific agents.
+2. The pipeline guardrail test — "a `qa` no-go halts the release pipeline" — becomes a
+   test of the *halting property*, expressible with any two rubriced agents. It no longer
+   needs FaithFeed's agents to exist, which is what forced tonight's rubric expansion.
+
+**Do not delete the `mobile-dev` and `qa` rubrics when this lands.** They were written
+tonight (Stop 7) to keep a governor guardrail test writable under fail-closed, and they
+look like test scaffolding but are not. Once stage kinds exist, they are *vertical*
+rubrics and belong in the vertical's config, on the correct side of the line. They move;
+they are not discarded.
+
+Deserves its own stop — it is a real refactor of enforcement code, not a cleanup.
+
+### Stop 7 baseline briefs are vertical-adjacent
+`briefs/20260729-rd-005.json`, `-006`, `-007` are Instagram Graph API subject matter used
+as a governor-track measurement. The grades are valid and the runs are done — subject
+matter does not affect whether a rubric dimension was correctly scored. Flagged for
+provenance only. **Next fresh-baseline briefs should be vertical-neutral.**
+
+Deliberately not corrected retroactively: re-running fresh briefs to launder provenance
+would cost real spend for a purity gain that this note achieves for free.
+
+### Smaller items
 - Cap CONTEXT/history in brief with rolling summary
 - Bound `deliverables[]` item length
 - Fix filename typo `task_breif_template.md` (only if a path references it)
