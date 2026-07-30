@@ -156,6 +156,46 @@ class RunLog:
             **(usage.as_log_fields() if usage is not None else {}),
         )
 
+    def quality_score(
+        self,
+        *,
+        task_id: str,
+        score: Any,
+        duration_s: float | None = None,
+        num_turns: int = 0,
+        cost_usd: float | None = None,
+        usage: Any = None,
+        role_tier: str = "",
+    ) -> None:
+        """Record a graded output.
+
+        Joined to the stage by `task_id`, the same key as `delegation_end` and
+        `verdict`, so one stage's full record is those three events on one id —
+        what it cost, whether it was accepted, and how good it was.
+
+        The grader is itself a model call, so it carries the same telemetry as any
+        other. Its `role_tier` is `mechanical`.
+        """
+        self.write(
+            "quality_score",
+            task_id=task_id,
+            duration_s=round(duration_s, 2) if duration_s is not None else None,
+            num_turns=num_turns,
+            cost_usd=cost_usd,
+            role_tier=role_tier,
+            **score.as_log_fields(),
+            **(usage.as_log_fields() if usage is not None else {}),
+        )
+
+    def quality_skipped(self, *, task_id: str, agent: str, reason: str) -> None:
+        """Record that an output was NOT scored, and why.
+
+        Absence must never be silent. An unscored stage with no explanation is
+        indistinguishable from a scoring path that quietly broke, and a trend with
+        unexplained holes cannot be used to gate a tiering decision.
+        """
+        self.write("quality_skipped", task_id=task_id, agent=agent, reason=reason)
+
     def gate_hit(self, *, gate: str, detail: str, task_id: str | None = None) -> None:
         self.write("gate_hit", gate=gate, detail=detail, task_id=task_id)
 

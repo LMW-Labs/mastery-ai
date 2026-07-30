@@ -183,6 +183,42 @@ def _force_utf8_stdio() -> None:
             reconfigure(encoding="utf-8", errors="replace")
 
 
+def _eval(config: Config, set_baseline: str | None, agent: str | None) -> int:
+    """Trend scores, or record a baseline from them."""
+    from . import evals
+
+    if set_baseline is None:
+        print(evals.render(config.log_dir))
+        return 0
+
+    if not agent:
+        print("--set-baseline requires --agent", file=sys.stderr)
+        return 2
+
+    records = [r for r in evals.load_scores(config.log_dir) if r.key.agent == agent]
+    if not records:
+        print(f"no quality scores recorded for agent {agent!r}", file=sys.stderr)
+        return 2
+
+    try:
+        entry = evals.set_baseline(records, label=set_baseline)
+    except evals.IncomparableScores as exc:
+        # Refused rather than averaged. An average across incomparable runs looks
+        # like a number, which is worse than having none.
+        print(f"refused: {exc}", file=sys.stderr)
+        return 2
+
+    print(f"baseline '{set_baseline}' recorded for {agent}")
+    print(f"  rubric_version   {entry['rubric_version']}")
+    print(f"  model            {entry['model']}")
+    print(f"  n                {entry['n']}")
+    print(f"  overall mean     {entry['overall_mean']}/3 ({entry['normalised_mean']:.1%})")
+    for dim, mean in entry["per_dimension_mean"].items():
+        print(f"    {dim:36} {mean}")
+    print(f"  -> {evals.BASELINES_PATH}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     _force_utf8_stdio()
     parser = argparse.ArgumentParser(prog="mastery")
@@ -208,6 +244,20 @@ def main(argv: list[str] | None = None) -> int:
     )
     draft_cmd.add_argument("--out", type=Path, default=Path("briefs"))
 
+    eval_cmd = sub.add_parser(
+        "eval", help="trend recorded quality scores, or record a baseline"
+    )
+    eval_cmd.add_argument(
+        "--set-baseline",
+        metavar="LABEL",
+        default=None,
+        help="record the scores for --agent as a baseline under this label "
+        "(e.g. fresh-strong-model, retro-sanity-check)",
+    )
+    eval_cmd.add_argument(
+        "--agent", default=None, help="required with --set-baseline: which agent"
+    )
+
     args = parser.parse_args(argv)
     config = Config.load(args.config)
 
@@ -224,6 +274,8 @@ def main(argv: list[str] | None = None) -> int:
                 print("nothing to draft from", file=sys.stderr)
                 return 2
             return asyncio.run(_draft(config, text, args.attach, args.out))
+        if args.command == "eval":
+            return _eval(config, args.set_baseline, args.agent)
     except OrchestratorError as exc:
         print(f"{type(exc).__name__}: {exc}", file=sys.stderr)
         return 2

@@ -65,6 +65,15 @@ class ApprovalRequired(GateHit):
         self.gate_class = gate_class
 
 
+class RubricMissing(OrchestratorError):
+    """An accepted output had no quality rubric to be scored against.
+
+    A stop, not a skip. Silently leaving an accepted output unscored is the one
+    bypass STOP 7's pin exists to catch: the run looks fine, the trend has a hole
+    in it, and nothing says so. Add the agent's rubric to quality_rubrics.md.
+    """
+
+
 class CapExceeded(OrchestratorError):
     """A configured cap (delegations, turns, spawn depth) was hit."""
 
