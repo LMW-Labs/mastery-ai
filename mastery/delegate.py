@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import asyncio
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Protocol
 
 from .brief import TaskBrief
@@ -69,6 +69,83 @@ review gate) you are returning closed. Name the trigger in next_step.
 
 
 @dataclass(frozen=True)
+class Usage:
+    """Token accounting for one model call, as the SDK reported it.
+
+    Every field here comes from `ResultMessage.model_usage`, which the CLI fills
+    in from the API's own response. Nothing in this dataclass is ever asked of a
+    model: a sub-agent cannot observe its own token count or know which model
+    served it, so a self-reported number would be a guess wearing the costume of
+    telemetry. That is the fabrication CLAUDE.md forbids, and it is why these
+    live here and not in structured_output_schema.md.
+
+    The cache split is two fields rather than one total because that is the only
+    way to tell a cached static prefix from a re-billed one: `cache_read` high
+    with `cache_creation` near zero means the prefix was served from cache. A
+    single `tokens` sum, or a dollar figure, cannot distinguish those.
+
+    `model` is the resolved model that actually served the call, not the alias
+    that was requested — `config.delegation.model` is "sonnet", which is not
+    what gets billed or what a tiering decision needs to be checked against.
+    """
+
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cache_read_tokens: int = 0
+    cache_creation_tokens: int = 0
+    model: str = ""
+
+    @property
+    def total_tokens(self) -> int:
+        """Fresh input plus output. Cache reads are counted separately, because
+        folding them in here would hide the thing the split exists to show."""
+        return self.input_tokens + self.output_tokens
+
+    def as_log_fields(self) -> dict:
+        return {
+            "input_tokens": self.input_tokens,
+            "output_tokens": self.output_tokens,
+            "cache_read_tokens": self.cache_read_tokens,
+            "cache_creation_tokens": self.cache_creation_tokens,
+            "model_tier": self.model,
+        }
+
+
+def usage_from(model_usage: dict | None) -> Usage:
+    """Fold `ResultMessage.model_usage` into one Usage.
+
+    The SDK keys usage by model string and hands the value through verbatim from
+    the CLI, so the keys are camelCase and every field is optional in practice.
+    A call normally involves one model; when it involves more, the counts sum and
+    the model names join, because the alternative — picking one and dropping the
+    rest — would under-report real spend.
+
+    An absent or empty `model_usage` yields a zeroed Usage rather than raising.
+    Missing telemetry must not be able to fail a delegation that succeeded.
+    """
+    if not model_usage:
+        return Usage()
+
+    totals = {"input": 0, "output": 0, "cache_read": 0, "cache_creation": 0}
+    names: list[str] = []
+    for key, entry in model_usage.items():
+        entry = entry or {}
+        totals["input"] += entry.get("inputTokens", 0) or 0
+        totals["output"] += entry.get("outputTokens", 0) or 0
+        totals["cache_read"] += entry.get("cacheReadInputTokens", 0) or 0
+        totals["cache_creation"] += entry.get("cacheCreationInputTokens", 0) or 0
+        names.append(entry.get("canonicalModel") or key)
+
+    return Usage(
+        input_tokens=totals["input"],
+        output_tokens=totals["output"],
+        cache_read_tokens=totals["cache_read"],
+        cache_creation_tokens=totals["cache_creation"],
+        model="+".join(sorted(set(names))),
+    )
+
+
+@dataclass(frozen=True)
 class RunnerResult:
     """What a runner observed. Telemetry travels with the text.
 
@@ -82,6 +159,7 @@ class RunnerResult:
     num_turns: int = 0
     cost_usd: float | None = None
     permission_denials: tuple = ()
+    usage: Usage = field(default_factory=Usage)
 
 
 @dataclass(frozen=True)
@@ -93,6 +171,7 @@ class Invocation:
     num_turns: int = 0
     cost_usd: float | None = None
     permission_denials: tuple = ()
+    usage: Usage = field(default_factory=Usage)
 
 
 class Runner(Protocol):
@@ -165,6 +244,10 @@ class SdkRunner:
                         num_turns=message.num_turns or 0,
                         cost_usd=message.total_cost_usd,
                         permission_denials=tuple(message.permission_denials or ()),
+                        # Token counts and the resolved model, straight off the
+                        # SDK's own accounting. Read here because this is the one
+                        # place that sees a ResultMessage.
+                        usage=usage_from(message.model_usage),
                     )
         except Exception as exc:
             # The SDK raises instead of yielding a ResultMessage when a
@@ -207,6 +290,7 @@ async def run_task(brief: TaskBrief, runner: Runner, config: Config) -> Invocati
         num_turns=result.num_turns,
         cost_usd=result.cost_usd,
         permission_denials=result.permission_denials,
+        usage=result.usage,
     )
 
 
@@ -244,6 +328,7 @@ async def run_manager(
         num_turns=result.num_turns,
         cost_usd=result.cost_usd,
         permission_denials=result.permission_denials,
+        usage=result.usage,
     )
 
 
@@ -306,4 +391,5 @@ async def run_verdict(prompt: str, runner: Runner, config: Config) -> Invocation
         num_turns=result.num_turns,
         cost_usd=result.cost_usd,
         permission_denials=result.permission_denials,
+        usage=result.usage,
     )
