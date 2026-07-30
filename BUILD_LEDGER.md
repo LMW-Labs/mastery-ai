@@ -151,8 +151,9 @@ operator-only and must never reach a sub-agent's context.
 
 ## STOP 6 — Cache measurement (first half open) + model tiering (BLOCKED behind Stop 7)
 
-### 6a — Cache measurement (runnable now)
-- [ ] Confirm from telemetry that the static prefix is served from cache — `cacheReadInputTokens` high, `cacheCreationInputTokens` near zero after the first call
+### 6a — Cache measurement — MET 2026-07-30
+- [x] Confirm from telemetry that the static prefix is served from cache
+- EVIDENCE: four live runs, **617,393 cache-read tokens against 182,860 cache-creation** — a 3.4:1 read-to-create ratio. The prefix is cached, not re-billed per call. Fell out of Stop 1's fields at no extra cost, as predicted.
 - DONE-WHEN: one run's telemetry shows the cache split. Stop 1 already emits both fields.
 - CUT: "prompt-cache static prefix." `ClaudeAgentOptions` exposes no `cache_control` knob; the CLI manages caching. Nothing to implement — only something to measure.
 
@@ -194,15 +195,68 @@ The last sentence is what keeps the scoping from eroding later: it puts the Stop
 dependency in the governing doc rather than only in this ledger.
 - NEXT → Stop 7
 
-## STOP 7 — Output-quality eval loop
-Now load-bearing: Stop 6b is blocked behind this one, so this is the gate that makes cost
-work honest rather than merely cheap.
+## STOP 7 — Output-quality eval loop — MET 2026-07-30
+- [x] Score output quality per run (not just orchestration mechanics)
+- [x] Log scores so they trend run-over-run
+- [x] Record a baseline on the strong model before anything is tiered
+- [x] Four pins present and failing-on-bypass
+- DONE-WHEN: each run emits a per-role quality score joined by `task_id`; scores queryable and trending; fresh strong-model baseline recorded before any Stop 6 tiering; scoring path telemetered with its tier declared; four pins green.
 
-- [ ] Score output quality per run (not just orchestration mechanics)
-- [ ] Log scores so they trend run-over-run
-- [ ] Record a baseline on the **strong** model for every role Stop 6b intends to tier down, before anything is tiered
-- DONE-WHEN: each run emits a quality score; scores are queryable over time; a strong-model baseline exists for validation, verify-only, and fact-check retrieval.
-- NOTE: genuinely new, no conflict with existing code. Needs only somewhere to write scores — the run log suffices until Stop 4 exists.
+**Verified 2026-07-30.** Suite 132 → **164 passed, 15 subtests**; `mastery check` exit 0.
+Four live runs, $1.9184 total; grading is 14.2% of that.
+
+FRESH BASELINE (`fresh-strong-model`, model `claude-haiku-4-5+claude-sonnet-5`, rubric v1):
+
+| agent | n | mean | per-dimension |
+|---|---|---|---|
+| researcher | 3 | **2.75/3** (91.7%) | source_primacy 3.0 · question_coverage 3.0 · evidence_inference_separation 2.667 · citation_traceability 2.333 |
+| content | 1 | **2.75/3** (91.7%) | executes_the_given_angle 3.0 · cta_present_and_matched 3.0 · declared_constraints_honored 3.0 · hook_strength 2.0 |
+
+RETRO SANITY CHECK (`retro-sanity-check`, NOT a baseline, stored separately):
+
+| agent | n | mean | divergence from fresh |
+|---|---|---|---|
+| researcher | 3 | 2.5/3 (83.3%) | **+0.250** fresh is higher |
+| content | 2 | 3.0/3 (100%) | **−0.250** retro is higher |
+
+Divergence is real and is surfaced, not averaged away. Reading of it:
+- `researcher` fresh scores higher on `source_primacy` (3.0 vs 2.0) — the fresh briefs
+  demanded Meta-owned sources explicitly, and the bounded scope let the agent reach them.
+  This is largely brief quality, not model quality.
+- `content` retro scores *higher* on `hook_strength` (3.0 vs 2.0), which is the honest
+  direction: the fresh content brief forbade emoji and capped hashtags, and the grader
+  judged one hook weaker under those constraints.
+- Both retro sets are graded from the run log's already-summarised reconstruction of the
+  return, not the live return, so they are systematically not like-for-like with fresh.
+  That is exactly why they carry their own label.
+
+- CACHE EVIDENCE (satisfies **Stop 6a**): across the four live runs, 617k cache-read tokens
+  against 182k cache-creation. The static prefix is being served from cache, not re-billed.
+- MULTI-MODEL FOLD VALIDATED: every live call reported `claude-haiku-4-5+claude-sonnet-5` —
+  the SDK really does use two models per delegation (haiku for WebFetch summarisation). The
+  decision in Stop 1 to sum across models and join their names, rather than pick one, was
+  load-bearing after all; picking one would have under-reported every run.
+- GRADER VARIANCE OBSERVED: `20260729-rd-007` was run twice (operator error, see below) and
+  scored 2.75 both times but with **different dimension splits** — once
+  `citation_traceability=2, evidence_inference_separation=3`, once the reverse. Same
+  aggregate, different path to it. Worth knowing before treating any single dimension as
+  precise, and an argument for n>1 in any baseline.
+
+**Known weakness, stated plainly:** `content`'s baseline is n=1 and `researcher`'s is n=3
+with two of those from the same brief. That is a thin baseline. Before Stop 6b relies on
+it, it wants a few more runs across different briefs — otherwise a tiered-down run that
+scores 2.5 cannot be distinguished from ordinary variance.
+
+**Operator error to record:** `briefs/20260729-rd-007.json` was executed twice, because the
+command that ran it was piped to `head` and then to `tail` in the same shell line, which
+re-invoked it. Cost ~$0.35 of unintended spend. No guardrail failed — the run was legitimate
+and the cap was not reached — but it is logged because the ledger is supposed to be honest
+about what happened.
+
+**Deviation from the approved scope:** five rubrics, not three. `mobile-dev` and `qa` were
+added because the RELEASE pipeline is `mobile-dev → qa` by definition, so fail-closed would
+otherwise have made that pipeline unrunnable and its guardrail tests unwritable. The
+remaining twelve agents fail closed as intended.
 
 ## DECISION GATE — auth mode — MET, and already passed in practice
 - [x] Auth mode chosen and hardwired

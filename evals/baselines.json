@@ -1,0 +1,86 @@
+{
+  "_note": "written by `mastery eval --set-baseline`",
+  "baselines": {
+    "researcher|1|claude-haiku-4-5+claude-sonnet-5": {
+      "fresh-strong-model": {
+        "agent": "researcher",
+        "rubric_version": "1",
+        "model": "claude-haiku-4-5+claude-sonnet-5",
+        "label": "fresh-strong-model",
+        "n": 3,
+        "overall_mean": 2.75,
+        "normalised_mean": 0.9167,
+        "per_dimension_mean": {
+          "citation_traceability": 2.333,
+          "evidence_inference_separation": 2.667,
+          "question_coverage": 3.0,
+          "source_primacy": 3.0
+        },
+        "task_ids": [
+          "20260729-rd-005",
+          "20260729-rd-007",
+          "20260729-rd-007"
+        ]
+      },
+      "retro-sanity-check": {
+        "agent": "researcher",
+        "rubric_version": "1",
+        "model": "claude-haiku-4-5+claude-sonnet-5",
+        "label": "retro-sanity-check",
+        "n": 3,
+        "overall_mean": 2.5,
+        "normalised_mean": 0.8333,
+        "per_dimension_mean": {
+          "citation_traceability": 2.0,
+          "evidence_inference_separation": 3.0,
+          "question_coverage": 3.0,
+          "source_primacy": 2.0
+        },
+        "task_ids": [
+          "20260728-rd-002",
+          "20260728-rd-002",
+          "20260728-rd-002"
+        ]
+      }
+    },
+    "content|1|claude-haiku-4-5+claude-sonnet-5": {
+      "fresh-strong-model": {
+        "agent": "content",
+        "rubric_version": "1",
+        "model": "claude-haiku-4-5+claude-sonnet-5",
+        "label": "fresh-strong-model",
+        "n": 1,
+        "overall_mean": 2.75,
+        "normalised_mean": 0.9167,
+        "per_dimension_mean": {
+          "cta_present_and_matched": 3.0,
+          "declared_constraints_honored": 3.0,
+          "executes_the_given_angle": 3.0,
+          "hook_strength": 2.0
+        },
+        "task_ids": [
+          "20260729-rd-006"
+        ]
+      },
+      "retro-sanity-check": {
+        "agent": "content",
+        "rubric_version": "1",
+        "model": "claude-haiku-4-5+claude-sonnet-5",
+        "label": "retro-sanity-check",
+        "n": 2,
+        "overall_mean": 3.0,
+        "normalised_mean": 1.0,
+        "per_dimension_mean": {
+          "cta_present_and_matched": 3.0,
+          "declared_constraints_honored": 3.0,
+          "executes_the_given_angle": 3.0,
+          "hook_strength": 3.0
+        },
+        "task_ids": [
+          "20260728-rd-003",
+          "20260728-rd-004"
+        ]
+      }
+    }
+  }
+}
