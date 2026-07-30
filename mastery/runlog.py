@@ -88,6 +88,7 @@ class RunLog:
         risks: list | None = None,
         next_step: str = "",
         usage: Any = None,
+        role_tier: str = "",
     ) -> None:
         """Close out a delegation.
 
@@ -101,6 +102,11 @@ class RunLog:
         what was billed, the token counts are why, and the cache split is the
         only way to see whether a static prefix is being re-billed per call.
         Omitted when a run predates telemetry, so old logs stay readable.
+
+        `role_tier` is the *declared* kind of work (`tiers.RoleTier`), distinct
+        from `model`, which is the resolved model id the SDK reported. Nothing
+        reads the tier to pick a model — see tiers.py — but recording it now means
+        every baseline run is already labelled when STOP 6 wires the two together.
         """
         self.write(
             "delegation_end",
@@ -115,6 +121,7 @@ class RunLog:
             deliverables=deliverables or [],
             risks=risks or [],
             next_step=next_step,
+            role_tier=role_tier,
             **(usage.as_log_fields() if usage is not None else {}),
         )
 
@@ -128,6 +135,7 @@ class RunLog:
         num_turns: int = 0,
         cost_usd: float | None = None,
         usage: Any = None,
+        role_tier: str = "",
     ) -> None:
         """Record a manager verdict, and what it cost.
 
@@ -144,6 +152,7 @@ class RunLog:
             duration_s=round(duration_s, 2) if duration_s is not None else None,
             num_turns=num_turns,
             cost_usd=cost_usd,
+            role_tier=role_tier,
             **(usage.as_log_fields() if usage is not None else {}),
         )
 

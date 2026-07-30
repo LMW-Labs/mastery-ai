@@ -20,7 +20,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 
-from . import delegate, gates, pipelines, verdict as verdict_mod
+from . import delegate, gates, pipelines, tiers, verdict as verdict_mod
 from .brief import TaskBrief
 from .config import Config
 from .errors import (
@@ -168,6 +168,7 @@ class Orchestrator:
                 risks=list(result.risks),
                 next_step=result.next_step,
                 usage=invocation.usage,
+                role_tier=current.agent_def().role_tier.value,
             )
 
             action = result.action
@@ -280,6 +281,7 @@ class Orchestrator:
             num_turns=invocation.num_turns,
             cost_usd=invocation.cost_usd,
             usage=invocation.usage,
+            role_tier=tiers.VERDICT_TIER.value,
         )
         return mv
 

@@ -102,12 +102,19 @@ class Usage:
         return self.input_tokens + self.output_tokens
 
     def as_log_fields(self) -> dict:
+        """Log fields for this call's accounting.
+
+        `model` is the resolved model id. It was called `model_tier` for two
+        commits, which was a bad name twice over: it held a model, not a tier,
+        and it collided with the real tier label (`tiers.RoleTier`) that the eval
+        loop needs. Renamed while no real run log carried it.
+        """
         return {
             "input_tokens": self.input_tokens,
             "output_tokens": self.output_tokens,
             "cache_read_tokens": self.cache_read_tokens,
             "cache_creation_tokens": self.cache_creation_tokens,
-            "model_tier": self.model,
+            "model": self.model,
         }
 
 
