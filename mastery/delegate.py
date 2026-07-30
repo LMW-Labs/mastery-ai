@@ -360,6 +360,34 @@ async def run_draft(prompt: str, runner: Runner, config: Config) -> Invocation:
     )
 
 
+GRADER_SYSTEM_PROMPT = (
+    "You grade one completed task's output against a fixed rubric, on a 0-3 scale "
+    "per dimension. You are not deciding whether the task passed — that is already "
+    "decided and is not yours.\n\n"
+    "You have no tools. Grade only what is in this prompt; do not look anything up, "
+    "and do not reward or penalise anything the rubric does not ask about.\n\n"
+    "Do not compute a total or an average. Report per-dimension scores only.\n\n"
+    "Reply with one JSON object and nothing else."
+)
+
+
+async def run_grader(prompt: str, runner: Runner, config: Config) -> Invocation:
+    """Score one return against its role's rubric.
+
+    A separate invocation from the delegation and from the verdict, with no tools.
+    The graded agent has no part in it — see the self-scoring note in quality.py.
+
+    Declared `mechanical` (tiers.GRADER_TIER): it measures against a fixed
+    reference and exercises no judgement about what the work should have been.
+    The label is recorded in the run log; it does not select a model, because
+    `delegation.model` is still global. Wiring it is STOP 6.
+    """
+    return await run_manager(
+        prompt, runner, config, system_prompt=GRADER_SYSTEM_PROMPT,
+        max_turns=config.caps.verdict_turns,
+    )
+
+
 async def run_verdict(prompt: str, runner: Runner, config: Config) -> Invocation:
     """The manager's verify-only invocation.
 

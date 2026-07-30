@@ -20,7 +20,14 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 
-from . import delegate, gates, pipelines, tiers, verdict as verdict_mod
+from . import (
+    delegate,
+    gates,
+    pipelines,
+    quality as quality_mod,
+    tiers,
+    verdict as verdict_mod,
+)
 from .brief import TaskBrief
 from .config import Config
 from .errors import (
@@ -31,6 +38,7 @@ from .errors import (
     SchemaViolation,
     TaskTimeout,
 )
+from .quality import QualityScore
 from .runlog import RunLog
 from .schema import Action, Status, TaskResult, parse as parse_result
 from .verdict import ManagerVerdict, Verdict
@@ -54,6 +62,15 @@ class DelegationOutcome:
     manager_verdict: ManagerVerdict | None = None
     detail: str = ""
     attempts: int = 1
+    # Set on every ACCEPTED outcome. An accepted outcome with `quality is None`
+    # means an output was taken as final without being measured — that is the
+    # bypass STOP 7's pin catches, so it is asserted rather than trusted.
+    #
+    # Observational only. Nothing in this module branches on it: `status` remains
+    # the only field the orchestrator acts on, and a low score does not block
+    # acceptance, because a grader that can halt a run is a model deciding
+    # control flow.
+    quality: QualityScore | None = None
 
     @property
     def accepted(self) -> bool:
@@ -104,6 +121,12 @@ class Orchestrator:
             self._charge_delegation()
 
             current.validate(self.config.caps.max_context_bytes)
+
+            # Fail closed on a missing rubric, and do it here — before any spend.
+            # An accepted output that cannot be scored is an unmeasured output, so
+            # this must stop the run; catching it after the delegation would throw
+            # away work that was already paid for over a bookkeeping gap.
+            quality_mod.require_rubric(current.agent)
 
             # Before the work is briefed, not after it comes back.
             try:
@@ -236,6 +259,10 @@ class Orchestrator:
                 )
 
             if mv.verdict is Verdict.ACCEPT:
+                # Scored only once accepted. Grading a failed or halted return
+                # would score work that is not being used, and would bias the
+                # trend with attempts nobody kept.
+                score = await self._score(current, result)
                 return DelegationOutcome(
                     Outcome.ACCEPTED,
                     result.task_id,
@@ -243,6 +270,7 @@ class Orchestrator:
                     result=result,
                     manager_verdict=mv,
                     attempts=attempt,
+                    quality=score,
                 )
 
             if mv.verdict is Verdict.REJECT:
@@ -284,6 +312,49 @@ class Orchestrator:
             role_tier=tiers.VERDICT_TIER.value,
         )
         return mv
+
+    async def _score(self, brief: TaskBrief, result: TaskResult) -> QualityScore | None:
+        """Grade an accepted output against its role's rubric.
+
+        A missing rubric does not reach this function: it is caught pre-flight, in
+        `execute`, before the delegation is sent. That ordering matters. Failing
+        closed on a missing rubric is right, but discovering it *after* paying for
+        the work would destroy an accepted result to complain about a bookkeeping
+        gap — the same mistake the verdict path already made once, when a
+        manager-side fault took a completed 30-turn research run down with it.
+        Check it when it is free.
+
+        A grading *failure* is different and is not fatal. The delegation is done
+        and accepted; losing the number is a measurement problem, not a work
+        problem. It returns None and logs `quality_skipped` with the reason, so the
+        hole in the trend is visible rather than silent.
+        """
+        prompt = quality_mod.build_prompt(brief, result)
+        try:
+            invocation = await delegate.run_grader(prompt, self.runner, self.config)
+            score = quality_mod.parse(
+                invocation.raw,
+                expected_task_id=brief.task_id,
+                expected_agent=brief.agent,
+            )
+        except (SchemaViolation, TaskTimeout, DelegationFailed) as exc:
+            self.log.quality_skipped(
+                task_id=brief.task_id,
+                agent=brief.agent,
+                reason=f"grading failed ({type(exc).__name__}): {exc}",
+            )
+            return None
+
+        self.log.quality_score(
+            task_id=brief.task_id,
+            score=score,
+            duration_s=invocation.duration_s,
+            num_turns=invocation.num_turns,
+            cost_usd=invocation.cost_usd,
+            usage=invocation.usage,
+            role_tier=tiers.GRADER_TIER.value,
+        )
+        return score
 
     def _charge_delegation(self) -> None:
         if self._delegations >= self.config.caps.max_delegations_per_request:

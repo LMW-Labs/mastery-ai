@@ -7,6 +7,7 @@ enforced by this package's own code, so it can be proven without a model.
 from __future__ import annotations
 
 import json
+import re
 import tempfile
 import unittest
 from dataclasses import replace
@@ -39,19 +40,54 @@ def verdict_json(task_id="20260727-ff-014", verdict="accept", **overrides) -> st
     return json.dumps(payload)
 
 
+def score_json(task_id="20260727-ff-014", agent="researcher", score=2) -> str:
+    """A schema-valid quality score for whichever rubric `agent` has."""
+    from mastery.quality import rubric_for
+
+    return json.dumps(
+        {
+            "task_id": task_id,
+            "agent": agent,
+            "rubric_version": rubric_for(agent)["rubric_version"],
+            "dimension_scores": [
+                {"dimension": d["dimension"], "score": score, "justification": "because."}
+                for d in rubric_for(agent)["dimensions"]
+            ],
+        }
+    )
+
+
 class ScriptedRunner:
     """Returns queued replies in order and records every prompt it was sent.
 
     A queued item may be an Exception, which is raised instead of returned —
     that is how SDK-level failures (turn exhaustion) are simulated.
+
+    Grading prompts are answered automatically when nothing is queued for them.
+    Every accepted delegation now costs a third call, and threading a score reply
+    through every halting, retry, and cap test would bury what those tests are
+    actually about. Tests that care about the score queue one explicitly, or read
+    `grading_prompts`.
     """
 
-    def __init__(self, replies: list):
+    def __init__(self, replies: list, *, auto_score: bool = True):
         self.replies = list(replies)
         self.prompts: list[str] = []
         self.system_prompts: list[str] = []
         self.max_turns: list[int] = []
         self.tools: list[tuple] = []
+        self.grading_prompts: list[str] = []
+        self.auto_score = auto_score
+
+    @staticmethod
+    def _is_grading(prompt: str) -> bool:
+        return "grading the quality of one completed task's output" in prompt
+
+    def _auto_score_for(self, prompt: str) -> str:
+        """Build a valid score from the task_id and agent named in the prompt."""
+        task_id = re.search(r'"task_id": "([^"]+)"', prompt).group(1)
+        agent = re.search(r"agent `([^`]+)`", prompt).group(1)
+        return score_json(task_id=task_id, agent=agent)
 
     async def run(
         self,
@@ -65,6 +101,15 @@ class ScriptedRunner:
         self.system_prompts.append(system_prompt)
         self.max_turns.append(max_turns)
         self.tools.append(tools)
+
+        if self._is_grading(prompt):
+            self.grading_prompts.append(prompt)
+            # Answered without consuming the queue. Consuming it would make a
+            # grading call eat the *next stage's* scripted reply, which silently
+            # shifts every reply in a multi-stage pipeline test by one.
+            if self.auto_score:
+                return RunnerResult(text=self._auto_score_for(prompt), num_turns=1)
+
         if not self.replies:
             raise AssertionError("runner called more times than the test scripted")
         reply = self.replies.pop(0)
@@ -111,11 +156,17 @@ class TestHappyPath(OrchestratorTestCase):
 
         self.assertIs(outcome.outcome, Outcome.ACCEPTED)
         self.assertIsNotNone(outcome.manager_verdict)
-        # two calls: the delegation, then the verify-only invocation
-        self.assertEqual(len(runner.prompts), 2)
+        # three calls: the delegation, the verify-only invocation, then grading.
+        # An accepted stage costs three model calls, and that is visible here on
+        # purpose — the third one is not free.
+        self.assertEqual(len(runner.prompts), 3)
         self.assertEqual(
             runner.max_turns,
-            [self.config.caps.max_subagent_turns, self.config.caps.verdict_turns],
+            [
+                self.config.caps.max_subagent_turns,
+                self.config.caps.verdict_turns,
+                self.config.caps.verdict_turns,
+            ],
         )
 
     async def test_delegation_prompt_carries_only_the_context_payload(self):
@@ -315,8 +366,11 @@ class TestFailureHandling(OrchestratorTestCase):
         orch, runner = self.orch([result_json(), verdict_json()])
         await orch.execute(a_brief())
 
-        task_tools, verdict_tools = runner.tools
+        task_tools, verdict_tools, grader_tools = runner.tools
         self.assertEqual(verdict_tools, ())
+        # The grader is a manager-side call too, and gets the same treatment: it
+        # grades what is in its prompt and has nothing to look up.
+        self.assertEqual(grader_tools, ())
         self.assertIsNotNone(task_tools)
         self.assertIn("Read", task_tools)
 
