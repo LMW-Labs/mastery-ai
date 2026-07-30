@@ -45,6 +45,26 @@ class GateHit(OrchestratorError):
         self.detail = detail
 
 
+class ApprovalRequired(GateHit):
+    """A classed target was invoked without approval. Raised *before* execution.
+
+    Distinct from `GateHit` in where it fires, not in what it means. `GateHit`
+    comes from the pre-flight check on a brief's declaration, before any spend.
+    This comes from the invocation boundary itself — the moment a gated target is
+    actually reached — and it is the backstop that cannot be talked past, because
+    it keys off the observed target rather than off anyone's description of
+    intent.
+
+    A subclass so that every existing `except GateHit` path already halts on it.
+    Widening the guardrail must not require every caller to opt in.
+    """
+
+    def __init__(self, target: str, gate_class: str, detail: str):
+        super().__init__(gate_class, detail)
+        self.target = target
+        self.gate_class = gate_class
+
+
 class CapExceeded(OrchestratorError):
     """A configured cap (delegations, turns, spawn depth) was hit."""
 

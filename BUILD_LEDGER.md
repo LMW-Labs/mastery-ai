@@ -55,7 +55,7 @@ that quietly drops its own errors cannot be audited either.
   logs in `.runs/` stay readable.
 - NEXT → Stop 2
 
-## STOP 2 — Gate at the invocation boundary (UNBLOCKED — decided 2026-07-29)
+## STOP 2 — Gate at the invocation boundary — MET 2026-07-29
 The original STOP 2 was mostly about a codebase that is not this one — see CUT. What
 survives is the real hole it pointed at: `gates.check()` reads the brief's **declared**
 `approval_gates_touched` (`gates.py:45-66`), so a brief whose objective is "deploy to prod"
@@ -75,12 +75,36 @@ right: cross-checking prose *is* asking a model about intent, and leaving the de
 load-bearing lets a mis-declared brief run. Keying off the observed invocation removes the
 model from the decision entirely.
 
-- [ ] Static `TOOL_CLASS` map in code: tool/target → one of `money | prod | permissions | public | irreversible`
-- [ ] Enforce at the invocation boundary, before execution — not at brief-validation time
-- [ ] Fail closed: an unmapped tool or a missing class requires approval. No default-safe branch, and no "unknown means fine" path
-- [ ] Keep the existing declared-gate pre-flight check (`gates.enforce`) as well. The two are different enforcement points, not competing ones: the declaration halts before spend, the tool→class map is the runtime backstop that cannot be talked past. Removing the pre-flight would trade a cheap halt for an expensive one.
-- [ ] Tests: a prod-target invocation requires approval; an unmapped tool requires approval; a declared-`none` brief attempting a mapped target still halts
+- [x] Static `TOOL_CLASS` map in code: tool/target → one of `money | prod | permissions | public | irreversible` — `gates.GateClass` + `gates.TOOL_CLASS`
+- [x] Enforce at the invocation boundary, before execution — not at brief-validation time — `gates.require_approval`, called from the four `meta_client` writes before any request is built
+- [x] Fail closed: an unmapped tool or a missing class requires approval. No default-safe branch, and no "unknown means fine" path — unmapped raises with class `unclassified`
+- [x] Keep the existing declared-gate pre-flight check (`gates.enforce`) as well. The two are different enforcement points, not competing ones: the declaration halts before spend, the tool→class map is the runtime backstop that cannot be talked past. Removing the pre-flight would trade a cheap halt for an expensive one.
+- [x] Declaration is ADD-ONLY — `gates.effective_class` unions declaration and map, and the map always wins. Declared-safe cannot downgrade a classed target.
+- [x] Tests: `tests/test_invocation_gates.py`, 22 tests
 - DONE-WHEN: approval is required for every mapped class and for every unmapped tool, decided from the invocation and not from any model's description of it; a declared-`none` brief cannot reach a gated target.
+
+**Verified 2026-07-29.** Suite 109 → **131 passed, 15 subtests**; `mastery check` exit 0.
+
+- CLASSES ASSIGNED: `publish_ig_post` → `public`, `publish_page_post` → `public`,
+  `reply_to_comment` → `public`, `delete_comment` → **`irreversible`** (not `public`:
+  classing deletion as publishing would let a publishing approval cover a destructive act,
+  and the harm here is that it cannot be undone).
+- ONE VOCABULARY: the six CLAUDE.md declaration keywords are aliased onto the five classes
+  in `GATES` rather than kept as a second set — otherwise a `production` declaration
+  reaches no `prod` class and silently clears. `paid-tool` classes as `money`, since a
+  metered API is spend.
+- FAIL-CLOSED LIVES IN ONE PLACE: `classify()` reports what the map says and nothing more;
+  `require_approval()` owns the decision that unknown ⇒ halt. Callers cannot each get it
+  slightly wrong.
+- `ApprovalRequired` subclasses `GateHit`, so every existing `except GateHit` path already
+  halts on it. Widening a guardrail must not require callers to opt in.
+- WHY THE OLD HALT WASN'T GOOD ENOUGH: `NotImplementedError` is fail-closed *by accident* —
+  it halts because nobody wrote a body, so it disappears the day someone does. The halt is
+  now about what the method **is**. `test_no_write_raises_notimplementederror_any_more`
+  pins that. When a body is written it goes *after* the check, and the check stays.
+- NO INTENT INPUT EXISTS: `require_approval` takes a target and an optional declaration.
+  There is no argument, and no combination of arguments, that returns without raising —
+  approval arrives as a fresh operator request, never as a flag this process sets on itself.
 
 **Scope note for whoever implements this.** The invocation boundary is not one place:
 - SDK tool calls — currently moot by construction. `config.delegation.denied_tools` hard-denies `Agent`, `Bash`, `Write`, `Edit`, `NotebookEdit`, and `permission_mode="dontAsk"` refuses anything not pre-approved, so the sub-agent tool surface is read-only today. The map still gets built, because it must already exist the day a write tool is granted.
