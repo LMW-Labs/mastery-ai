@@ -1,0 +1,31 @@
+{
+  "task_id": "20260729-rd-007",
+  "agent": "researcher",
+  "urgency": "none. Baseline capture for the eval loop.",
+  "objective": "Establish whether the Instagram Graph API still exposes a per-media 'plays' metric for video/Reels, or whether it was removed, and on what date.",
+  "success_criteria": [
+    "A yes/no answer on whether per-media 'plays' is currently available via the Instagram Graph API",
+    "If removed, the effective date and the replacement metric named, each traced to a Meta-published page with its URL",
+    "At least two distinct Meta-owned sources (developers.facebook.com or a Meta changelog), cited with URLs",
+    "Any claim not established by a Meta-owned source explicitly marked as unconfirmed",
+    "A one-line statement of what a caller should request instead, if anything changed"
+  ],
+  "context": [
+    {
+      "label": "Why this question, and its exact boundary",
+      "body": "integrations/meta_client.py requests these per-media insight metrics:\n\n    reach, saved, shares, total_interactions\n\nIt deliberately does NOT request `plays`. A code comment says Meta\ndeprecated most Page metrics in Nov 2025 and Jun 2026 and that the surviving set\nis narrow, but it does not say what happened to per-media `plays`\nspecifically.\n\nAnswer only that. Do not audit the other four metrics, do not review the client\ncode, and do not investigate Page-level metrics \u2014 media-level `plays` is\nthe whole question.\n\nStop once two Meta-owned sources agree. This is a bounded lookup, not a survey."
+    },
+    {
+      "label": "What counts as a source here",
+      "body": "Meta-owned means developers.facebook.com, a Meta changelog, or a Meta\nengineering post. A blog, a Stack Overflow answer, or an SDK wrapper's docs is\nnot authoritative for this question, though it may be used to find the Meta page.\n\nIf the Meta documentation is ambiguous, say it is ambiguous. Do not resolve an\nambiguity by picking the reading that makes a cleaner answer."
+    }
+  ],
+  "constraints": "Read-only. Cite a URL for every factual claim. Prefer the current API reference over changelog archaeology where they disagree, and say so if they do. Keep the whole answer under 200 words of prose plus citations.",
+  "out_of_scope": "Do not modify meta_client.py or recommend code changes \u2014 that is mobile-dev's or ops' call. Do not assess the other four metrics. Do not investigate Page-level insights.",
+  "approval_gates_touched": "none",
+  "expected_deliverables": [
+    "Availability answer for per-media plays",
+    "Effective date and replacement metric, if changed",
+    "Meta-owned source URLs"
+  ]
+}

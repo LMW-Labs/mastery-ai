@@ -1,0 +1,33 @@
+{
+  "task_id": "20260729-rd-006",
+  "agent": "content",
+  "urgency": "none. Baseline capture for the eval loop.",
+  "objective": "Write three short developer-audience social posts on one given angle: that Meta's per-media `impressions` metric is gone and `views` replaced it.",
+  "success_criteria": [
+    "Exactly three posts, each under 280 characters including any hashtags",
+    "Every post executes the given angle \u2014 the metric changed and here is what to request instead",
+    "Each post opens with a distinct hook; no two hooks use the same construction",
+    "Each post ends with a call to action that matches what the evidence supports",
+    "No post claims a date or a metric name not present in the supplied evidence"
+  ],
+  "context": [
+    {
+      "label": "The angle you are executing \u2014 do not change it",
+      "body": "Angle: a metric developers still request was deprecated, and the\nreplacement has a different name. Useful, non-alarming, practical.\n\nYou are executing this angle. You did not choose it and you may not substitute\nanother. Do not make it a 'Meta breaks things again' complaint post, and do not\nbroaden it into general API-deprecation commentary."
+    },
+    {
+      "label": "The evidence you may draw on, and nothing beyond it",
+      "body": "Verified by a prior research task (20260729-rd-005), sourced to\ndevelopers.facebook.com:\n\n- Per-media `impressions` is deprecated for Instagram media created on or after\n  2 July 2024. For media created before that date it is still returned.\n- The deprecation applied to all API versions on 21 April 2025, per the Graph\n  API v22.0 changelog.\n- The changelog names `views` as the new unified metric. NOTE: the current\n  endpoint reference lists `views` but does not itself label it the replacement,\n  so 'replacement' traces to the changelog only.\n\nDo not state any other date, metric name, or version number. If you want to say\nsomething the evidence above does not support, leave it out."
+    },
+    {
+      "label": "Audience and channel",
+      "body": "Developers who integrate the Instagram Graph API. Single-channel\nshort-form text, no thread, no images. Plain and specific beats clever."
+    }
+  ],
+  "constraints": "Three posts, each under 280 characters. No emoji. At most one hashtag per post. Do not invent metrics, dates, or version numbers beyond the supplied evidence. Where the evidence is marked unconfirmed, do not state it as settled.",
+  "out_of_scope": "Do not fact-check the supplied evidence \u2014 that was a prior task. Do not choose a different angle. Do not schedule, publish, or recommend a posting time; marketing owns that. Do not write a thread or long-form version.",
+  "approval_gates_touched": "none",
+  "expected_deliverables": [
+    "Three posts, each under 280 characters"
+  ]
+}

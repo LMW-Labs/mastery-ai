@@ -15,3 +15,6 @@ dist/
 .venv/
 *.env
 __pycache__/
+
+# eval artifacts: baselines are tracked, run logs are not
+!evals/
