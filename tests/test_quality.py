@@ -121,19 +121,23 @@ class TestPin1FailClosedOnMissingRubric(OrchestratorTestCase):
         adding one is a decision about what "good" means for a role and should
         not slip in as a side effect of some other change.
 
-        `fact-checker` was added 2026-07-31 to run the first live gate test.
-        Until then it could not execute at all: `RubricMissing` halts before any
-        spend, which is why the two pipeline-halting gates had never once run.
-        `risk-review` is still unrubriced and still cannot run.
+        `fact-checker` and `risk-review` were added 2026-07-31 to run the first
+        live gate tests. Until then neither could execute at all: `RubricMissing`
+        halts before any spend, which is why the pipeline-halting gates had never
+        once run. `qa` and `legal-review` are the gates still untested — `qa` has
+        a rubric and has simply never been exercised; `legal-review` has neither.
         """
         from mastery.roster import DELEGATABLE
 
         rubriced = {a.name for a in DELEGATABLE if quality.has_rubric(a.name)}
         self.assertEqual(
             rubriced,
-            {"researcher", "content", "data-model-agent", "mobile-dev", "qa", "fact-checker"},
+            {
+                "researcher", "content", "data-model-agent", "mobile-dev", "qa",
+                "fact-checker", "risk-review",
+            },
         )
-        self.assertEqual(len(DELEGATABLE) - len(rubriced), 11)
+        self.assertEqual(len(DELEGATABLE) - len(rubriced), 10)
 
 
 # --------------------------------------------------------------------------
