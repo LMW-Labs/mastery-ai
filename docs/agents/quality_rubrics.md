@@ -355,5 +355,60 @@
         }
       }
     ]
+  },
+  "legal-review": {
+    "rubric_version": "1",
+    "dimensions": [
+      {
+        "dimension": "non_advice_framing",
+        "asks": "Is it stated plainly that this is not legal advice and no attorney relationship exists?",
+        "anchors": {
+          "0": "Reads as legal advice; no disclaimer anywhere.",
+          "1": "Disclaimer buried or implied rather than stated.",
+          "2": "Disclaimer present and clear, but the body still reads in places like settled advice.",
+          "3": "Stated plainly and up front, and the body's register matches it throughout."
+        }
+      },
+      {
+        "dimension": "flag_and_refer_discipline",
+        "asks": "Does it flag and refer, rather than render a conclusion the operator would act on unadvised?",
+        "anchors": {
+          "0": "Predicts outcomes or declares a use lawful/unlawful.",
+          "1": "Cites statutes as settled application, or adjudicates fair use for the specific case.",
+          "2": "Mostly refers; one or two places state a conclusion firmly enough to be acted on.",
+          "3": "Every exposure is named and referred; doctrine is defined generally and application left to counsel."
+        }
+      },
+      {
+        "dimension": "counsel_question_actionability",
+        "asks": "Does the counsel-required list carry the actual question to bring, not just a topic?",
+        "anchors": {
+          "0": "No counsel-required list, or a list of bare topic labels.",
+          "1": "Topics named; the operator would still have to work out what to ask.",
+          "2": "Questions stated for most items; some remain topic-level.",
+          "3": "Each item carries a specific, answerable question a lawyer could act on directly."
+        }
+      },
+      {
+        "dimension": "absence_is_not_clearance",
+        "asks": "Is it said explicitly that an unflagged item is not thereby cleared?",
+        "anchors": {
+          "0": "Silence presented as safety, or the piece implied to be legally fine.",
+          "1": "Never addressed either way, leaving absence to read as approval.",
+          "2": "Stated, but in passing and easy to miss.",
+          "3": "Stated explicitly, and the scope actually reviewed is bounded so the reader knows what was not looked at."
+        }
+      },
+      {
+        "dimension": "exposure_severity_calibration",
+        "asks": "Does severity rise for material that is commercial, public, and names a real party?",
+        "anchors": {
+          "0": "Severity unrelated to commercial/public/named-party status.",
+          "1": "Named private individual in commercial public content not treated as elevated.",
+          "2": "Elevation applied broadly; one factor of the three under-weighted.",
+          "3": "Severity explicitly reflects commercial use, public distribution, and identifiability of a real party."
+        }
+      }
+    ]
   }
 }
