@@ -113,16 +113,27 @@ class TestPin1FailClosedOnMissingRubric(OrchestratorTestCase):
             runner.prompts, [], "paid for a delegation it could never have scored"
         )
 
-    def test_the_twelve_unrubriced_agents_are_genuinely_unrubriced(self):
+    def test_the_unrubriced_agents_are_genuinely_unrubriced(self):
         """Documents the operational cost of fail-closed, so it cannot be
-        forgotten: these agents cannot run until they have a rubric."""
+        forgotten: these agents cannot run until they have a rubric.
+
+        Deliberately hardcoded. Adding a rubric must break this test, because
+        adding one is a decision about what "good" means for a role and should
+        not slip in as a side effect of some other change.
+
+        `fact-checker` was added 2026-07-31 to run the first live gate test.
+        Until then it could not execute at all: `RubricMissing` halts before any
+        spend, which is why the two pipeline-halting gates had never once run.
+        `risk-review` is still unrubriced and still cannot run.
+        """
         from mastery.roster import DELEGATABLE
 
         rubriced = {a.name for a in DELEGATABLE if quality.has_rubric(a.name)}
         self.assertEqual(
-            rubriced, {"researcher", "content", "data-model-agent", "mobile-dev", "qa"}
+            rubriced,
+            {"researcher", "content", "data-model-agent", "mobile-dev", "qa", "fact-checker"},
         )
-        self.assertEqual(len(DELEGATABLE) - len(rubriced), 12)
+        self.assertEqual(len(DELEGATABLE) - len(rubriced), 11)
 
 
 # --------------------------------------------------------------------------

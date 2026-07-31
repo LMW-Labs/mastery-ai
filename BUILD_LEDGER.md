@@ -465,13 +465,36 @@ with brief context in the query string. Mitigated today by hand-assembled minima
 and the 60 KB cap. Worth deciding explicitly whether that is accepted or whether fetches
 need a domain allowlist. Raised 2026-07-31; see APPENDIX.
 
-### Live gate test — `fact-checker` and `risk-review` have never run
-Run logs contain delegations for `researcher` and `content` only. The two agents able to
-halt a pipeline have never executed. The test that matters is **not** the happy path: brief
-a claim that should fail, and verify the orchestrator returns `blocked`, names the gate in
-`next_step`, and does not continue. Note the 4-stage pipeline reaches the delegation cap
-once a retry is allowed for, so run it as separate `mastery run` invocations.
-Raised 2026-07-31; see APPENDIX.
+### Live gate test — DONE for `fact-checker` 2026-07-31; `risk-review` still unrun
+Run logs contained delegations for `researcher` and `content` only. Fixed for one of the
+two gates by briefing a draft with six planted defects (`briefs/20260731-rd-001.json`) and
+verifying the halt mechanically rather than by reading the prose:
+
+| Assertion | Result |
+|---|---|
+| Returned `status` | `blocked` — the doc's *not publishable* → `blocked` mapping holds end to end |
+| Delegation attempts | 1. **No retry** — `blocked` is not retried the way `failed` is |
+| Manager verdict call | none — `blocked` short-circuits before verification, so a halted run does not pay for a verdict |
+| `quality_score` events | 0 — correctly unscored; `blocked` is not an accepted outcome |
+| Cost | $0.26, 2 turns, 102s (run log `37b3b3f3ceae`) |
+
+The agent caught all six planted defects and two more that were not deliberate.
+
+**Two findings the test surfaced, both pre-spend halts working as designed:**
+
+1. **`fact-checker` could not run at all.** `RubricMissing` halted the run before any
+   delegation — an accepted output cannot be left unscored, and it had no rubric. That is
+   *why* the gate had never been exercised; not neglect, a structural block. A rubric was
+   added (5 dimensions, all derived from the agent's own "Rules and guardrails" rather than
+   invented) and `tests/test_quality.py`'s hardcoded pin updated deliberately, as it is
+   designed to force. **`risk-review` is still unrubriced and still cannot run** — that is
+   the remaining half of this item.
+2. **`approval_gates_touched` is a token, not commentary.** The first attempt declared it
+   in prose ("none for this task itself, but the draft is destined for public output…"),
+   which `gates.check` classified as `unrecognized` and halted on. Correct fail-closed
+   behaviour — an unrecognized declaration is not a clearance — but worth knowing when
+   writing briefs by hand: the field takes `none` or a name from `GATE_NAMES`, and nuance
+   belongs in `constraints`.
 
 ### Governor layer names one vertical's roles and release vocabulary
 `pipelines.py:71-75` hardcodes `RELEASE = ("mobile-dev", "qa", OPERATOR_APPROVAL,
