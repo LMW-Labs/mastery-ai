@@ -128,6 +128,78 @@ class TestPin1FailClosedOnMissingRubric(OrchestratorTestCase):
             runner.prompts, [], "paid for a delegation it could never have scored"
         )
 
+class TestGateClosuresAreScored(OrchestratorTestCase):
+    """A gate's `blocked` is its deliverable, and it gets measured.
+
+    Added 2026-07-31 after a harder fact-checker baseline set produced three runs
+    and zero scores. Scoring only accepted outcomes made the four gates
+    measurable solely on inputs they did not need to stop — every discriminating
+    case was censored out of the sample by construction, so the resulting
+    baseline sat at 3.0/3 with zero variance and could not have detected a
+    regression it was built to detect.
+    """
+
+    async def test_a_gate_closure_is_scored(self):
+        runner = ScriptedRunner([result_json(task_id="20260731-rd-001", status="blocked")])
+        orch = Orchestrator(self.config, runner, run_id="test")
+
+        outcome = await orch.execute(
+            a_brief(task_id="20260731-rd-001", agent="fact-checker")
+        )
+
+        self.assertIs(outcome.outcome, Outcome.HALTED)
+        self.assertIsNotNone(outcome.quality, "a gate closed and nobody measured it")
+        scored = [e for e in orch.log.read() if e["event"] == "quality_score"]
+        self.assertEqual(len(scored), 1)
+
+    async def test_a_gate_closure_is_never_verified(self):
+        """No verdict on a closure, and this is deliberate.
+
+        The verdict returns accept/revise/reject. A `revise` on a closure would be
+        a model with the power to send a gate back for another attempt — an
+        attempt that could come back with a different status. That is a reopening
+        path, and CLAUDE.md forbids it: a `hold` or a `no-go` halts the pipeline.
+        Nothing goes back through.
+        """
+        runner = ScriptedRunner([result_json(task_id="20260731-rd-001", status="blocked")])
+        orch = Orchestrator(self.config, runner, run_id="test")
+
+        await orch.execute(a_brief(task_id="20260731-rd-001", agent="fact-checker"))
+
+        self.assertEqual(
+            [e for e in orch.log.read() if e["event"] == "verdict"],
+            [],
+            "a gate closure was verified, which creates a path to reopen it",
+        )
+
+    async def test_a_gate_closure_is_never_retried(self):
+        """One delegation. A closure is final regardless of what it scores."""
+        runner = ScriptedRunner([result_json(task_id="20260731-rd-001", status="blocked")])
+        orch = Orchestrator(self.config, runner, run_id="test")
+
+        outcome = await orch.execute(
+            a_brief(task_id="20260731-rd-001", agent="fact-checker")
+        )
+
+        self.assertEqual(outcome.attempts, 1)
+        starts = [e for e in orch.log.read() if e["event"] == "delegation_start"]
+        self.assertEqual(len(starts), 1, "a gate was sent back through")
+
+    async def test_an_ordinary_agent_blocked_is_not_scored(self):
+        """`blocked` from a non-gate means it hit a gate or lacked a prerequisite.
+        That is work not being used, and scoring it would bias the trend with
+        attempts nobody kept — the original rule, still right for this case."""
+        runner = ScriptedRunner([result_json(status="blocked")])
+        orch = Orchestrator(self.config, runner, run_id="test")
+
+        outcome = await orch.execute(a_brief(agent="mobile-dev"))
+
+        self.assertIs(outcome.outcome, Outcome.HALTED)
+        self.assertIsNone(outcome.quality)
+        self.assertEqual([e for e in orch.log.read() if e["event"] == "quality_score"], [])
+
+
+class TestRubricCoverage(OrchestratorTestCase):
     def test_every_delegatable_agent_is_rubriced(self):
         """As of 2026-07-31, every delegatable agent has a rubric, so none is
         blocked from running by `RubricMissing`.
