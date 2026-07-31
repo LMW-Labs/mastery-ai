@@ -1,0 +1,11 @@
+# Shell scripts must keep LF endings in the working copy, on every platform.
+#
+# This is not cosmetic. `scripts/provision_postgres.sh` is developed on Windows and
+# scp'd to a Linux droplet to run. With core.autocrlf=true a fresh checkout gives it
+# CRLF line endings, and bash then reads the shebang as `/usr/bin/env bash\r` and
+# fails with a "bad interpreter" error that names a file that plainly exists. The
+# heredocs in that script would break the same way.
+*.sh text eol=lf
+
+# Same reasoning for SQL applied via `psql -f` on the host.
+*.sql text eol=lf
