@@ -300,5 +300,60 @@
         }
       }
     ]
+  },
+  "risk-review": {
+    "rubric_version": "1",
+    "dimensions": [
+      {
+        "dimension": "excerpt_exactness",
+        "asks": "Is each flag anchored to the offending text quoted exactly, rather than paraphrased?",
+        "anchors": {
+          "0": "Flags described in general terms with no text quoted.",
+          "1": "Some excerpts quoted; others paraphrased so the operator must hunt for them.",
+          "2": "Most flags carry an exact excerpt; a paraphrase or two remain.",
+          "3": "Every flag quotes the offending text verbatim and locatably."
+        }
+      },
+      {
+        "dimension": "severity_calibration",
+        "asks": "Does severity reflect likelihood times consequence rather than discomfort with the topic?",
+        "anchors": {
+          "0": "Severity untethered from either likelihood or consequence.",
+          "1": "Topic sensitivity treated as severity; a mild-but-likely issue rated below a lurid-but-remote one.",
+          "2": "Severity broadly defensible; one or two ratings driven by tone rather than exposure.",
+          "3": "Each severity is justified by stated likelihood and consequence, and a distasteful-but-low-risk item is rated low."
+        }
+      },
+      {
+        "dimension": "fix_specificity",
+        "asks": "Does each flag carry a concrete replacement rather than only an objection?",
+        "anchors": {
+          "0": "Objections only; no fixes offered.",
+          "1": "Vague direction ('soften this') that leaves the rewrite to someone else.",
+          "2": "Most flags carry usable replacement wording; some only gesture.",
+          "3": "Every flag carries targeted replacement text that could be pasted in as-is."
+        }
+      },
+      {
+        "dimension": "assessed_as_written",
+        "asks": "Was the draft judged as written, without a charitable reading the text does not support?",
+        "anchors": {
+          "0": "Reframed the draft into a more defensible version and cleared that instead.",
+          "1": "Gave benefit of the doubt on ambiguous phrasing without saying so.",
+          "2": "Largely assessed as written; one ambiguity resolved generously without flagging the ambiguity.",
+          "3": "Assessed strictly as written, and where the text is ambiguous the ambiguity is itself flagged."
+        }
+      },
+      {
+        "dimension": "coverage_disclosure",
+        "asks": "Is it clear which risk categories were checked, including those found clean?",
+        "anchors": {
+          "0": "Only hits reported; no way to tell what was examined.",
+          "1": "Categories implied by the flags raised, never stated.",
+          "2": "Most categories named; coverage of one or two left unstated.",
+          "3": "Every category is named as checked, with the clean ones listed explicitly so silence is never mistaken for absence."
+        }
+      }
+    ]
   }
 }
