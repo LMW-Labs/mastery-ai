@@ -245,5 +245,60 @@
         }
       }
     ]
+  },
+  "fact-checker": {
+    "rubric_version": "1",
+    "dimensions": [
+      {
+        "dimension": "claim_extraction_completeness",
+        "asks": "Was every checkable assertion found, including the implied ones?",
+        "anchors": {
+          "0": "Only the headline claim was adjudicated; most assertions untouched.",
+          "1": "Explicit numeric claims found; implied and superlative claims missed.",
+          "2": "Explicit claims found, plus some implied ones; a checkable assertion or two left out.",
+          "3": "Every checkable assertion adjudicated, including implied claims, superlatives, and attributions."
+        }
+      },
+      {
+        "dimension": "rating_calibration",
+        "asks": "Does each rating match what the source actually supports, without softening?",
+        "anchors": {
+          "0": "Ratings contradict the sources, or a false claim is rated supported.",
+          "1": "A weaker version of the claim was checked, so overstatement passed as supported.",
+          "2": "Ratings defensible; a partially-supported claim or two rated too generously.",
+          "3": "Each rating is the one the source permits — the claim as written is checked, not a softer reading."
+        }
+      },
+      {
+        "dimension": "source_attribution_specificity",
+        "asks": "Does each rating name the specific source text it was checked against?",
+        "anchors": {
+          "0": "Ratings asserted with no reference to any source.",
+          "1": "Sources named in general; which passage settled which claim is left to the reader.",
+          "2": "Most ratings tied to a named source; a few left unattributed.",
+          "3": "Every rating names the source and the specific passage, and says so plainly where no supplied source addresses the claim."
+        }
+      },
+      {
+        "dimension": "unchecked_declared_not_passed",
+        "asks": "Are claims that could not be checked listed as such, rather than quietly passed?",
+        "anchors": {
+          "0": "Unverifiable claims silently rated supported.",
+          "1": "Some unchecked claims passed without comment.",
+          "2": "Unchecked claims noted, but why they could not be checked is vague.",
+          "3": "Every unchecked claim is listed with the reason it could not be checked from the supplied sources."
+        }
+      },
+      {
+        "dimension": "correction_supportedness",
+        "asks": "Is the corrected wording itself supported, rather than a new unsourced claim?",
+        "anchors": {
+          "0": "No corrections offered, or corrections that invent a source.",
+          "1": "Corrections offered but no more supported than what they replace.",
+          "2": "Corrections mostly supported; one or two still reach past the source.",
+          "3": "Every correction is wording the supplied source actually supports, and no citation is invented to close a gap."
+        }
+      }
+    ]
   }
 }
