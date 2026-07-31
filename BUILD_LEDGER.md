@@ -238,7 +238,47 @@ mode. Eval first, then tier.* Do not start 6b to "get ahead" while Stop 7 is ope
 win that cannot be checked against a quality baseline is not a win, it is an unmeasured
 regression that looks like one.
 
-- [ ] BLOCKER: Stop 7 MET, with a quality baseline recorded on the strong model **before** any role is tiered down
+- [~] BLOCKER: Stop 7 MET, with a quality baseline recorded on the strong model **before** any role is tiered down — **partially satisfied 2026-07-31, and the gap is the interesting part. Read below before treating this as clear.**
+
+**What was found when this blocker was actually checked, rather than assumed from "Stop 7 is MET".**
+Stop 7 being MET satisfies the *letter* of this blocker. It did not satisfy the substance.
+Baselines existed for `researcher` and `content` only — **neither of which 6b proposes to
+tier**. The three roles it does target had no baseline at all:
+
+| Role 6b would tier down | Baseline as of 2026-07-31 |
+|---|---|
+| fact-check retrieval (`fact-checker`) | none — its only run returned `blocked`, and blocked outcomes are never scored |
+| verify-only (`delegate.run_verdict`) | **none, and not obtainable this way** — the manager verdict is control flow, not a rubric-scored output |
+| validation | none — schema validation is code, with no model call to tier |
+
+So starting 6b would have tiered exactly the roles whose quality could not be compared to
+anything, which is the failure the operator's own blocking note describes.
+
+**`fact-checker` baseline recorded 2026-07-31.** Three briefs
+(`20260731-rd-004/005/006`) with drafts that are genuinely well-sourced — the inverse of
+the gate test. All three returned `partial` ("publishable with corrections"), all three
+were accepted by the manager, all three were scored. n=3, matching the existing baselines'
+shape. $1.04 total.
+
+**The baseline is at the ceiling, and that is a weakness, not a result.** 3.0/3 on every
+dimension of every run — 15 of 15 anchors at maximum, zero variance. It is *sufficient for
+detecting regression*, which is literally what 6b's DONE-WHEN asks, so it does unblock
+that. It is **not** sufficient to show the rubric discriminates at all. If a cheaper model
+also scores 3.0 on these tasks, that result is uninterpretable: it cannot distinguish "the
+cheap model is just as good" from "this rubric cannot tell them apart at this difficulty."
+The cause is task design — sources supplied in the payload, short drafts, unambiguous
+defects. Before the tiering comparison is run, the baseline set needs harder cases with
+observed spread, or the comparison proves nothing.
+
+**Two smaller findings from the same runs.** `fact-checker` returned `partial` even on the
+draft written to be fully clean: it found an *implied* comparative claim nobody planted —
+that juxtaposing our 22% against a 19% category average asserts a like-for-like comparison
+the two sources do not establish are methodologically comparable. Worth knowing that this
+agent will rarely return `complete` on real promotional copy. And the recorded model string
+is `claude-haiku-4-5+claude-sonnet-5`, the joined usage names, same as the existing
+baselines — comparability holds, but the label is muddier than "strong model" implies.
+
+- [ ] REMAINING BLOCKER: decide how verify-only quality is measured before tiering it. It has no rubric and is not an agent output; the honest measure is verdict *agreement* against the strong model on the same returns, which is a different mechanism than this stop currently assumes.
 - [ ] Tier DOWN mechanical roles only: validation, verify-only (`delegate.run_verdict`), fact-check retrieval
 - [ ] Keep judgment and synthesis roles on the strong model: `risk-review`, `legal-review`, `strategy`
 - [ ] Routing needs no tier — it is already code and spends no tokens (Stop 3 MET)

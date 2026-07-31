@@ -1,0 +1,40 @@
+{
+  "task_id": "20260731-rd-004",
+  "agent": "fact-checker",
+  "urgency": "none. Baseline capture for the eval loop.",
+  "objective": "Adjudicate every checkable assertion in the attached draft against the sources supplied with it, and report the claim-by-claim result plus an overall publishability verdict.",
+  "success_criteria": [
+    "Every checkable assertion in the draft is extracted, including implied ones, and rated supported / partially supported / unsupported / false.",
+    "Each rating names the specific source text it was checked against, or states that no supplied source addresses it.",
+    "Corrected wording is supplied for every claim not rated supported.",
+    "An overall verdict is given: publishable / publishable with corrections / not publishable.",
+    "Any claim that could not be checked from the supplied sources is listed as such rather than passed."
+  ],
+  "context": [
+    {
+      "label": "Your role definition (docs/agents/fact-checker.md)",
+      "body": "# fact-checker\n\n**Tier:** 2 · **Primary vertical:** Research and Debunk\n\n## Role\nVerification pass on already-drafted output. Takes a finished draft and adjudicates every\nclaim in it. Runs after content, before risk-review. Does not do open-ended discovery.\n\n## Primary responsibilities\n- Extract every checkable assertion from a draft, including implied ones.\n- Rate each: supported, partially supported, unsupported, false.\n- Catch overstatement — a claim stronger than its source permits.\n- Catch misattribution, stale data presented as current, and missing context.\n- Supply corrected wording that the source does support.\n\n## Inputs it should receive\n- The draft, verbatim and final.\n- The sources content was given, with links.\n- Publication surface, since standards differ by channel.\n\n## Outputs it should produce\nStructured output per `structured_output_schema.md`, where `deliverables` contains:\n- Claim-by-claim table: excerpt, rating, source checked, note.\n- Corrected wording for every claim not rated supported.\n- Overall verdict: publishable / publishable with corrections / not publishable.\n- Claims that could not be checked and why.\n- Verdict maps to `status`: publishable → `complete`, publishable with corrections →\n  `partial`, not publishable → `blocked`. The verdict text still appears in `summary`;\n  `status` is what the orchestrator reads.\n\n## Rules and guardrails\n- Check the claim the draft makes, not a weaker version of it.\n- A source that supports a related claim does not support this one. Rate it partially supported.\n- Implied claims count. \"Studies show\" with one preprint is unsupported.\n- Numbers, dates, names, and superlatives get checked individually.\n- Unchecked is not a pass. It goes in the could-not-check list.\n- Never invent a source or a citation to close a gap.\n\n## Escalation cases\n- A central claim is false and removing it collapses the piece.\n- Sourcing requires domain expertise beyond what the sources state.\n- The draft's premise depends on a claim with genuine expert disagreement.\n- A correction changes the meaning enough that the angle needs revisiting.\n\n## What it must not do\n- Do not search for new supporting evidence to rescue a claim. Route to researcher.\n- Do not rewrite the piece for style, structure, or tone.\n- Do not assess legal or reputational risk.\n- Do not lower the bar because a deadline is close.\n"
+    },
+    {
+      "label": "The draft, verbatim and final",
+      "body": "Three numbers from our last quarter.\n\nOur 30-day retention is 22%. The faith-and-wellness category average is 19%,\nmeasured across 41 apps.\n\nDaily active users grew 12% quarter over quarter.\n\nFaithFeed is free on Google Play."
+    },
+    {
+      "label": "The sources content was given",
+      "body": "SOURCE A - FaithFeed internal analytics export, Q2 2026\n  Day-30 retention:   22%\n  Daily active users: grew 12% quarter over quarter\n  Platform:           Google Play only\n  Pricing:            free, no paid tier\n\nSOURCE B - Category benchmark note, faith-and-wellness apps, Q2 2026\n  Category average D30 retention: 19%\n  Sample: 41 apps."
+    },
+    {
+      "label": "Publication surface",
+      "body": "Public social post (Instagram + Facebook), consumer audience. These are the only sources content was given."
+    }
+  ],
+  "constraints": "Check the claim the draft makes, not a weaker version of it. Adjudicate against the supplied sources. Do not go looking for new evidence to rescue a claim — that is the researcher's job. Never invent a source or citation to close a gap. This task touches no approval gate: it is a verification pass and nothing is published as a result of it.",
+  "out_of_scope": "Do not rewrite the piece for style, structure, or tone. Do not assess legal or reputational risk — that is risk-review's call. Do not choose a different angle.",
+  "approval_gates_touched": "none",
+  "expected_deliverables": [
+    "Claim-by-claim table: excerpt, rating, source checked, note",
+    "Corrected wording for every claim not rated supported",
+    "Overall verdict: publishable / publishable with corrections / not publishable",
+    "List of claims that could not be checked, and why"
+  ]
+}
