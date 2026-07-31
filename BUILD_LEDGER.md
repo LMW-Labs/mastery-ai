@@ -279,7 +279,8 @@ is `claude-haiku-4-5+claude-sonnet-5`, the joined usage names, same as the exist
 baselines — comparability holds, but the label is muddier than "strong model" implies.
 
 - [ ] REMAINING BLOCKER: decide how verify-only quality is measured before tiering it. It has no rubric and is not an agent output; the honest measure is verdict *agreement* against the strong model on the same returns, which is a different mechanism than this stop currently assumes.
-- [ ] REMAINING BLOCKER: **a gate agent's quality cannot be measured by the current eval loop at all.** See the finding below. This is not a task-design problem and cannot be fixed by writing better briefs.
+- [x] ~~REMAINING BLOCKER: a gate agent's quality cannot be measured by the current eval loop at all.~~ **Fixed 2026-07-31** — gate closures are now scored; see the BACKLOG entry. The measurement can now reach a gate's actual work.
+- [ ] REMAINING BLOCKER: **no observed score variance anywhere.** Every `fact-checker` score on record is a 3, on easy and hard cases alike. Scoring closures removed the *censoring*; it did not produce *spread*. A baseline with no variance cannot distinguish "the cheap model is just as good" from "this rubric cannot tell them apart", so the tiering comparison still proves nothing. Before 6b starts, either observe a non-3 on a genuinely hard case, or accept that the rubric's discriminating power is itself unverified and say so in the DONE-WHEN.
 
 **A harder baseline set was attempted 2026-07-31 and produced ZERO scores. That is the
 finding.** Three cases built to need reasoning rather than pattern-matching: a survey figure
@@ -532,9 +533,31 @@ path never reaches it. → BACKLOG: live gate test.
 
 ## BACKLOG (log, do not action mid-stop)
 
-### Score gate closures — a gate's most valuable output is never measured
-Raised 2026-07-31 from the failed attempt at a discriminating `fact-checker` baseline; full
-finding recorded under Stop 6b.
+### ~~Score gate closures~~ — DONE 2026-07-31
+Implemented the same day it was found. `orchestrator.py`'s `Action.HALT` branch now scores
+the return when `roster.get(agent).is_gate`. Verified live: `20260731-rd-008` re-run and
+scored 3/3, where the identical brief produced **no score at all** hours earlier.
+
+**Scored, and deliberately not verified.** The operator's constraint was explicit —
+*"we are not sending it back thru, it goes against the design."* So a closure gets no
+manager verdict. The verdict returns accept/revise/**reject**, and a `revise` on a closure
+would be a model with the power to send a gate back for another attempt that could return
+a different status. That is a reopening path, and CLAUDE.md forbids it: a `hold` or a
+`no-go` halts the pipeline. Four pins in `tests/test_quality.py::TestGateClosuresAreScored`
+hold the line — closure is scored, closure is never verified, closure is never retried, and
+an ordinary agent's `blocked` is still *not* scored, since there it does mean unused work.
+
+Cost: one grading call (~$0.09) per gate closure, no verdict call. A halted run remains
+cheaper than an accepted one.
+
+**Still open, and not the same question:** whether the rubric *discriminates*. The re-run
+scored 3/3 again — genuinely earned on that case, since it caught the preprint
+mislabelling, the completers-only sample, the self-report measure, and the disclaimed
+causation. But every fact-checker score on record is still a 3. The censoring is fixed; the
+absence of observed variance is not, and a baseline with no spread still cannot prove a
+cheaper model is worse. → the 6b entry above.
+
+**Original finding, for the record:**
 
 `orchestrator.py:261` scores only on `Verdict.ACCEPT`. `blocked` short-circuits before a
 verdict is even requested, so it is never scored. For an ordinary agent that is right —

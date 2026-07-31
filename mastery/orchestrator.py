@@ -25,6 +25,7 @@ from . import (
     gates,
     pipelines,
     quality as quality_mod,
+    roster,
     tiers,
     verdict as verdict_mod,
 )
@@ -62,14 +63,21 @@ class DelegationOutcome:
     manager_verdict: ManagerVerdict | None = None
     detail: str = ""
     attempts: int = 1
-    # Set on every ACCEPTED outcome. An accepted outcome with `quality is None`
-    # means an output was taken as final without being measured — that is the
-    # bypass STOP 7's pin catches, so it is asserted rather than trusted.
+    # Set on every ACCEPTED outcome, and on a HALTED outcome from a gate agent.
+    # An accepted outcome with `quality is None` means an output was taken as
+    # final without being measured — that is the bypass STOP 7's pin catches, so
+    # it is asserted rather than trusted.
+    #
+    # The gate case was added 2026-07-31. A gate returning `blocked` has not
+    # failed; it has finished, and the answer was no. Scoring only accepted
+    # outcomes made the four gates measurable solely on inputs they did not need
+    # to stop — their most valuable work was censored out of the sample by
+    # construction.
     #
     # Observational only. Nothing in this module branches on it: `status` remains
     # the only field the orchestrator acts on, and a low score does not block
-    # acceptance, because a grader that can halt a run is a model deciding
-    # control flow.
+    # acceptance, nor reopen a closure, because a grader that can change control
+    # flow is a model deciding control flow.
     quality: QualityScore | None = None
 
     @property
@@ -201,6 +209,26 @@ class Orchestrator:
                 self.log.gate_hit(
                     gate="blocked-return", detail=result.next_step, task_id=result.task_id
                 )
+                # A gate's closure is its deliverable, so it gets measured.
+                #
+                # `blocked` from an ordinary agent means it hit a gate or lacked a
+                # prerequisite: work that is not being used, and correctly unscored.
+                # From a gate, `blocked` means the opposite — finished, and the
+                # answer was no. Leaving it unscored made a gate measurable only on
+                # the inputs it did not need to stop, so every discriminating case
+                # was censored out of the sample. That was found empirically: a
+                # harder fact-checker set produced three runs and zero scores.
+                #
+                # Scored, and NOT verified. The verdict returns accept/revise/reject,
+                # and a `revise` on a closure would be a model with the power to send
+                # a gate back for another attempt — an attempt that could return a
+                # different status. That is a reopening path, and it is what
+                # CLAUDE.md forbids: a `hold` or a `no-go` halts the pipeline, full
+                # stop. Nothing here goes back through. The score is observational,
+                # exactly as it is on the accepted path.
+                gate_score = None
+                if roster.get(current.agent).is_gate:
+                    gate_score = await self._score(current, result)
                 return DelegationOutcome(
                     Outcome.HALTED,
                     result.task_id,
@@ -208,6 +236,7 @@ class Orchestrator:
                     result=result,
                     detail=result.next_step,
                     attempts=attempt,
+                    quality=gate_score,
                 )
 
             if action is Action.RETRY:
