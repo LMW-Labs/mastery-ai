@@ -279,6 +279,50 @@ is `claude-haiku-4-5+claude-sonnet-5`, the joined usage names, same as the exist
 baselines — comparability holds, but the label is muddier than "strong model" implies.
 
 - [ ] REMAINING BLOCKER: decide how verify-only quality is measured before tiering it. It has no rubric and is not an agent output; the honest measure is verdict *agreement* against the strong model on the same returns, which is a different mechanism than this stop currently assumes.
+- [ ] REMAINING BLOCKER: **a gate agent's quality cannot be measured by the current eval loop at all.** See the finding below. This is not a task-design problem and cannot be fixed by writing better briefs.
+
+**A harder baseline set was attempted 2026-07-31 and produced ZERO scores. That is the
+finding.** Three cases built to need reasoning rather than pattern-matching: a survey figure
+from a self-selected in-app sample projected onto the whole account base; a preprint cited
+as peer-reviewed whose authors explicitly disclaim causation; and two correct subgroup
+retention figures compared causally, with a planted contradiction between the sources
+(0.22×34 + 0.78×12 = 16.84%, against a stated overall of 22%).
+
+`fact-checker` handled them well. It caught the selection-bias projection, caught the
+preprint mislabelling *and* the completers-only sample *and* the self-report measure, and
+on the third produced a report the manager twice returned as `revise` for
+self-contradiction — which is the verdict loop working, then failing honestly at the retry
+cap.
+
+None of it was scored:
+
+| Case | Outcome | Scored |
+|---|---|---|
+| rd-007 selection bias | `blocked` (not publishable) | no |
+| rd-008 preprint / causation | `blocked` (not publishable) | no |
+| rd-009 contradictory sources | `partial` → `revise` ×2 → `failed` | no |
+
+**Why, in code.** `orchestrator.py:261` scores only on `Verdict.ACCEPT`, and `blocked`
+short-circuits before a verdict is requested at all. The rationale is written in the
+comment: *"Grading a failed or halted return would score work that is not being used, and
+would bias the trend with attempts nobody kept."* That is correct for `failed`. **For a
+gate agent it is backwards.** A gate's `blocked` is not unused work — per the status table
+in CLAUDE.md, `blocked` is how a gate returns *closed*, which is its most valuable output.
+The rule was written treating `blocked` as "did not finish"; for `qa`, `fact-checker`,
+`risk-review`, and `legal-review` it means "finished, and the answer was no."
+
+**The consequence for this stop.** A gate agent can only ever be scored on inputs it did
+*not* need to stop — the cases where it had least to do. The 3.0/3 ceiling on the easy set
+is therefore not an artefact of my task design; it is structural. Every discriminating
+input is censored out of the sample by construction. 6b's DONE-WHEN — *"quality scores
+after tiering are compared against the pre-tiering baseline and do not regress"* — is
+**not achievable as written for `fact-checker`**, because the comparison can never reach
+the behaviour that matters. Tiering a gate down on the strength of a baseline built only
+from its easy cases would be a measured cost win against an unmeasurable quality risk,
+which is the precise thing this stop was blocked to prevent.
+
+`roster.py` already carries `is_gate` on every agent, so the distinction needed to fix this
+exists in code today. → BACKLOG: score gate closures.
 - [ ] Tier DOWN mechanical roles only: validation, verify-only (`delegate.run_verdict`), fact-check retrieval
 - [ ] Keep judgment and synthesis roles on the strong model: `risk-review`, `legal-review`, `strategy`
 - [ ] Routing needs no tier — it is already code and spends no tokens (Stop 3 MET)
@@ -487,6 +531,30 @@ and it is the component most likely to be wrong without anyone noticing, because
 path never reaches it. → BACKLOG: live gate test.
 
 ## BACKLOG (log, do not action mid-stop)
+
+### Score gate closures — a gate's most valuable output is never measured
+Raised 2026-07-31 from the failed attempt at a discriminating `fact-checker` baseline; full
+finding recorded under Stop 6b.
+
+`orchestrator.py:261` scores only on `Verdict.ACCEPT`. `blocked` short-circuits before a
+verdict is even requested, so it is never scored. For an ordinary agent that is right —
+`blocked` there means a gate was hit or a prerequisite was missing, and the work is not
+being used. For a **gate** agent, `blocked` is the deliverable: it is how the gate returns
+closed. The result is that `qa`, `fact-checker`, `risk-review`, and `legal-review` can only
+be scored on inputs they did not need to stop.
+
+Evidence: of 8 `fact-checker` delegations, 3 returned `blocked` and were never scored, 2
+were `partial`-then-`revise`d to failure and never scored, and the only 3 that scored were
+the deliberately easy set — which scored 3.0/3 on every dimension with zero variance.
+
+Fix direction, not yet decided: `roster.py` already carries `is_gate`, so scoring a gate's
+`blocked` return is available without new plumbing. The open questions are whether a gate
+closure should be scored against the same rubric or a different one (the rubric currently
+grades the analysis, which is present in a closure), and whether a closure needs a manager
+verdict first — today it deliberately skips one, which is a real cost saving on a halted
+run and would have to be traded off knowingly.
+
+Do not fix this by writing easier gate tests. The censoring is structural.
 
 ### Config floor — `load()` can widen the guardrails it is supposed to enforce
 `config.py:184-192` applies a `config.json` patch to `denied_tools`, `permission_mode`,
