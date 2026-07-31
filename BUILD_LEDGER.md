@@ -404,7 +404,74 @@ persistent user PATH**, including `hermes-agent\venv\Scripts` — which is what 
   the orchestrator branches on `status` alone (`schema.py:52-57`), it would buy nothing.
   Distinguishability is carried by the `status` value itself.
 
+## APPENDIX — Guardrail surface, as verified 2026-07-31
+
+Audited by reading the code, not this ledger. Recorded here so the next person asking
+"can a sub-agent run rogue?" gets file and line rather than reassurance.
+
+**What is enforced.** All four are passed explicitly to `ClaudeAgentOptions` at
+`delegate.py:236-240`. None is inferred, and none depends on a turn budget.
+
+| Enforcement | Where | Effect |
+|---|---|---|
+| `denied_tools = ("Agent", "Bash", "Write", "Edit", "NotebookEdit")` | `config.py:88` | No spawning (spawn depth 1 is real), no execution, no filesystem mutation |
+| `permission_mode = "dontAsk"` | `config.py:94` | Load-bearing. The SDK advertises ~26 tools regardless of `allowed_tools`; anything not pre-approved is refused **at call time** |
+| `setting_sources = ()` | `config.py:108` | CLAUDE.md, project settings and user settings never auto-load into a delegation |
+| `allowed_tools = ("Read", "Glob", "Grep")` | `config.py:83` | Read-only baseline; per-agent additions come from the roster |
+
+`scripts/probe.py` verifies probes 5, 6 and 7 against real SDK behaviour rather than
+against config values: a canary phrase that exists only in CLAUDE.md proves context
+isolation, and live `Agent` and `WebSearch` attempts prove denial actually fires.
+
+**Three qualifications. "Certain" would be the wrong word.**
+
+1. **`config.json` can lower the floor.** `config.py:184-192` lets a config patch
+   `denied_tools`, `permission_mode`, and `setting_sources` with no minimum. Setting
+   `permission_mode` to `bypassPermissions` removes every protection above while
+   `allowed_tools` still reads correctly. This is not a rogue-agent path — no sub-agent
+   has a write tool — but it means the guarantee is *"as configured"*, not structural.
+   → BACKLOG: config floor.
+2. **Egress is the remaining surface.** `roster.py:84` grants researcher `WebSearch` +
+   `WebFetch`; `roster.py:104` grants fact-checker `WebFetch`. Read-only is not the same
+   as no-exfiltration: a prompt-injected page can induce a fetch to an attacker URL with
+   brief context in the query string. Mitigated by hand-assembled minimal context and the
+   60 KB cap; not eliminated. → BACKLOG: egress review.
+3. **The probe is manual.** It needs a credential and makes real calls, so it is correctly
+   outside `tests/` — but nothing signals when it has gone stale after an SDK upgrade.
+
+**Coverage gap found in the same audit.** The run logs contain delegations for exactly
+two agents, `researcher` and `content` (10 delegations, $6.43, zero permission denials).
+`fact-checker` and `risk-review` — the two gates that can halt the Research and Debunk
+pipeline — **have never executed live**. A gate that has never fired is an untested gate,
+and it is the component most likely to be wrong without anyone noticing, because the happy
+path never reaches it. → BACKLOG: live gate test.
+
 ## BACKLOG (log, do not action mid-stop)
+
+### Config floor — `load()` can widen the guardrails it is supposed to enforce
+`config.py:184-192` applies a `config.json` patch to `denied_tools`, `permission_mode`,
+and `setting_sources` with no minimum. `{"delegation": {"permission_mode":
+"bypassPermissions"}}` disables every runtime protection while `allowed_tools` still
+reads correctly, and `mastery check` would still print OK. Not reachable by a sub-agent —
+none has a write tool — so this is a floor, not a hole. Fix: refuse in `load()` to remove
+any default-denied tool, to widen `permission_mode` past `dontAsk`, or to add a setting
+source, and fail loudly rather than clamping silently. Raised 2026-07-31; see APPENDIX.
+
+### Egress review — read-only is not no-exfiltration
+`roster.py:84` grants researcher `WebSearch` + `WebFetch`, `roster.py:104` grants
+fact-checker `WebFetch`. Both are required for those roles to function. The exposure is
+prompt injection from fetched content inducing a request to an attacker-controlled URL
+with brief context in the query string. Mitigated today by hand-assembled minimal context
+and the 60 KB cap. Worth deciding explicitly whether that is accepted or whether fetches
+need a domain allowlist. Raised 2026-07-31; see APPENDIX.
+
+### Live gate test — `fact-checker` and `risk-review` have never run
+Run logs contain delegations for `researcher` and `content` only. The two agents able to
+halt a pipeline have never executed. The test that matters is **not** the happy path: brief
+a claim that should fail, and verify the orchestrator returns `blocked`, names the gate in
+`next_step`, and does not continue. Note the 4-stage pipeline reaches the delegation cap
+once a retry is allowed for, so run it as separate `mastery run` invocations.
+Raised 2026-07-31; see APPENDIX.
 
 ### Governor layer names one vertical's roles and release vocabulary
 `pipelines.py:71-75` hardcodes `RELEASE = ("mobile-dev", "qa", OPERATOR_APPROVAL,
