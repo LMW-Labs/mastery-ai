@@ -102,44 +102,58 @@ class TestPin1AcceptedImpliesScored(OrchestratorTestCase):
 
 class TestPin1FailClosedOnMissingRubric(OrchestratorTestCase):
     async def test_unrubriced_agent_halts_before_any_spend(self):
-        """Fail closed, and do it for free. `strategy` has no rubric."""
+        """Fail closed, and do it for free.
+
+        This asserts the *behaviour*, with the rubric table patched to be empty,
+        rather than reaching for whichever roster agent happens to lack a rubric
+        today. It used to name `strategy` — and on 2026-07-31, when the last
+        nine rubrics were written, `strategy` acquired one and this test silently
+        stopped testing anything. It failed loudly only because the scripted
+        runner refused the call it should never have received.
+
+        That is the sharp edge of completing the rubric set: the guard's own
+        test lost its subject. A pin that depends on some other part of the
+        system staying incomplete is not a pin.
+        """
+        from unittest.mock import patch
+
         runner = ScriptedRunner([])  # must never be called
         orch = Orchestrator(self.config, runner, run_id="test")
 
-        with self.assertRaises(RubricMissing):
-            await orch.execute(a_brief(agent="strategy"))
+        with patch.object(quality, "_rubrics", return_value={}):
+            with self.assertRaises(RubricMissing):
+                await orch.execute(a_brief(agent="strategy"))
 
         self.assertEqual(
             runner.prompts, [], "paid for a delegation it could never have scored"
         )
 
-    def test_the_unrubriced_agents_are_genuinely_unrubriced(self):
-        """Documents the operational cost of fail-closed, so it cannot be
-        forgotten: these agents cannot run until they have a rubric.
+    def test_every_delegatable_agent_is_rubriced(self):
+        """As of 2026-07-31, every delegatable agent has a rubric, so none is
+        blocked from running by `RubricMissing`.
 
-        Deliberately hardcoded. Adding a rubric must break this test, because
+        Deliberately asserted rather than left implicit. This test previously
+        hardcoded the *unrubriced* set, so that adding a rubric had to break it —
         adding one is a decision about what "good" means for a role and should
-        not slip in as a side effect of some other change.
+        not slip in as a side effect. Now that the set is complete, the same
+        intent is served by the inverse: **removing** a rubric, or adding a new
+        delegatable agent without one, breaks this.
 
-        `fact-checker`, `risk-review`, and `legal-review` were added 2026-07-31
-        to run the live gate tests. Until then none could execute at all:
-        `RubricMissing` halts before any spend, which is why the pipeline-halting
-        gates had never once run. `legal-review` was added last because the
-        `risk-review` test produced a handoff to it, and that handoff had nowhere
-        to land. `qa` is now the only gate still unexercised — it has a rubric and
-        is runnable; it has simply never been briefed.
+        A new agent failing here is not a reason to weaken the assertion. It
+        means that agent cannot run yet, which is the fail-closed behaviour Pin 1
+        exists to enforce.
+
+        Review status is tracked in BUILD_LEDGER, not here: `fact-checker`,
+        `risk-review`, and `legal-review` are operator-reviewed. The remaining
+        nine were derived from each agent's own "Rules and guardrails" and are
+        not yet reviewed — they will produce scores regardless, which is exactly
+        why the distinction is recorded.
         """
         from mastery.roster import DELEGATABLE
 
-        rubriced = {a.name for a in DELEGATABLE if quality.has_rubric(a.name)}
-        self.assertEqual(
-            rubriced,
-            {
-                "researcher", "content", "data-model-agent", "mobile-dev", "qa",
-                "fact-checker", "risk-review", "legal-review",
-            },
-        )
-        self.assertEqual(len(DELEGATABLE) - len(rubriced), 9)
+        unrubriced = sorted(a.name for a in DELEGATABLE if not quality.has_rubric(a.name))
+        self.assertEqual(unrubriced, [], f"agents that cannot run for want of a rubric: {unrubriced}")
+        self.assertEqual(len(DELEGATABLE), 17)
 
 
 # --------------------------------------------------------------------------

@@ -573,14 +573,19 @@ The agent caught all six planted defects and two more that were not deliberate.
    writing briefs by hand: the field takes `none` or a name from `GATE_NAMES`, and nuance
    belongs in `constraints`.
 
-### Agent coverage — 13 of 17 delegatable agents have never run
-Measured from `.runs/` on 2026-07-31, not from recollection.
+### Agent coverage — 11 of 17 delegatable agents have never run
+Measured from `.runs/` on 2026-07-31, not from recollection. **Nothing is blocked any
+more**: rubric coverage is complete, so every remaining gap is unexercised rather than
+unrunnable. That is a real change in kind — the previous entry listed ten agents that
+`RubricMissing` would have halted before they spent anything.
 
 | | Agents |
 |---|---|
-| **Ever run (4)** | `researcher` (7), `content` (3), `fact-checker` (1), `risk-review` (1) |
-| **Rubriced, never run (3)** | `mobile-dev`, `qa`, `data-model-agent` — these *can* run today; nothing blocks them but the doing |
-| **Unrubriced, cannot run at all (10)** | `marketing`, `ops`, `strategy`, `ui-ux`, `legal-review`, `metrics-agent`, `incident-response-agent`, `prompt-engineer-agent`, `user-research-agent`, `competitor-intelligence-agent` |
+| **Ever run (6)** | `researcher` (7), `content` (3), `fact-checker` (1), `risk-review` (1), `legal-review` (1), `qa` (1) |
+| **Runnable, never run (11)** | `mobile-dev`, `ops`, `strategy`, `marketing`, `ui-ux`, `data-model-agent`, `metrics-agent`, `incident-response-agent`, `prompt-engineer-agent`, `user-research-agent`, `competitor-intelligence-agent` |
+
+All four gates are in the first row. The eleven remaining are ordinary agents: a gap in
+each is a gap in capability, not a hole through which something ships unreviewed.
 
 Two of these matter more than the rest, both gates:
 
@@ -596,12 +601,29 @@ eval baselines. Each should be derived from that agent's own doc, as the `fact-c
 `risk-review`, and `legal-review` ones were, and each will break the hardcoded pin in
 `test_quality.py` by design.
 
-**Operator-reviewed 2026-07-31.** The `fact-checker`, `risk-review`, and `legal-review`
-rubrics were drafted by an assistant from each agent's own doc and then reviewed and
-passed by the operator. Recorded because it changes what the resulting scores are worth: a
-rubric nobody checked still produces numbers, and those numbers still anchor a trend, which
-is the "looks like a measurement" failure this ledger exists to catch. These three are
-reviewed. Any future rubric is not, until it says so here.
+**Rubric coverage is complete as of 2026-07-31 — all 17 delegatable agents.** No agent is
+now blocked from running by `RubricMissing`. Review status differs, and the difference is
+the point:
+
+| | Agents | Status |
+|---|---|---|
+| Pre-existing | `researcher`, `content`, `mobile-dev`, `qa`, `data-model-agent` | shipped with Stop 7 |
+| **Operator-reviewed 2026-07-31** | `fact-checker`, `risk-review`, `legal-review` | drafted from each agent's doc, reviewed and **passed** by the operator |
+| **Not yet reviewed** | `marketing`, `ops`, `strategy`, `ui-ux`, `metrics-agent`, `incident-response-agent`, `prompt-engineer-agent`, `user-research-agent`, `competitor-intelligence-agent` | drafted 2026-07-31 from each agent's own "Rules and guardrails"; **no human has checked them** |
+
+That last row will produce scores the moment those agents run, and those scores will anchor
+a trend, whether or not anyone has agreed the criteria are right. That is the
+"looks like a measurement" failure this ledger exists to catch, so it is stated rather than
+left to be discovered from a graph later.
+
+**A pin lost its subject when the set completed.** `test_unrubriced_agent_halts_before_any_spend`
+named `strategy` as its unrubriced example. `strategy` now has a rubric, so the test stopped
+testing anything — it surfaced only because the scripted runner refused a call it should
+never have received. Repaired by patching the rubric table to empty and asserting the
+behaviour, rather than depending on some roster agent staying uncovered. A pin that relies
+on another part of the system remaining incomplete is not a pin. The companion test was
+inverted at the same time: it now asserts that **every** delegatable agent is rubriced, so
+removing a rubric — or adding an agent without one — breaks the build.
 
 ### Governor layer names one vertical's roles and release vocabulary
 `pipelines.py:71-75` hardcodes `RELEASE = ("mobile-dev", "qa", OPERATOR_APPROVAL,
