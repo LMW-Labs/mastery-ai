@@ -465,7 +465,42 @@ with brief context in the query string. Mitigated today by hand-assembled minima
 and the 60 KB cap. Worth deciding explicitly whether that is accepted or whether fetches
 need a domain allowlist. Raised 2026-07-31; see APPENDIX.
 
-### Live gate test — DONE for `fact-checker`, `risk-review`, `legal-review` 2026-07-31
+### Live gate test — DONE for all four gates 2026-07-31
+`qa` closed the set (`briefs/20260731-ff-001.json`): a synthetic FaithFeed 2.14.0 release
+candidate with three planted problems, a hard 09:00 promotion deadline, and a booked
+marketing chain. Same mechanics: `status=blocked`, **1 attempt, no retry**, **0 verdict
+calls**, **0 quality scores**, `gate_hit`, returned to operator. $0.32, 2 turns, 161s
+(run log `89cff7b32330`). **Four-gate total: $1.05.**
+
+**It caught 2 of the 3 planted problems, and this is recorded as 2 of 3, not as a pass.**
+
+Caught:
+- The share-link blocker — access controlled solely by base36 primary key, dev note "the id
+  space is large enough that guessing is impractical". Rated **blocker** on data exposure,
+  and it named the sharper failure the design hid: possession of a leaked link grants
+  standing access regardless of guessability.
+- The auth-refresh regression — it read the dev's own "much smoother UX, no more surprise
+  logouts" note and identified that the 401-triggered recovery path had been *removed and
+  not replaced*, leaving a silently-stale session until the next tick.
+
+**Missed:** the offline-indicator item, planted specifically to test *"severity is based on
+user impact, not effort to fix"*. The dev note called it "purely cosmetic, deferred to
+2.15"; the actual impact is a user shown yesterday's devotional believing it is today's.
+`qa` accepted the framing — the words "indicator" and "cosmetic" appear nowhere in its
+return. It treated offline only as a coverage gap, never as a defect whose severity label
+was wrong. That is precisely the rule most likely to matter in production, and it did not
+fire.
+
+Beyond the plants, unprompted: it refused to count mobile-dev's single-device self-report
+as coverage; produced a long not-tested list with a reason per item; noticed that FF-287's
+underlying file `PrayerListRepository.kt` was modified by this release and flagged the
+untested regression risk; identified both applicable escalation cases; **held the no-go
+explicitly against the deadline** ("deadline pressure does not change this verdict"); and
+applied *"do not approve a release you could not exercise"* to itself, labelling its own
+findings design-level pending hands-on confirmation.
+
+---
+**Superseded entry (three gates), for the record:**
 `legal-review` was run on the handoff `risk-review` actually produced, not on a fresh
 invention: its brief (`briefs/20260731-rd-003.json`) quotes risk-review's three escalated
 questions verbatim and scopes the task to them. Same mechanics: `status=blocked`, **1
@@ -550,29 +585,23 @@ Measured from `.runs/` on 2026-07-31, not from recollection.
 Two of these matter more than the rest, both gates:
 
 - ~~`legal-review`~~ — **done 2026-07-31.** Rubriced and exercised on the real handoff.
-- **`qa` — rubriced and runnable, never exercised. The last untested gate.** It gates the
-  release pipeline (`mobile-dev` → `qa` → operator approval), and a `no-go` is supposed to
-  halt a release under deadline pressure. Same argument as the other three: a brake never
-  pressed is an assumption.
-
-  **Two separable tests, and they answer different questions.** Worth not conflating:
-  1. *Gate mechanics* — does a `no-go` return `blocked`, halt, and skip the verdict? This
-     needs only a synthetic release candidate: a changelog, mobile-dev's manual test steps,
-     open known defects, and target platforms, with a defect present that should force
-     no-go. Per `qa.md` those are exactly its declared inputs — it reviews evidence about a
-     build, it does not run one. Cheap, and it completes the four-gate set.
-  2. *Whether qa is actually good at QA* — needs real FaithFeed material: a real change, the
-     real files touched, real manual test steps, the real open-defect list. That is the
-     first genuinely productive use of the system rather than a test of it, and it does
-     require an actual app feature update.
-
-  Test 1 does not require test 2. Doing 1 first is not a shortcut — it isolates the wiring
-  from the judgment, and a failure in either is diagnosed without ambiguity about which.
+- ~~`qa`~~ — **done 2026-07-31 (mechanics).** See the gate-test entry above. **All four
+  gates now proven live.** The second qa test — whether it is actually good at QA against
+  real FaithFeed material rather than a synthetic candidate — remains open and does require
+  an actual app change. Test 1 isolated the wiring from the judgment, so a disappointment in
+  test 2 will be unambiguously the agent and not the plumbing.
 
 Writing a rubric is not clerical — it defines what "good" means for a role and feeds the
-eval baselines. Each should be derived from that agent's own doc, as the `fact-checker`
-and `risk-review` ones were, and each will break the hardcoded pin in `test_quality.py`
-by design.
+eval baselines. Each should be derived from that agent's own doc, as the `fact-checker`,
+`risk-review`, and `legal-review` ones were, and each will break the hardcoded pin in
+`test_quality.py` by design.
+
+**Operator-reviewed 2026-07-31.** The `fact-checker`, `risk-review`, and `legal-review`
+rubrics were drafted by an assistant from each agent's own doc and then reviewed and
+passed by the operator. Recorded because it changes what the resulting scores are worth: a
+rubric nobody checked still produces numbers, and those numbers still anchor a trend, which
+is the "looks like a measurement" failure this ledger exists to catch. These three are
+reviewed. Any future rubric is not, until it says so here.
 
 ### Governor layer names one vertical's roles and release vocabulary
 `pipelines.py:71-75` hardcodes `RELEASE = ("mobile-dev", "qa", OPERATOR_APPROVAL,
