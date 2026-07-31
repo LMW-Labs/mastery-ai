@@ -222,6 +222,33 @@ stage's `context` as `<<< FILL >>>` placeholders and stops. Filling them is the 
 step, and it is the step that keeps this section true — a drafter that assembled context
 itself would move context selection into a model.
 
+## Two ledgers, and when to write to them
+
+Both are append-only records of decisions, not status dashboards. Neither is optional,
+and neither is a substitute for the other. Read the relevant one before claiming a stop
+is done; write to it as part of the work, not as a chore afterwards.
+
+| File | Track | Audience | Write when |
+|---|---|---|---|
+| `BUILD_LEDGER.md` | Mastery OS build | the operator, and future audits | a stop's DONE-WHEN is verified, a stop is cut, or new work is found (→ BACKLOG) |
+| `mastery-os-fde-ledger.md` | FDE case study | hiring managers, non-technical readers | a decision was non-obvious, a trap was avoided, or an honest gap was recorded |
+
+Keep the two tracks separate — `BUILD_LEDGER.md`'s own operating rules say so, and
+interleaving them makes both harder to read.
+
+**Cadence is per milestone, not per commit.** An FDE entry is a decision with a story and
+a consequence; most commits are not that. A day's work is usually one entry, sometimes
+none. Adding an entry per commit dilutes the document into a changelog, which is what git
+already is.
+
+**The FDE ledger's entry structure is fixed** — numbered heading, Plain-English Story,
+Hard Engineering Facts (Vulnerability / "Aha" Discovery / FDE Fix), horizontal rule, and
+a matching talking point at the end. Match the existing entries; do not invent a new shape.
+
+The bar for an FDE entry is the same as for ledger evidence generally: a claim without a
+file, line, or log path is not evidence. That document's whole value is that its stories
+are checkable, so an entry that overstates what shipped costs more than no entry at all.
+
 ## Project-specific notes
 
 - FaithFeed is live on Google Play. Apple is planned, not started.
