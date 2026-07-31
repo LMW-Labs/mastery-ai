@@ -78,6 +78,25 @@ class CapExceeded(OrchestratorError):
     """A configured cap (delegations, turns, spawn depth) was hit."""
 
 
+class GuardrailWeakened(OrchestratorError):
+    """A config file tried to widen a runtime guardrail past its default.
+
+    The guardrails are enforced in code, but `Config.load` reads their values
+    from a JSON file — so without this check, a three-line config.json:
+
+        {"delegation": {"permission_mode": "bypassPermissions"}}
+
+    removes every runtime protection while `allowed_tools` still reads
+    correctly and `mastery check` still prints OK. That is the exact failure
+    shape this project exists to refuse: a system that looks safe while being
+    unsafe, with no signal at the point of use.
+
+    Refused loudly rather than clamped silently. Clamping would mean the file
+    says one thing and the process does another, which is its own kind of lie —
+    and the operator would never learn their config had been ignored.
+    """
+
+
 class RoutingError(OrchestratorError):
     """No agent in the roster owns the task, or the chosen agent does not exist."""
 

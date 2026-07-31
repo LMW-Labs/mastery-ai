@@ -288,9 +288,14 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     args = parser.parse_args(argv)
-    config = Config.load(args.config)
 
     try:
+        # Inside the handler: Config.load enforces the guardrail floor, so a
+        # config that tries to widen permission_mode or empty denied_tools
+        # raises here. That is an expected refusal with an actionable message,
+        # not a crash, and it should read like one.
+        config = Config.load(args.config)
+
         if args.command == "check":
             return _check(config)
         if args.command == "run":
