@@ -109,7 +109,7 @@ model from the decision entirely.
 **Scope note for whoever implements this.** The invocation boundary is not one place:
 - SDK tool calls — currently moot by construction. `config.delegation.denied_tools` hard-denies `Agent`, `Bash`, `Write`, `Edit`, `NotebookEdit`, and `permission_mode="dontAsk"` refuses anything not pre-approved, so the sub-agent tool surface is read-only today. The map still gets built, because it must already exist the day a write tool is granted.
 - `integrations/` method calls — this is where the rule bites *now*. `meta_client.publish_ig_post` / `publish_page_post` / `reply_to_comment` / `delete_comment` are the real gated targets (`public`, `public`, `public`, `irreversible`). They currently `raise NotImplementedError`, which is fail-closed by accident; this stop makes it fail-closed on purpose, by class.
-- Supabase writes, once Stop 4 lands — `permissions` for schema/RLS changes, `irreversible` for deletes.
+- Supabase writes, *if* the Supabase state-layer path is resumed — `permissions` for schema/RLS changes, `irreversible` for deletes. Note Stop 4 landed as a read-only Postgres projection instead, which has no sub-agent write path, so this target does not exist today.
 - NEXT → Stop 4
 
 ## STOP 3 — Routing as pure code — MET
@@ -118,7 +118,53 @@ model from the decision entirely.
 - EVIDENCE: on the `mastery run` path the brief names the agent and `roster.get()` validates it (`roster.py:114-126`), raising `RoutingError` on anything not in the roster — no model call. The drafter also validates model-proposed routes in code (`drafter.py:161-163`). The only LLM routing anywhere is `mastery draft`, which by design proposes and never runs, and whose output the operator edits before it executes.
 - CONSIDERED AND REJECTED: converting the drafter to first-match keyword matching. The drafter also writes objectives, success criteria, and out-of-scope text; keyword matching cannot produce those. Zero-token routing is already true on the path that actually executes work.
 
-## STOP 4 — Persistent state layer (Supabase) — APPROVED 2026-07-29, two conditions
+## STOP 4 — Queryable run warehouse — MET 2026-07-30, narrower than specified
+**Read this before crediting the stop.** What shipped is a **queryable warehouse**: every
+run log mirrored into Postgres as verbatim `jsonb`, idempotent ingest, and views that join
+cost and quality by `task_id`. What was *originally specified* — a persistent state layer
+whose headline guarantee was "a repeat claim reuses a stored verdict instead of recomputing"
+— **did not ship and is not built.** The two are not the same thing and the second does not
+follow from the first. See "What is NOT built" below before assuming otherwise.
+
+Two divergences from the 2026-07-29 approval, both deliberate, both recorded here rather
+than quietly absorbed:
+
+- **Postgres, not Supabase.** The store is self-hosted Postgres 16 on the DigitalOcean
+  droplet, not a Supabase project. Conditions 1 and 2 below were written for the Supabase
+  path; they are therefore **neither satisfied nor violated** — they are unexercised. If
+  Supabase is still wanted as the state layer, both conditions remain open as written.
+- **A projection, not a state layer.** The warehouse is downstream-only. Nothing in the
+  orchestrator imports `warehouse.py`, `psycopg` is absent from `requirements.txt`, and
+  ingest is an explicit `mastery ingest` — so the system runs unchanged with the database
+  down or absent. That is the design (JSONL stays the source of truth; a local append has
+  no network failure mode), and it is also precisely why this cannot serve claim reuse as
+  built: nothing reads from it on the run path.
+
+**Shipped:**
+- [x] Runs mirrored to a queryable store — `events (run_id, seq, ts, event, task_id, payload jsonb)`, payload a faithful copy of the logged record
+- [x] Idempotent ingest — `(run_id, seq)` primary key with `ON CONFLICT DO NOTHING`; `seq` is the line number, so re-ingest of an unchanged log inserts zero rows
+- [x] Cost and quality views joinable by `task_id` — 9 views; `v_stage_cost` sums delegation + verdict + quality into `total_cost_usd`
+- [x] Crash visibility — `v_open_delegations` surfaces a `delegation_start` with no matching end
+- [x] Malformed lines named, not swallowed — reported by file and line; one torn line does not cost the rest of the run
+- EVIDENCE: `mastery/warehouse.py`, `scripts/postgres_schema.sql`, `scripts/provision_postgres.sh` (idempotent, carries the grants fix), `mastery ingest` in `cli.py`. 16 unit tests in `tests/test_warehouse.py` cover log→rows without a server and deliberately import no psycopg. `scripts/check_warehouse.py` covers the half that cannot be faked — 22 assertions against a live server, including "second ingest inserts zero rows" and `v_stage_cost` summing 0.25 + 0.05 to **0.30**, proving verdict cost is not dropped.
+- CAVEAT 2026-07-30: the live 22-assertion check last passed against the *predecessor* droplet. The box believed to have been wiped was found un-wiped (see below); the warehouse there has not been re-verified on a clean host, and its credentials are predecessor-era. Treat the live half of the evidence as stale until reprovisioned.
+
+**What is NOT built — do not credit these:**
+- [ ] Claim-level verdict reuse — a repeat claim does **not** reuse a stored verdict; it recomputes every time. Nothing hashes claims, nothing reads the store on the run path. This is the original headline guarantee of the stop and it is absent. If wanted, it is a **separate future stop**, and a real one: it needs a claim-identity scheme, a staleness policy, and an honest-degradation path for when the store is unreachable — none of which the warehouse implies.
+- [ ] KPI history persisted
+- [ ] Reject-with-reason persisted as structured rows
+- [ ] Supabase project isolation with RLS verified (Condition 1 — unexercised, see above)
+- [ ] Service-role key at `~/.config/mastery/supabase.env` (Condition 2 — unexercised, see above)
+- [ ] Writes classified against the Stop 2 tool→class map — not yet needed: the warehouse has no write path from a sub-agent, and `mastery ingest` is operator-invoked
+- DONE-WHEN (**met, as rewritten**): runs are mirrored to a queryable store; ingest is idempotent under repeat runs; cost and quality views are joinable by `task_id`; and the orchestrator still runs with the store absent.
+- DONE-WHEN (**original, not met**): a repeat claim reuses a stored verdict instead of recomputing; a rejection writes a queryable row; agent state is provably in its own project/schema with RLS on.
+- NEXT → Stop 7 (Stop 6's second half is blocked behind Stop 7 — see below)
+
+---
+
+### Original approval record — the Supabase state-layer path (unexercised)
+Retained because the approval and its conditions still stand if that path is resumed.
+
 Authorized as the state layer. Rationale recorded: Supabase is already in-stack, so this is
 an authorized dependency, not a silent paid failover — it does not trip the "no silent
 billable fallback" rule.
@@ -163,15 +209,11 @@ and the pattern to use is the one this project already established for Meta:
 committed, never passed into a brief payload. A service-role key bypasses RLS, so it is
 operator-only and must never reach a sub-agent's context.
 
-- [ ] Separate project or schema from FaithFeed prod; RLS enabled and verified
-- [ ] Service-role key at `~/.config/mastery/supabase.env`, `chmod 600`, gitignored
-- [ ] Single chokepoint module, same shape as `integrations/meta_client.py` — sub-agents call methods, never see the key, never build queries
-- [ ] Writes classified against the Stop 2 tool→class map before any write path is enabled
-- [ ] Persist research/debunk verdicts keyed by claim hash
-- [ ] Persist KPI history
-- [ ] Persist reject-with-reason as structured rows
-- DONE-WHEN: a repeat claim reuses a stored verdict instead of recomputing; a rejection writes a queryable row; agent state is provably in its own project/schema with RLS on; the service-role key is absent from the repo and from every brief payload.
-- NEXT → Stop 7 (Stop 6's second half is blocked behind Stop 7 — see below)
+If this path is resumed, the outstanding items are the unchecked boxes recorded above under
+"What is NOT built", plus a single chokepoint module in the shape of
+`integrations/meta_client.py` — sub-agents call methods, never see the key, never build
+queries — and the requirement that the service-role key stay absent from the repo and from
+every brief payload.
 
 ## STOP 5 — Manager context from state, not inline — MET
 - [x] Manager does not carry all returns inline across stages
