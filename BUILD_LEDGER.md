@@ -292,7 +292,30 @@ baselines — comparability holds, but the label is muddier than "strong model" 
 
   Nothing from the probe is written to the run log — synthetic scores would corrupt the trend they exist to audit, so it drives the runner directly and never touches `Orchestrator` or `runlog`.
 
-- [ ] REMAINING BLOCKER: the ladder covers `fact-checker` only. The other 16 rubrics are uncalibrated, and nine of those were written in bulk and are still not operator-reviewed. Calibrating a rubric costs four grader calls, so this is cheap per role — but it has not been done, and a rubric that has never been shown a bad output is an untested instrument regardless of how carefully it was written.
+- [ ] REMAINING BLOCKER: the ladder covers `fact-checker` only — **1 of 17 rubrics calibrated**, visible in `mastery check` and `probe_grader.py --status`. This is no longer a note in a ledger that could be forgotten; it is enforced. `evals.set_baseline` refuses on any rubric without a passing ladder for that exact version, so the other 16 cannot acquire a baseline until someone writes and runs their ladder. Four grader calls per role.
+
+**Calibration is a standing per-rubric obligation, not a one-time gate — enforced 2026-08-01.** The operator's framing, and it is the right one: a pass for `fact-checker` says nothing about the other sixteen, which have different dimensions, different anchors, and different failure modes.
+
+| Piece | Where | What it does |
+|---|---|---|
+| Ladders as data | `docs/agents/calibration_ladders.md` | one brief + one return per level, per rubric. Adding a role is writing data, not editing code |
+| Trust state | `mastery/calibration.py` | `calibrated` / `missing` / `stale` / `failed`, keyed `(agent, rubric_version)` |
+| The refusal | `evals.set_baseline` | raises `Uncalibrated` unless a passing ladder exists for that exact version |
+| Visibility | `mastery eval`, `mastery check`, `probe_grader.py --status` | uncalibrated groups are marked inline; coverage is printed as `n/17` |
+| Recording | `probe_grader.py --record` → `evals/calibration.json` | passes **and failures** stored |
+
+Four decisions worth stating, because each had a plausible alternative:
+
+1. **It binds baselines, not delegations.** An uncalibrated rubric still runs and still scores — scoring stays write-only and observational, and `status` remains the only thing the orchestrator branches on. Halting real work over an unwritten ladder would make an uncalibrated rubric *worse than no rubric*, which would push people to delete rubrics to get their work done. A baseline is the artifact that gets trusted, so that is where the refusal belongs.
+2. **It is version-bound, and that is the trap the whole thing turns on.** A ladder is written against specific anchor text. Edit the rubric and the rungs claim levels that no longer exist, so a calibration that silently carried across a version bump would be *worse* than none — it would attest to markings nobody had checked. `status` returns `stale` and the refusal stands. Pinned by `test_calibration_does_not_carry_across_a_rubric_edit`.
+3. **A failed calibration is recorded, not discarded.** Deleting it would leave the rubric merely *unmeasured* rather than *known bad*, and the next person would have no way to tell those apart.
+4. **Spread alone is not a pass.** A ladder must be monotonic as well as clear `MIN_SPREAD`; a grader that separates outputs but orders them wrongly is responding to something other than the anchors.
+
+**A real bug this shook out:** the coverage counter reported a confident `0/17` because `roster.DELEGATABLE` holds `Agent` objects while the rubric and calibration tables are keyed by name, so every lookup returned False. A counter failing exactly the way the grader it counts was suspected of failing. Fixed and pinned by `test_coverage_is_counted_by_agent_name_not_agent_object`.
+
+**The existing baselines are grandfathered, and say so.** `researcher` and `content` have baselines recorded before this rule existed; `set_baseline` would refuse to write them today. They are kept rather than deleted — they are the real record of what was measured and when — and `evals/baselines.json` now carries a `_calibration_note` naming both as provisional until their rubric has a passing ladder.
+
+**Reproducibility, recorded honestly:** the `fact-checker` ladder was run twice. The middle rung moved `1.2 → 1.6` between runs; the 0-rung, the 3-rung, monotonicity, and the 2.80 spread were stable. The verdict is robust; individual rung values are not exact. Worth knowing before anyone reads a single calibration number as precise.
 
 **A harder baseline set was attempted 2026-07-31 and produced ZERO scores. That is the
 finding.** Three cases built to need reasoning rather than pattern-matching: a survey figure

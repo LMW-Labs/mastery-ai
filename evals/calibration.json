@@ -1,0 +1,77 @@
+{
+  "_note": "written by `python scripts/probe_grader.py --record`. Keyed agent|rubric_version. A rubric with no passing entry here cannot have a baseline recorded from its scores \u2014 see mastery/calibration.py.",
+  "calibrations": {
+    "fact-checker|1": {
+      "agent": "fact-checker",
+      "rubric_version": "1",
+      "model": "claude-haiku-4-5+claude-sonnet-5",
+      "ts": "2026-08-01T09:31:54+00:00",
+      "intended": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "observed": [
+        0.2,
+        0.6,
+        1.6,
+        3
+      ],
+      "spread": 2.8,
+      "monotonic": true,
+      "discriminates": true,
+      "min_spread_required": 1.0,
+      "per_rung": [
+        {
+          "label": "rd-900",
+          "intended": 0,
+          "observed": 0.2,
+          "dimensions": {
+            "claim_extraction_completeness": 0,
+            "rating_calibration": 1,
+            "source_attribution_specificity": 0,
+            "unchecked_declared_not_passed": 0,
+            "correction_supportedness": 0
+          }
+        },
+        {
+          "label": "rd-901",
+          "intended": 1,
+          "observed": 0.6,
+          "dimensions": {
+            "claim_extraction_completeness": 0,
+            "rating_calibration": 1,
+            "source_attribution_specificity": 1,
+            "unchecked_declared_not_passed": 0,
+            "correction_supportedness": 1
+          }
+        },
+        {
+          "label": "rd-902",
+          "intended": 2,
+          "observed": 1.6,
+          "dimensions": {
+            "claim_extraction_completeness": 2,
+            "rating_calibration": 2,
+            "source_attribution_specificity": 1,
+            "unchecked_declared_not_passed": 1,
+            "correction_supportedness": 2
+          }
+        },
+        {
+          "label": "rd-903",
+          "intended": 3,
+          "observed": 3,
+          "dimensions": {
+            "claim_extraction_completeness": 3,
+            "rating_calibration": 3,
+            "source_attribution_specificity": 3,
+            "unchecked_declared_not_passed": 3,
+            "correction_supportedness": 3
+          }
+        }
+      ]
+    }
+  }
+}

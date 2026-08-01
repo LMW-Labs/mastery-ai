@@ -17,7 +17,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from mastery import evals, quality
+from mastery import calibration, evals, quality
 from mastery.config import Config
 from mastery.errors import RubricMissing, SchemaViolation
 from mastery.evals import IncomparableScores, ScoreKey, ScoreRecord
@@ -439,6 +439,30 @@ def _rec(agent="researcher", version="1", model="claude-sonnet-4-5", overall=2.0
     )
 
 
+def _calibrated(tmp: str, agent="researcher", version="1", observed=(0.2, 1.0, 2.0, 3.0)) -> Path:
+    """A calibration file saying this rubric's ladder passed.
+
+    Baselines now require one. Tests that are about *comparability* still need to
+    reach the code past that check, so they supply a fixture rather than pointing
+    at the repo's real `evals/calibration.json` — a unit test that depended on
+    which rubrics happen to be calibrated today would break whenever one was
+    added, and would silently stop testing anything if the real file were deleted.
+    """
+    path = Path(tmp) / "calibration.json"
+    calibration.record(
+        calibration.CalibrationResult(
+            agent=agent,
+            rubric_version=version,
+            model="claude-sonnet-4-5",
+            ts="2026-08-01T00:00:00+00:00",
+            intended=(0, 1, 2, 3),
+            observed=tuple(observed),
+        ),
+        path=path,
+    )
+    return path
+
+
 class TestPin4NoIncomparableAveraging(unittest.TestCase):
     def test_mixed_rubric_versions_are_refused(self):
         with self.assertRaises(IncomparableScores) as ctx:
@@ -481,13 +505,138 @@ class TestPin4NoIncomparableAveraging(unittest.TestCase):
         diverge, that divergence is the finding."""
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "baselines.json"
-            evals.set_baseline([_rec(overall=3.0)], label="fresh-strong-model", path=path)
-            evals.set_baseline([_rec(overall=1.0)], label="retro-sanity-check", path=path)
+            cal = _calibrated(tmp)
+            evals.set_baseline(
+                [_rec(overall=3.0)], label="fresh-strong-model", path=path, calibration_path=cal
+            )
+            evals.set_baseline(
+                [_rec(overall=1.0)], label="retro-sanity-check", path=path, calibration_path=cal
+            )
 
             data = json.loads(path.read_text(encoding="utf-8"))
             key = "researcher|1|claude-sonnet-4-5"
             self.assertEqual(data["baselines"][key]["fresh-strong-model"]["overall_mean"], 3.0)
             self.assertEqual(data["baselines"][key]["retro-sanity-check"]["overall_mean"], 1.0)
+
+    def test_an_uncalibrated_rubric_cannot_carry_a_baseline(self):
+        """The obligation, in one test.
+
+        Scores exist, they are perfectly comparable, and the baseline is still
+        refused — because nothing on record says this rubric's grader can tell a
+        good output from a bad one. A number promoted past that question looks
+        like evidence and is not.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "baselines.json"
+            empty = Path(tmp) / "calibration.json"
+            with self.assertRaises(calibration.Uncalibrated) as ctx:
+                evals.set_baseline(
+                    [_rec(overall=3.0)], label="x", path=path, calibration_path=empty
+                )
+            self.assertIn("probe_grader.py", str(ctx.exception))
+            self.assertFalse(path.exists(), "a refused baseline still wrote a file")
+
+    def test_calibration_does_not_carry_across_a_rubric_edit(self):
+        """Version-bound, and this is the trap the whole thing turns on.
+
+        A ladder is written against specific anchor text. Edit the rubric and
+        those rungs claim levels that no longer exist, so the old pass attests to
+        markings nobody has checked — worse than no calibration, because it reads
+        as one.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            cal = _calibrated(tmp, version="1")
+            verdict, why = calibration.status("researcher", "2", path=cal)
+            self.assertIs(verdict, calibration.Verdict.STALE)
+            self.assertIn("v1", why)
+
+            with self.assertRaises(calibration.Uncalibrated):
+                evals.set_baseline(
+                    [_rec(version="2")],
+                    label="x",
+                    path=Path(tmp) / "b.json",
+                    calibration_path=cal,
+                )
+
+    def test_a_failed_calibration_is_recorded_and_still_refuses(self):
+        """A rubber-stamp result is evidence, and it is kept.
+
+        Discarding it would leave the rubric merely *unmeasured* rather than
+        *known bad*, and the next person would have no way to tell those apart.
+        Keeping it must not be mistaken for licensing it.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            cal = _calibrated(tmp, observed=(2.9, 3.0, 3.0, 3.0))  # spread 0.1
+            verdict, why = calibration.status("researcher", "1", path=cal)
+            self.assertIs(verdict, calibration.Verdict.FAILED)
+            self.assertIn("did not discriminate", why)
+
+            self.assertIn("researcher|1", calibration.load_results(cal)["calibrations"])
+            with self.assertRaises(calibration.Uncalibrated):
+                evals.set_baseline(
+                    [_rec()], label="x", path=Path(tmp) / "b.json", calibration_path=cal
+                )
+
+    def test_a_non_monotonic_ladder_is_not_a_pass(self):
+        """Spread alone is not discrimination. A grader that separates outputs but
+        orders them wrongly is responding to something other than the anchors."""
+        result = calibration.CalibrationResult(
+            agent="researcher", rubric_version="1", model="m", ts="t",
+            intended=(0, 1, 2, 3), observed=(3.0, 1.0, 2.0, 0.5),
+        )
+        self.assertGreaterEqual(result.spread, calibration.MIN_SPREAD)
+        self.assertFalse(result.monotonic)
+        self.assertFalse(result.discriminates)
+
+    def test_every_ladder_matches_its_rubric_version(self):
+        """A ladder in the repo that has drifted off its rubric is caught here,
+        not by a probe run that would report a meaningless number."""
+        for agent, ladder in calibration._ladders().items():
+            with self.subTest(agent=agent):
+                self.assertTrue(quality.has_rubric(agent), f"ladder for unrubriced {agent}")
+                self.assertEqual(
+                    ladder["rubric_version"],
+                    quality.rubric_version(agent),
+                    f"{agent}'s ladder was written against a rubric version that has "
+                    f"since changed; rewrite it against the current anchors",
+                )
+
+    def test_every_ladder_covers_every_rubric_level(self):
+        """A ladder missing its 0 rung cannot demonstrate spread, and one missing
+        its 3 rung cannot show the top of the scale is reachable."""
+        for agent, ladder in calibration._ladders().items():
+            with self.subTest(agent=agent):
+                levels = sorted(r["intended"] for r in ladder["rungs"])
+                self.assertEqual(
+                    levels,
+                    list(range(quality.MAX_DIMENSION_SCORE + 1)),
+                    f"{agent}'s ladder does not cover every level once",
+                )
+                for rung in ladder["rungs"]:
+                    self.assertTrue(
+                        rung["why"].strip(),
+                        f"{agent} rung {rung['label']} does not say which anchors it "
+                        f"was built to satisfy, so its intended level is unarguable",
+                    )
+
+    def test_coverage_is_counted_by_agent_name_not_agent_object(self):
+        """`roster.DELEGATABLE` holds `Agent` objects; the rubric and calibration
+        tables are keyed by name. Passing the objects straight through returns
+        False for every lookup and reports a confident, wrong 0/17 — a counter
+        that fails the same way the grader it counts was suspected of failing.
+        """
+        from mastery import roster
+
+        names = [a.name for a in roster.DELEGATABLE]
+        self.assertTrue(all(isinstance(n, str) for n in names))
+        self.assertTrue(
+            any(quality.has_rubric(n) for n in names),
+            "no delegatable agent resolved to a rubric — coverage counting is broken",
+        )
+        self.assertFalse(
+            any(quality.has_rubric(a) for a in roster.DELEGATABLE),  # type: ignore[arg-type]
+            "an Agent object resolved to a rubric; this test no longer guards anything",
+        )
 
     def test_trend_is_ordered_and_comparable(self):
         t = evals.trend([_rec(overall=1.0), _rec(overall=2.0), _rec(overall=3.0)])
