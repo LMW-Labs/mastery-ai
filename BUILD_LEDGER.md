@@ -280,7 +280,19 @@ baselines — comparability holds, but the label is muddier than "strong model" 
 
 - [ ] REMAINING BLOCKER: decide how verify-only quality is measured before tiering it. It has no rubric and is not an agent output; the honest measure is verdict *agreement* against the strong model on the same returns, which is a different mechanism than this stop currently assumes.
 - [x] ~~REMAINING BLOCKER: a gate agent's quality cannot be measured by the current eval loop at all.~~ **Fixed 2026-07-31** — gate closures are now scored; see the BACKLOG entry. The measurement can now reach a gate's actual work.
-- [ ] REMAINING BLOCKER: **no observed score variance anywhere.** Every `fact-checker` score on record is a 3, on easy and hard cases alike. Scoring closures removed the *censoring*; it did not produce *spread*. A baseline with no variance cannot distinguish "the cheap model is just as good" from "this rubric cannot tell them apart", so the tiering comparison still proves nothing. Before 6b starts, either observe a non-3 on a genuinely hard case, or accept that the rubric's discriminating power is itself unverified and say so in the DONE-WHEN.
+- [x] ~~REMAINING BLOCKER: **no observed score variance anywhere.**~~ **Resolved 2026-08-01 by calibration rather than by sampling.** Every `fact-checker` score on record is still a 3, and that is no longer the objection it was.
+
+  The blocker's real content was that a flat result is *uninterpretable*: it cannot distinguish "the cheap model is just as good" from "this rubric cannot tell them apart." Waiting for a non-3 to appear was the wrong remedy — if the instrument were broken, more runs would return 3.0 and read as confirmation. Sampling cannot audit the instrument doing the sampling.
+
+  `scripts/probe_grader.py` calibrates it directly. Four synthetic `fact-checker` returns on one fixed brief, each written against a named row of the rubric's own anchor text — a 0, a 1, a 2, a 3 — graded over the real `run_grader` path. Result: **0.2 / 0.6 / 1.2 / 3.0, monotonic, spread 2.80 on a 3-point scale.** The rubric discriminates, and STOP 6b's comparison is now interpretable: a cheap model scoring 3.0 means it is genuinely as good on these tasks, because the instrument demonstrably registers a drop when there is one.
+
+  **The grader runs strict, not lenient** — the opposite of the failure mode suspected. It scored *below* intent on both middle rungs, and reading the justifications, it was right and the rung labels were generous: it caught that rung-2's correction appended "the sharpest decline the series has recorded" with nothing supporting it, and that rung-2 rated the superlative `PARTIALLY SUPPORTED` on outside knowledge the supplied source did not contain. Both were deliberately planted; neither was described to the grader.
+
+  Consequence for the existing baseline: the 15-of-15 maximum in `evals/baselines.json` is now positive evidence about the agent rather than an unread dial. A strict instrument returning 3.0 means the work was good.
+
+  Nothing from the probe is written to the run log — synthetic scores would corrupt the trend they exist to audit, so it drives the runner directly and never touches `Orchestrator` or `runlog`.
+
+- [ ] REMAINING BLOCKER: the ladder covers `fact-checker` only. The other 16 rubrics are uncalibrated, and nine of those were written in bulk and are still not operator-reviewed. Calibrating a rubric costs four grader calls, so this is cheap per role — but it has not been done, and a rubric that has never been shown a bad output is an untested instrument regardless of how carefully it was written.
 
 **A harder baseline set was attempted 2026-07-31 and produced ZERO scores. That is the
 finding.** Three cases built to need reasoning rather than pattern-matching: a survey figure

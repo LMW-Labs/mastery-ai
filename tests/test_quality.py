@@ -152,7 +152,7 @@ class TestGateClosuresAreScored(OrchestratorTestCase):
         scored = [e for e in orch.log.read() if e["event"] == "quality_score"]
         self.assertEqual(len(scored), 1)
 
-    async def test_a_gate_closure_is_never_verified(self):
+    async def test_fired_gate_has_no_return_path_to_control_flow(self):
         """No verdict on a closure, and this is deliberate.
 
         The verdict returns accept/revise/reject. A `revise` on a closure would be
