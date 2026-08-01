@@ -292,7 +292,28 @@ baselines — comparability holds, but the label is muddier than "strong model" 
 
   Nothing from the probe is written to the run log — synthetic scores would corrupt the trend they exist to audit, so it drives the runner directly and never touches `Orchestrator` or `runlog`.
 
-- [ ] REMAINING BLOCKER: the ladder covers `fact-checker` only — **1 of 17 rubrics calibrated**, visible in `mastery check` and `probe_grader.py --status`. This is no longer a note in a ledger that could be forgotten; it is enforced. `evals.set_baseline` refuses on any rubric without a passing ladder for that exact version, so the other 16 cannot acquire a baseline until someone writes and runs their ladder. Four grader calls per role.
+- [x] ~~REMAINING BLOCKER: the ladder covers `fact-checker` only.~~ **All 17 ladders written and run 2026-08-01. 16 pass, 1 fails.** `mastery check` reports `16/17`.
+
+**The one failure is the most valuable result here.** `content` came back `[1.5, 1.25, 2.75, 2.5]` — **not monotonic**: the rung built to be a 0 outscored the rung built to be a 1, and the rung built to be a 3 scored *below* the rung built to be a 2. `set_baseline` refuses on it, and `content` is one of the two agents that already had a grandfathered baseline. That baseline is now known to rest on an instrument that does not order its own anchors.
+
+What I cannot say is *why*, and I am not going to guess: it is either the rubric failing to discriminate, or my ladder being badly built for it — plausibly the 0-rung, which is a competent post on the wrong angle and may be earning hook and CTA credit the anchors do not intend. Distinguishing those needs a second ladder, not an opinion. **Open, and assigned to nobody yet.**
+
+Two mechanical near-misses worth recording, because both were caught by machinery rather than by care:
+
+- **The 4-digit task-id ladders never spent anything.** `ui-ux`, `data-model-agent` and `metrics-agent` were written with labels like `rd-1000`; `brief.build` rejects `NNNN`, so all three failed *before* the first grader call. The `rd-9xx` block was also nearly exhausted, so the remaining ladders moved to the `ff-9xx` and `ops-9xx` verticals.
+- **`UnicodeEncodeError` cost 8 grader calls, and it was a known bug in a new place.** `probe_grader.py` is a second entry point that never went through `cli.main`, so it never called `_force_utf8_stdio()`. Any grader justification containing `→` killed the script *after* all four calls were paid for — precisely the failure `cli.py`'s own docstring describes ("the work is done… and then thrown away at the last step"). Two ladders lost that way. Fixed by importing the existing guard rather than reimplementing it, since a duplicate is what would let the two drift.
+
+**What it actually cost, measured not estimated.** Cost telemetry was threaded into `CalibrationResult.per_rung` *before* these runs, specifically so this number would exist:
+
+| | |
+|---|---|
+| Recorded total, 68 priced calls | **$3.632134** |
+| Per ladder | min $0.175126, max $0.261709, mean $0.213655 |
+| Per call | min $0.0256156, max $0.0933757, mean $0.0534137 |
+| Unpriced calls | ~16 (two pre-telemetry `fact-checker` runs, two crashed runs) |
+| Honest total | **≈$4.48** — the unpriced calls are ~$0.85 at the observed mean and cannot be recovered exactly |
+
+**The earlier projection was high, and its stated caveat was the reason.** Pricing from four real `fact-checker` grader calls projected $4.78–$5.91 for 64 calls, point $5.38. Actual for the 16 new ladders was ≈$3.42. The flagged reason was correct: `fact-checker` has the largest rubric of the seventeen, so it was the top of the range rather than a representative unit. The proxy per-call mean ($0.08409565) over-stated the real one ($0.0534137) by about 57%, because those proxy calls graded real agent returns rather than ladder rungs.
 
 **Calibration is a standing per-rubric obligation, not a one-time gate — enforced 2026-08-01.** The operator's framing, and it is the right one: a pass for `fact-checker` says nothing about the other sixteen, which have different dimensions, different anchors, and different failure modes.
 

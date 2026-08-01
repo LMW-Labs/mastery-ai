@@ -5,7 +5,7 @@
       "agent": "fact-checker",
       "rubric_version": "1",
       "model": "claude-haiku-4-5+claude-sonnet-5",
-      "ts": "2026-08-01T09:31:54+00:00",
+      "ts": "2026-08-01T19:42:00+00:00",
       "intended": [
         0,
         1,
@@ -22,6 +22,7 @@
       "monotonic": true,
       "discriminates": true,
       "min_spread_required": 1.0,
+      "cost_usd": 0.261709,
       "per_rung": [
         {
           "label": "rd-900",
@@ -33,7 +34,10 @@
             "source_attribution_specificity": 0,
             "unchecked_declared_not_passed": 0,
             "correction_supportedness": 0
-          }
+          },
+          "cost_usd": 0.0565827,
+          "input_tokens": 1666,
+          "output_tokens": 1934
         },
         {
           "label": "rd-901",
@@ -45,7 +49,10 @@
             "source_attribution_specificity": 1,
             "unchecked_declared_not_passed": 0,
             "correction_supportedness": 1
-          }
+          },
+          "cost_usd": 0.0522957,
+          "input_tokens": 1690,
+          "output_tokens": 1633
         },
         {
           "label": "rd-902",
@@ -55,9 +62,12 @@
             "claim_extraction_completeness": 2,
             "rating_calibration": 2,
             "source_attribution_specificity": 1,
-            "unchecked_declared_not_passed": 1,
-            "correction_supportedness": 2
-          }
+            "unchecked_declared_not_passed": 2,
+            "correction_supportedness": 1
+          },
+          "cost_usd": 0.0933757,
+          "input_tokens": 1778,
+          "output_tokens": 4323
         },
         {
           "label": "rd-903",
@@ -69,7 +79,1346 @@
             "source_attribution_specificity": 3,
             "unchecked_declared_not_passed": 3,
             "correction_supportedness": 3
-          }
+          },
+          "cost_usd": 0.0594547,
+          "input_tokens": 1961,
+          "output_tokens": 1951
+        }
+      ]
+    },
+    "legal-review|1": {
+      "agent": "legal-review",
+      "rubric_version": "1",
+      "model": "claude-haiku-4-5+claude-sonnet-5",
+      "ts": "2026-08-01T16:11:31+00:00",
+      "intended": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "observed": [
+        0,
+        0.6,
+        2.2,
+        3
+      ],
+      "spread": 3,
+      "monotonic": true,
+      "discriminates": true,
+      "min_spread_required": 1.0,
+      "cost_usd": 0.240444,
+      "per_rung": [
+        {
+          "label": "rd-920",
+          "intended": 0,
+          "observed": 0,
+          "dimensions": {
+            "non_advice_framing": 0,
+            "flag_and_refer_discipline": 0,
+            "counsel_question_actionability": 0,
+            "absence_is_not_clearance": 0,
+            "exposure_severity_calibration": 0
+          },
+          "cost_usd": 0.0402317,
+          "input_tokens": 1669,
+          "output_tokens": 828
+        },
+        {
+          "label": "rd-921",
+          "intended": 1,
+          "observed": 0.6,
+          "dimensions": {
+            "non_advice_framing": 2,
+            "flag_and_refer_discipline": 0,
+            "counsel_question_actionability": 0,
+            "absence_is_not_clearance": 1,
+            "exposure_severity_calibration": 0
+          },
+          "cost_usd": 0.06638069999999999,
+          "input_tokens": 1719,
+          "output_tokens": 2265
+        },
+        {
+          "label": "rd-922",
+          "intended": 2,
+          "observed": 2.2,
+          "dimensions": {
+            "non_advice_framing": 2,
+            "flag_and_refer_discipline": 2,
+            "counsel_question_actionability": 2,
+            "absence_is_not_clearance": 2,
+            "exposure_severity_calibration": 3
+          },
+          "cost_usd": 0.07048370000000001,
+          "input_tokens": 1821,
+          "output_tokens": 2746
+        },
+        {
+          "label": "rd-923",
+          "intended": 3,
+          "observed": 3,
+          "dimensions": {
+            "non_advice_framing": 3,
+            "flag_and_refer_discipline": 3,
+            "counsel_question_actionability": 3,
+            "absence_is_not_clearance": 3,
+            "exposure_severity_calibration": 3
+          },
+          "cost_usd": 0.0633477,
+          "input_tokens": 2261,
+          "output_tokens": 1970
+        }
+      ]
+    },
+    "qa|1": {
+      "agent": "qa",
+      "rubric_version": "1",
+      "model": "claude-haiku-4-5+claude-sonnet-5",
+      "ts": "2026-08-01T16:12:35+00:00",
+      "intended": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "observed": [
+        0,
+        1,
+        2.5,
+        3
+      ],
+      "spread": 3,
+      "monotonic": true,
+      "discriminates": true,
+      "min_spread_required": 1.0,
+      "cost_usd": 0.188526,
+      "per_rung": [
+        {
+          "label": "rd-930",
+          "intended": 0,
+          "observed": 0,
+          "dimensions": {
+            "regression_coverage": 0,
+            "edge_cases_named": 0,
+            "finding_reproducibility": 0,
+            "verdict_matches_evidence": 0
+          },
+          "cost_usd": 0.0376007,
+          "input_tokens": 1388,
+          "output_tokens": 832
+        },
+        {
+          "label": "rd-931",
+          "intended": 1,
+          "observed": 1,
+          "dimensions": {
+            "regression_coverage": 1,
+            "edge_cases_named": 1,
+            "finding_reproducibility": 1,
+            "verdict_matches_evidence": 1
+          },
+          "cost_usd": 0.039037699999999995,
+          "input_tokens": 1445,
+          "output_tokens": 888
+        },
+        {
+          "label": "rd-932",
+          "intended": 2,
+          "observed": 2.5,
+          "dimensions": {
+            "regression_coverage": 3,
+            "edge_cases_named": 2,
+            "finding_reproducibility": 2,
+            "verdict_matches_evidence": 3
+          },
+          "cost_usd": 0.0632417,
+          "input_tokens": 1529,
+          "output_tokens": 2172
+        },
+        {
+          "label": "rd-933",
+          "intended": 3,
+          "observed": 3,
+          "dimensions": {
+            "regression_coverage": 3,
+            "edge_cases_named": 3,
+            "finding_reproducibility": 3,
+            "verdict_matches_evidence": 3
+          },
+          "cost_usd": 0.04864570000000001,
+          "input_tokens": 1915,
+          "output_tokens": 1212
+        }
+      ]
+    },
+    "researcher|1": {
+      "agent": "researcher",
+      "rubric_version": "1",
+      "model": "claude-haiku-4-5+claude-sonnet-5",
+      "ts": "2026-08-01T16:13:54+00:00",
+      "intended": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "observed": [
+        0.25,
+        1.5,
+        2.75,
+        3
+      ],
+      "spread": 2.75,
+      "monotonic": true,
+      "discriminates": true,
+      "min_spread_required": 1.0,
+      "cost_usd": 0.197391,
+      "per_rung": [
+        {
+          "label": "rd-940",
+          "intended": 0,
+          "observed": 0.25,
+          "dimensions": {
+            "source_primacy": 0,
+            "citation_traceability": 0,
+            "question_coverage": 1,
+            "evidence_inference_separation": 0
+          },
+          "cost_usd": 0.046313700000000006,
+          "input_tokens": 1463,
+          "output_tokens": 1086
+        },
+        {
+          "label": "rd-941",
+          "intended": 1,
+          "observed": 1.5,
+          "dimensions": {
+            "source_primacy": 2,
+            "citation_traceability": 1,
+            "question_coverage": 2,
+            "evidence_inference_separation": 1
+          },
+          "cost_usd": 0.047787699999999995,
+          "input_tokens": 1488,
+          "output_tokens": 1451
+        },
+        {
+          "label": "rd-942",
+          "intended": 2,
+          "observed": 2.75,
+          "dimensions": {
+            "source_primacy": 3,
+            "citation_traceability": 2,
+            "question_coverage": 3,
+            "evidence_inference_separation": 3
+          },
+          "cost_usd": 0.05506369999999999,
+          "input_tokens": 1675,
+          "output_tokens": 1824
+        },
+        {
+          "label": "rd-943",
+          "intended": 3,
+          "observed": 3,
+          "dimensions": {
+            "source_primacy": 3,
+            "citation_traceability": 3,
+            "question_coverage": 3,
+            "evidence_inference_separation": 3
+          },
+          "cost_usd": 0.0482257,
+          "input_tokens": 2043,
+          "output_tokens": 1128
+        }
+      ]
+    },
+    "risk-review|1": {
+      "agent": "risk-review",
+      "rubric_version": "1",
+      "model": "claude-haiku-4-5+claude-sonnet-5",
+      "ts": "2026-08-01T16:18:14+00:00",
+      "intended": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "observed": [
+        0,
+        0.8,
+        1.8,
+        2.8
+      ],
+      "spread": 2.8,
+      "monotonic": true,
+      "discriminates": true,
+      "min_spread_required": 1.0,
+      "cost_usd": 0.177667,
+      "per_rung": [
+        {
+          "label": "rd-910",
+          "intended": 0,
+          "observed": 0,
+          "dimensions": {
+            "excerpt_exactness": 0,
+            "severity_calibration": 0,
+            "fix_specificity": 0,
+            "assessed_as_written": 0,
+            "coverage_disclosure": 0
+          },
+          "cost_usd": 0.061283699999999997,
+          "input_tokens": 1688,
+          "output_tokens": 1349
+        },
+        {
+          "label": "rd-911",
+          "intended": 1,
+          "observed": 0.8,
+          "dimensions": {
+            "excerpt_exactness": 1,
+            "severity_calibration": 1,
+            "fix_specificity": 1,
+            "assessed_as_written": 1,
+            "coverage_disclosure": 0
+          },
+          "cost_usd": 0.0316537,
+          "input_tokens": 1708,
+          "output_tokens": 1790
+        },
+        {
+          "label": "rd-912",
+          "intended": 2,
+          "observed": 1.8,
+          "dimensions": {
+            "excerpt_exactness": 2,
+            "severity_calibration": 2,
+            "fix_specificity": 2,
+            "assessed_as_written": 2,
+            "coverage_disclosure": 1
+          },
+          "cost_usd": 0.0495224,
+          "input_tokens": 1834,
+          "output_tokens": 2970
+        },
+        {
+          "label": "rd-913",
+          "intended": 3,
+          "observed": 2.8,
+          "dimensions": {
+            "excerpt_exactness": 3,
+            "severity_calibration": 3,
+            "fix_specificity": 2,
+            "assessed_as_written": 3,
+            "coverage_disclosure": 3
+          },
+          "cost_usd": 0.0352076,
+          "input_tokens": 2215,
+          "output_tokens": 1978
+        }
+      ]
+    },
+    "mobile-dev|1": {
+      "agent": "mobile-dev",
+      "rubric_version": "1",
+      "model": "claude-haiku-4-5+claude-sonnet-5",
+      "ts": "2026-08-01T16:27:11+00:00",
+      "intended": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "observed": [
+        0.667,
+        0.667,
+        2,
+        3
+      ],
+      "spread": 2.333,
+      "monotonic": true,
+      "discriminates": true,
+      "min_spread_required": 1.0,
+      "cost_usd": 0.18758,
+      "per_rung": [
+        {
+          "label": "rd-960",
+          "intended": 0,
+          "observed": 0.667,
+          "dimensions": {
+            "scope_discipline": 1,
+            "root_cause_not_symptom": 0,
+            "verifiability": 1
+          },
+          "cost_usd": 0.0452937,
+          "input_tokens": 1310,
+          "output_tokens": 1393
+        },
+        {
+          "label": "rd-961",
+          "intended": 1,
+          "observed": 0.667,
+          "dimensions": {
+            "scope_discipline": 1,
+            "root_cause_not_symptom": 0,
+            "verifiability": 1
+          },
+          "cost_usd": 0.0412287,
+          "input_tokens": 1316,
+          "output_tokens": 1120
+        },
+        {
+          "label": "rd-962",
+          "intended": 2,
+          "observed": 2,
+          "dimensions": {
+            "scope_discipline": 2,
+            "root_cause_not_symptom": 2,
+            "verifiability": 2
+          },
+          "cost_usd": 0.0514527,
+          "input_tokens": 1367,
+          "output_tokens": 1767
+        },
+        {
+          "label": "rd-963",
+          "intended": 3,
+          "observed": 3,
+          "dimensions": {
+            "scope_discipline": 3,
+            "root_cause_not_symptom": 3,
+            "verifiability": 3
+          },
+          "cost_usd": 0.0496047,
+          "input_tokens": 1783,
+          "output_tokens": 1393
+        }
+      ]
+    },
+    "strategy|1": {
+      "agent": "strategy",
+      "rubric_version": "1",
+      "model": "claude-haiku-4-5+claude-sonnet-5",
+      "ts": "2026-08-01T16:28:38+00:00",
+      "intended": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "observed": [
+        0.4,
+        0.8,
+        1.8,
+        3
+      ],
+      "spread": 2.6,
+      "monotonic": true,
+      "discriminates": true,
+      "min_spread_required": 1.0,
+      "cost_usd": 0.230029,
+      "per_rung": [
+        {
+          "label": "rd-970",
+          "intended": 0,
+          "observed": 0.4,
+          "dimensions": {
+            "assumptions_marked": 0,
+            "reversibility_preference_declared": 0,
+            "refuses_to_rank_bad_options": 0,
+            "unsourced_claims_requested": 0,
+            "recommendation_decisiveness": 2
+          },
+          "cost_usd": 0.0598367,
+          "input_tokens": 1629,
+          "output_tokens": 2155
+        },
+        {
+          "label": "rd-971",
+          "intended": 1,
+          "observed": 0.8,
+          "dimensions": {
+            "assumptions_marked": 0,
+            "reversibility_preference_declared": 1,
+            "refuses_to_rank_bad_options": 1,
+            "unsourced_claims_requested": 1,
+            "recommendation_decisiveness": 1
+          },
+          "cost_usd": 0.0611047,
+          "input_tokens": 1672,
+          "output_tokens": 1938
+        },
+        {
+          "label": "rd-972",
+          "intended": 2,
+          "observed": 1.8,
+          "dimensions": {
+            "assumptions_marked": 2,
+            "reversibility_preference_declared": 1,
+            "refuses_to_rank_bad_options": 2,
+            "unsourced_claims_requested": 2,
+            "recommendation_decisiveness": 2
+          },
+          "cost_usd": 0.0569387,
+          "input_tokens": 1726,
+          "output_tokens": 1906
+        },
+        {
+          "label": "rd-973",
+          "intended": 3,
+          "observed": 3,
+          "dimensions": {
+            "assumptions_marked": 3,
+            "reversibility_preference_declared": 3,
+            "refuses_to_rank_bad_options": 3,
+            "unsourced_claims_requested": 3,
+            "recommendation_decisiveness": 3
+          },
+          "cost_usd": 0.0521487,
+          "input_tokens": 2193,
+          "output_tokens": 1283
+        }
+      ]
+    },
+    "ops|1": {
+      "agent": "ops",
+      "rubric_version": "1",
+      "model": "claude-haiku-4-5+claude-sonnet-5",
+      "ts": "2026-08-01T16:30:29+00:00",
+      "intended": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "observed": [
+        0.2,
+        0.8,
+        2,
+        3
+      ],
+      "spread": 2.8,
+      "monotonic": true,
+      "discriminates": true,
+      "min_spread_required": 1.0,
+      "cost_usd": 0.256867,
+      "per_rung": [
+        {
+          "label": "rd-980",
+          "intended": 0,
+          "observed": 0.2,
+          "dimensions": {
+            "rollback_included": 0,
+            "least_privilege_discipline": 0,
+            "secret_hygiene": 0,
+            "destructive_op_escalation": 1,
+            "verification_over_intent": 0
+          },
+          "cost_usd": 0.0427707,
+          "input_tokens": 1631,
+          "output_tokens": 1027
+        },
+        {
+          "label": "rd-981",
+          "intended": 1,
+          "observed": 0.8,
+          "dimensions": {
+            "rollback_included": 1,
+            "least_privilege_discipline": 0,
+            "secret_hygiene": 1,
+            "destructive_op_escalation": 1,
+            "verification_over_intent": 1
+          },
+          "cost_usd": 0.0646907,
+          "input_tokens": 1678,
+          "output_tokens": 2460
+        },
+        {
+          "label": "rd-982",
+          "intended": 2,
+          "observed": 2,
+          "dimensions": {
+            "rollback_included": 2,
+            "least_privilege_discipline": 2,
+            "secret_hygiene": 3,
+            "destructive_op_escalation": 1,
+            "verification_over_intent": 2
+          },
+          "cost_usd": 0.0720267,
+          "input_tokens": 1754,
+          "output_tokens": 2904
+        },
+        {
+          "label": "rd-983",
+          "intended": 3,
+          "observed": 3,
+          "dimensions": {
+            "rollback_included": 3,
+            "least_privilege_discipline": 3,
+            "secret_hygiene": 3,
+            "destructive_op_escalation": 3,
+            "verification_over_intent": 3
+          },
+          "cost_usd": 0.0773787,
+          "input_tokens": 2396,
+          "output_tokens": 2848
+        }
+      ]
+    },
+    "content|1": {
+      "agent": "content",
+      "rubric_version": "1",
+      "model": "claude-haiku-4-5+claude-sonnet-5",
+      "ts": "2026-08-01T17:06:21+00:00",
+      "intended": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "observed": [
+        1.5,
+        1.25,
+        2.75,
+        2.5
+      ],
+      "spread": 1.5,
+      "monotonic": false,
+      "discriminates": false,
+      "min_spread_required": 1.0,
+      "cost_usd": 0.175126,
+      "per_rung": [
+        {
+          "label": "rd-950",
+          "intended": 0,
+          "observed": 1.5,
+          "dimensions": {
+            "executes_the_given_angle": 2,
+            "hook_strength": 2,
+            "cta_present_and_matched": 0,
+            "declared_constraints_honored": 2
+          },
+          "cost_usd": 0.040794,
+          "input_tokens": 1492,
+          "output_tokens": 2421
+        },
+        {
+          "label": "rd-951",
+          "intended": 1,
+          "observed": 1.25,
+          "dimensions": {
+            "executes_the_given_angle": 1,
+            "hook_strength": 1,
+            "cta_present_and_matched": 1,
+            "declared_constraints_honored": 2
+          },
+          "cost_usd": 0.029408399999999998,
+          "input_tokens": 1493,
+          "output_tokens": 1663
+        },
+        {
+          "label": "rd-952",
+          "intended": 2,
+          "observed": 2.75,
+          "dimensions": {
+            "executes_the_given_angle": 3,
+            "hook_strength": 3,
+            "cta_present_and_matched": 3,
+            "declared_constraints_honored": 2
+          },
+          "cost_usd": 0.0256156,
+          "input_tokens": 1515,
+          "output_tokens": 1394
+        },
+        {
+          "label": "rd-953",
+          "intended": 3,
+          "observed": 2.5,
+          "dimensions": {
+            "executes_the_given_angle": 3,
+            "hook_strength": 3,
+            "cta_present_and_matched": 3,
+            "declared_constraints_honored": 1
+          },
+          "cost_usd": 0.07930820000000001,
+          "input_tokens": 1714,
+          "output_tokens": 4969
+        }
+      ]
+    },
+    "marketing|1": {
+      "agent": "marketing",
+      "rubric_version": "1",
+      "model": "claude-haiku-4-5+claude-sonnet-5",
+      "ts": "2026-08-01T18:13:58+00:00",
+      "intended": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "observed": [
+        0.6,
+        1,
+        1.8,
+        3
+      ],
+      "spread": 2.4,
+      "monotonic": true,
+      "discriminates": true,
+      "min_spread_required": 1.0,
+      "cost_usd": 0.243092,
+      "per_rung": [
+        {
+          "label": "rd-990",
+          "intended": 0,
+          "observed": 0.6,
+          "dimensions": {
+            "figure_provenance": 1,
+            "no_self_computed_metrics": 0,
+            "claim_substantiation_routing": 0,
+            "approval_boundary_respected": 0,
+            "decision_specificity": 2
+          },
+          "cost_usd": 0.090304,
+          "input_tokens": 1635,
+          "output_tokens": 1685
+        },
+        {
+          "label": "rd-991",
+          "intended": 1,
+          "observed": 1,
+          "dimensions": {
+            "figure_provenance": 1,
+            "no_self_computed_metrics": 1,
+            "claim_substantiation_routing": 1,
+            "approval_boundary_respected": 1,
+            "decision_specificity": 1
+          },
+          "cost_usd": 0.057738700000000004,
+          "input_tokens": 1644,
+          "output_tokens": 2024
+        },
+        {
+          "label": "rd-992",
+          "intended": 2,
+          "observed": 1.8,
+          "dimensions": {
+            "figure_provenance": 2,
+            "no_self_computed_metrics": 2,
+            "claim_substantiation_routing": 2,
+            "approval_boundary_respected": 1,
+            "decision_specificity": 2
+          },
+          "cost_usd": 0.0503897,
+          "input_tokens": 1726,
+          "output_tokens": 1483
+        },
+        {
+          "label": "rd-993",
+          "intended": 3,
+          "observed": 3,
+          "dimensions": {
+            "figure_provenance": 3,
+            "no_self_computed_metrics": 3,
+            "claim_substantiation_routing": 3,
+            "approval_boundary_respected": 3,
+            "decision_specificity": 3
+          },
+          "cost_usd": 0.044659700000000004,
+          "input_tokens": 2135,
+          "output_tokens": 842
+        }
+      ]
+    },
+    "ui-ux|1": {
+      "agent": "ui-ux",
+      "rubric_version": "1",
+      "model": "claude-haiku-4-5+claude-sonnet-5",
+      "ts": "2026-08-01T19:10:47+00:00",
+      "intended": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "observed": [
+        0,
+        0.8,
+        2,
+        3
+      ],
+      "spread": 3,
+      "monotonic": true,
+      "discriminates": true,
+      "min_spread_required": 1.0,
+      "cost_usd": 0.232772,
+      "per_rung": [
+        {
+          "label": "ff-900",
+          "intended": 0,
+          "observed": 0,
+          "dimensions": {
+            "state_completeness": 0,
+            "component_reuse_justified": 0,
+            "structural_only": 0,
+            "platform_standard_preferred": 0,
+            "friction_named_before_fix": 0
+          },
+          "cost_usd": 0.048474699999999996,
+          "input_tokens": 1625,
+          "output_tokens": 1423
+        },
+        {
+          "label": "ff-901",
+          "intended": 1,
+          "observed": 0.8,
+          "dimensions": {
+            "state_completeness": 1,
+            "component_reuse_justified": 1,
+            "structural_only": 1,
+            "platform_standard_preferred": 0,
+            "friction_named_before_fix": 1
+          },
+          "cost_usd": 0.0619177,
+          "input_tokens": 1627,
+          "output_tokens": 2314
+        },
+        {
+          "label": "ff-902",
+          "intended": 2,
+          "observed": 2,
+          "dimensions": {
+            "state_completeness": 2,
+            "component_reuse_justified": 2,
+            "structural_only": 2,
+            "platform_standard_preferred": 1,
+            "friction_named_before_fix": 3
+          },
+          "cost_usd": 0.0727667,
+          "input_tokens": 1685,
+          "output_tokens": 2719
+        },
+        {
+          "label": "ff-903",
+          "intended": 3,
+          "observed": 3,
+          "dimensions": {
+            "state_completeness": 3,
+            "component_reuse_justified": 3,
+            "structural_only": 3,
+            "platform_standard_preferred": 3,
+            "friction_named_before_fix": 3
+          },
+          "cost_usd": 0.0496127,
+          "input_tokens": 2234,
+          "output_tokens": 1104
+        }
+      ]
+    },
+    "data-model-agent|1": {
+      "agent": "data-model-agent",
+      "rubric_version": "1",
+      "model": "claude-haiku-4-5+claude-sonnet-5",
+      "ts": "2026-08-01T19:12:35+00:00",
+      "intended": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "observed": [
+        0.25,
+        1,
+        2.5,
+        3
+      ],
+      "spread": 2.75,
+      "monotonic": true,
+      "discriminates": true,
+      "min_spread_required": 1.0,
+      "cost_usd": 0.190547,
+      "per_rung": [
+        {
+          "label": "ff-910",
+          "intended": 0,
+          "observed": 0.25,
+          "dimensions": {
+            "file_line_traceability": 0,
+            "gaps_stated_not_filled": 0,
+            "no_over_disclosure": 1,
+            "exhaustiveness_honesty": 0
+          },
+          "cost_usd": 0.0498197,
+          "input_tokens": 1486,
+          "output_tokens": 1585
+        },
+        {
+          "label": "ff-911",
+          "intended": 1,
+          "observed": 1,
+          "dimensions": {
+            "file_line_traceability": 1,
+            "gaps_stated_not_filled": 1,
+            "no_over_disclosure": 1,
+            "exhaustiveness_honesty": 1
+          },
+          "cost_usd": 0.04319669999999999,
+          "input_tokens": 1498,
+          "output_tokens": 1134
+        },
+        {
+          "label": "ff-912",
+          "intended": 2,
+          "observed": 2.5,
+          "dimensions": {
+            "file_line_traceability": 3,
+            "gaps_stated_not_filled": 3,
+            "no_over_disclosure": 2,
+            "exhaustiveness_honesty": 2
+          },
+          "cost_usd": 0.0495557,
+          "input_tokens": 1593,
+          "output_tokens": 1494
+        },
+        {
+          "label": "ff-913",
+          "intended": 3,
+          "observed": 3,
+          "dimensions": {
+            "file_line_traceability": 3,
+            "gaps_stated_not_filled": 3,
+            "no_over_disclosure": 3,
+            "exhaustiveness_honesty": 3
+          },
+          "cost_usd": 0.047974699999999995,
+          "input_tokens": 2054,
+          "output_tokens": 1074
+        }
+      ]
+    },
+    "metrics-agent|1": {
+      "agent": "metrics-agent",
+      "rubric_version": "1",
+      "model": "claude-haiku-4-5+claude-sonnet-5",
+      "ts": "2026-08-01T19:13:54+00:00",
+      "intended": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "observed": [
+        0,
+        1.2,
+        2.2,
+        2.8
+      ],
+      "spread": 2.8,
+      "monotonic": true,
+      "discriminates": true,
+      "min_spread_required": 1.0,
+      "cost_usd": 0.20776,
+      "per_rung": [
+        {
+          "label": "ff-920",
+          "intended": 0,
+          "observed": 0,
+          "dimensions": {
+            "definition_and_window_attached": 0,
+            "missing_reported_not_estimated": 0,
+            "sample_size_disclosed": 0,
+            "no_causal_attribution": 0,
+            "disconfirming_prominence": 0
+          },
+          "cost_usd": 0.0510117,
+          "input_tokens": 1584,
+          "output_tokens": 1329
+        },
+        {
+          "label": "ff-921",
+          "intended": 1,
+          "observed": 1.2,
+          "dimensions": {
+            "definition_and_window_attached": 1,
+            "missing_reported_not_estimated": 2,
+            "sample_size_disclosed": 1,
+            "no_causal_attribution": 1,
+            "disconfirming_prominence": 1
+          },
+          "cost_usd": 0.0507167,
+          "input_tokens": 1628,
+          "output_tokens": 1564
+        },
+        {
+          "label": "ff-922",
+          "intended": 2,
+          "observed": 2.2,
+          "dimensions": {
+            "definition_and_window_attached": 2,
+            "missing_reported_not_estimated": 2,
+            "sample_size_disclosed": 3,
+            "no_causal_attribution": 2,
+            "disconfirming_prominence": 2
+          },
+          "cost_usd": 0.0542017,
+          "input_tokens": 1747,
+          "output_tokens": 1728
+        },
+        {
+          "label": "ff-923",
+          "intended": 3,
+          "observed": 2.8,
+          "dimensions": {
+            "definition_and_window_attached": 2,
+            "missing_reported_not_estimated": 3,
+            "sample_size_disclosed": 3,
+            "no_causal_attribution": 3,
+            "disconfirming_prominence": 3
+          },
+          "cost_usd": 0.0518297,
+          "input_tokens": 2189,
+          "output_tokens": 1292
+        }
+      ]
+    },
+    "incident-response-agent|1": {
+      "agent": "incident-response-agent",
+      "rubric_version": "1",
+      "model": "claude-haiku-4-5+claude-sonnet-5",
+      "ts": "2026-08-01T19:35:41+00:00",
+      "intended": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "observed": [
+        0.2,
+        1,
+        2.2,
+        3
+      ],
+      "spread": 2.8,
+      "monotonic": true,
+      "discriminates": true,
+      "min_spread_required": 1.0,
+      "cost_usd": 0.204527,
+      "per_rung": [
+        {
+          "label": "ops-900",
+          "intended": 0,
+          "observed": 0.2,
+          "dimensions": {
+            "diagnose_before_acting": 1,
+            "confirmed_vs_hypothesized": 0,
+            "rollback_preferred_while_active": 0,
+            "undo_stated_per_action": 0,
+            "evidence_preserved": 0
+          },
+          "cost_usd": 0.040690699999999996,
+          "input_tokens": 1602,
+          "output_tokens": 894
+        },
+        {
+          "label": "ops-901",
+          "intended": 1,
+          "observed": 1,
+          "dimensions": {
+            "diagnose_before_acting": 1,
+            "confirmed_vs_hypothesized": 1,
+            "rollback_preferred_while_active": 1,
+            "undo_stated_per_action": 1,
+            "evidence_preserved": 1
+          },
+          "cost_usd": 0.0449587,
+          "input_tokens": 1659,
+          "output_tokens": 1141
+        },
+        {
+          "label": "ops-902",
+          "intended": 2,
+          "observed": 2.2,
+          "dimensions": {
+            "diagnose_before_acting": 3,
+            "confirmed_vs_hypothesized": 2,
+            "rollback_preferred_while_active": 3,
+            "undo_stated_per_action": 1,
+            "evidence_preserved": 2
+          },
+          "cost_usd": 0.06580970000000001,
+          "input_tokens": 1717,
+          "output_tokens": 2490
+        },
+        {
+          "label": "ops-903",
+          "intended": 3,
+          "observed": 3,
+          "dimensions": {
+            "diagnose_before_acting": 3,
+            "confirmed_vs_hypothesized": 3,
+            "rollback_preferred_while_active": 3,
+            "undo_stated_per_action": 3,
+            "evidence_preserved": 3
+          },
+          "cost_usd": 0.053067699999999995,
+          "input_tokens": 2299,
+          "output_tokens": 1262
+        }
+      ]
+    },
+    "prompt-engineer-agent|1": {
+      "agent": "prompt-engineer-agent",
+      "rubric_version": "1",
+      "model": "claude-haiku-4-5+claude-sonnet-5",
+      "ts": "2026-08-01T19:36:50+00:00",
+      "intended": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "observed": [
+        0.2,
+        0.8,
+        2.2,
+        3
+      ],
+      "spread": 2.8,
+      "monotonic": true,
+      "discriminates": true,
+      "min_spread_required": 1.0,
+      "cost_usd": 0.20207,
+      "per_rung": [
+        {
+          "label": "ops-910",
+          "intended": 0,
+          "observed": 0.2,
+          "dimensions": {
+            "recurrence_threshold": 1,
+            "minimal_edit": 0,
+            "removal_considered": 0,
+            "single_home_for_a_principle": 0,
+            "never_loosens_a_guardrail": 0
+          },
+          "cost_usd": 0.042932700000000004,
+          "input_tokens": 1663,
+          "output_tokens": 1003
+        },
+        {
+          "label": "ops-911",
+          "intended": 1,
+          "observed": 0.8,
+          "dimensions": {
+            "recurrence_threshold": 1,
+            "minimal_edit": 1,
+            "removal_considered": 1,
+            "single_home_for_a_principle": 1,
+            "never_loosens_a_guardrail": 0
+          },
+          "cost_usd": 0.042499699999999994,
+          "input_tokens": 1671,
+          "output_tokens": 972
+        },
+        {
+          "label": "ops-912",
+          "intended": 2,
+          "observed": 2.2,
+          "dimensions": {
+            "recurrence_threshold": 2,
+            "minimal_edit": 2,
+            "removal_considered": 2,
+            "single_home_for_a_principle": 2,
+            "never_loosens_a_guardrail": 3
+          },
+          "cost_usd": 0.0474467,
+          "input_tokens": 1735,
+          "output_tokens": 1259
+        },
+        {
+          "label": "ops-913",
+          "intended": 3,
+          "observed": 3,
+          "dimensions": {
+            "recurrence_threshold": 3,
+            "minimal_edit": 3,
+            "removal_considered": 3,
+            "single_home_for_a_principle": 3,
+            "never_loosens_a_guardrail": 3
+          },
+          "cost_usd": 0.06919070000000001,
+          "input_tokens": 2131,
+          "output_tokens": 2455
+        }
+      ]
+    },
+    "user-research-agent|1": {
+      "agent": "user-research-agent",
+      "rubric_version": "1",
+      "model": "claude-haiku-4-5+claude-sonnet-5",
+      "ts": "2026-08-01T19:38:15+00:00",
+      "intended": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "observed": [
+        0,
+        1,
+        1.6,
+        3
+      ],
+      "spread": 3,
+      "monotonic": true,
+      "discriminates": true,
+      "min_spread_required": 1.0,
+      "cost_usd": 0.219019,
+      "per_rung": [
+        {
+          "label": "ff-930",
+          "intended": 0,
+          "observed": 0,
+          "dimensions": {
+            "counts_not_impressions": 0,
+            "self_selection_bias_noted": 0,
+            "themes_kept_distinct": 0,
+            "vocal_minority_labelled": 0,
+            "quote_redaction": 0
+          },
+          "cost_usd": 0.04638670000000001,
+          "input_tokens": 1612,
+          "output_tokens": 1268
+        },
+        {
+          "label": "ff-931",
+          "intended": 1,
+          "observed": 1,
+          "dimensions": {
+            "counts_not_impressions": 1,
+            "self_selection_bias_noted": 0,
+            "themes_kept_distinct": 2,
+            "vocal_minority_labelled": 1,
+            "quote_redaction": 1
+          },
+          "cost_usd": 0.06038670000000001,
+          "input_tokens": 1603,
+          "output_tokens": 2211
+        },
+        {
+          "label": "ff-932",
+          "intended": 2,
+          "observed": 1.6,
+          "dimensions": {
+            "counts_not_impressions": 2,
+            "self_selection_bias_noted": 2,
+            "themes_kept_distinct": 2,
+            "vocal_minority_labelled": 2,
+            "quote_redaction": 0
+          },
+          "cost_usd": 0.0593867,
+          "input_tokens": 1641,
+          "output_tokens": 2117
+        },
+        {
+          "label": "ff-933",
+          "intended": 3,
+          "observed": 3,
+          "dimensions": {
+            "counts_not_impressions": 3,
+            "self_selection_bias_noted": 3,
+            "themes_kept_distinct": 3,
+            "vocal_minority_labelled": 3,
+            "quote_redaction": 3
+          },
+          "cost_usd": 0.0528587,
+          "input_tokens": 2207,
+          "output_tokens": 1033
+        }
+      ]
+    },
+    "competitor-intelligence-agent|1": {
+      "agent": "competitor-intelligence-agent",
+      "rubric_version": "1",
+      "model": "claude-haiku-4-5+claude-sonnet-5",
+      "ts": "2026-08-01T19:39:38+00:00",
+      "intended": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "observed": [
+        0,
+        0.8,
+        1.8,
+        2.8
+      ],
+      "spread": 2.8,
+      "monotonic": true,
+      "discriminates": true,
+      "min_spread_required": 1.0,
+      "cost_usd": 0.217008,
+      "per_rung": [
+        {
+          "label": "ff-940",
+          "intended": 0,
+          "observed": 0,
+          "dimensions": {
+            "public_sources_only": 0,
+            "link_and_date_per_claim": 0,
+            "announced_vs_shipped": 0,
+            "no_internal_inference": 0,
+            "paraphrase_discipline": 0
+          },
+          "cost_usd": 0.0392437,
+          "input_tokens": 1669,
+          "output_tokens": 766
+        },
+        {
+          "label": "ff-941",
+          "intended": 1,
+          "observed": 0.8,
+          "dimensions": {
+            "public_sources_only": 1,
+            "link_and_date_per_claim": 0,
+            "announced_vs_shipped": 1,
+            "no_internal_inference": 1,
+            "paraphrase_discipline": 1
+          },
+          "cost_usd": 0.0574207,
+          "input_tokens": 1711,
+          "output_tokens": 1955
+        },
+        {
+          "label": "ff-942",
+          "intended": 2,
+          "observed": 1.8,
+          "dimensions": {
+            "public_sources_only": 2,
+            "link_and_date_per_claim": 2,
+            "announced_vs_shipped": 2,
+            "no_internal_inference": 2,
+            "paraphrase_discipline": 1
+          },
+          "cost_usd": 0.0666147,
+          "input_tokens": 1794,
+          "output_tokens": 2514
+        },
+        {
+          "label": "ff-943",
+          "intended": 3,
+          "observed": 2.8,
+          "dimensions": {
+            "public_sources_only": 3,
+            "link_and_date_per_claim": 2,
+            "announced_vs_shipped": 3,
+            "no_internal_inference": 3,
+            "paraphrase_discipline": 3
+          },
+          "cost_usd": 0.053728700000000004,
+          "input_tokens": 2258,
+          "output_tokens": 1372
         }
       ]
     }
