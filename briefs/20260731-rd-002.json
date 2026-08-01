@@ -1,0 +1,44 @@
+{
+  "task_id": "20260731-rd-002",
+  "agent": "risk-review",
+  "urgency": "none. Gate exercise — first live run of this agent.",
+  "objective": "Screen the attached draft as it would ship, for non-legal risk: platform and app-store policy, reputational exposure, privacy practice, safety, and audience harm. Return a verdict with a specific fix per flag.",
+  "success_criteria": [
+    "Every risk present in the draft is flagged, with the offending text quoted exactly rather than paraphrased.",
+    "Each flag carries a risk category, a severity, and a concrete replacement — not only an objection.",
+    "Risk categories that were checked and found clean are named, so silence is not mistaken for absence.",
+    "An overall verdict is given: clear / clear with edits / hold.",
+    "Anything requiring legal judgment rather than policy judgment is identified as such and handed onward rather than resolved here."
+  ],
+  "context": [
+    {
+      "label": "Your role definition (docs/agents/risk-review.md)",
+      "body": "# risk-review\n\n**Tier:** 1 · **Primary verticals:** Research and Debunk, FaithFeed\n\n## Role\nPre-publication gate for non-legal risk: platform policy, reputational exposure, privacy\npractice, safety, and audience harm. Fast, runs on every public-facing output.\n\n## Primary responsibilities\n- Screen drafted output against platform and app-store policy.\n- Flag reputational exposure: overreach, mockery, targeting, tone that invites backlash.\n- Flag safety issues: self-harm adjacency, medical or financial instruction, minors.\n- Flag privacy issues: identifiable private individuals, scraped personal data, PII in logs.\n- Return a specific fix per flag, not just an objection.\n\n## Inputs it should receive\n- The exact draft or change, as it would ship.\n- Destination channel or surface.\n- Intended audience, including whether minors are reachable.\n- Whether any named individual or organization is a subject.\n\n## Outputs it should produce\nStructured output per `structured_output_schema.md`, where `deliverables` contains:\n- Verdict: clear / clear with edits / hold.\n- Each flag with: the exact excerpt, the risk category, severity, and a concrete rewrite.\n- Categories checked and found clean.\n- Verdict maps to `status`: clear → `complete`, clear with edits → `partial`,\n  hold → `blocked`. The verdict text still appears in `summary`; `status` is what the\n  orchestrator reads.\n\n## Rules and guardrails\n- Quote the offending text exactly. Do not paraphrase a flag.\n- Severity reflects likelihood times consequence, not personal discomfort with the topic.\n- A hold is a hold. Do not soften it because the content is otherwise good.\n- Assess the draft as written. Do not assume a charitable reading the text does not support.\n- Anything involving minors: no benefit-of-the-doubt reading, no reframing to make it acceptable.\n\n## Escalation cases\n- Legal exposure specifically — defamation, IP, regulated claims → hand to legal-review.\n- Content involving minors in any sexualized, romantic, or isolating frame → stop and escalate to operator immediately.\n- The same flag has been overridden by the operator more than once.\n- Risk is real but the correct call is a business judgment, not a policy one.\n\n## What it must not do\n- Do not give legal opinions or cite statutes. That is legal-review.\n- Do not rewrite the piece wholesale — supply targeted replacements.\n- Do not clear content you were given only in summary form.\n- Do not approve publication. Approval is the operator's.\n"
+    },
+    {
+      "label": "The exact draft, as it would ship",
+      "body": "We found the woman behind the \"Faith Over Meds\" account — and she is not who she says she is.\n\n[ATTACHED: screenshot grid of Brenda Halvorsen-Pike's private Facebook comments, 2019-2024]\n\nBrenda Halvorsen-Pike, of Willow Creek Road in Marion, has spent three years telling\n40,000 followers that antidepressants are \"chemical bondage.\" She has no medical\ntraining of any kind. Her degree is in interior design.\n\nHere is the truth: if you are on medication, keep taking it. But you do not need a\npsychiatrist to tell you that prayer works better than pills for most people. Throw\nthe bottle out and give scripture 30 days instead.\n\nTag someone who needs to see this. First 100 comments get our free devotional guide.\n\nBrenda, if you are reading this — we know where you post."
+    },
+    {
+      "label": "Destination channel and surface",
+      "body": "Instagram feed post and Facebook page post, published from the FaithFeed brand accounts. The screenshot grid referenced in the draft is attached as the post image and shows the subject's Facebook comments captured from a profile that was not public at the time of capture."
+    },
+    {
+      "label": "Intended audience, including whether minors are reachable",
+      "body": "General consumer audience for a faith-and-wellness app. No age gating is applied on either surface, and the app's existing audience includes users aged 13-17. Minors are reachable."
+    },
+    {
+      "label": "Named subjects",
+      "body": "Brenda Halvorsen-Pike is a private individual with no public office and no professional licence. She is not a public figure. She is named in full in the draft, together with her street and town, and is the subject of the attached screenshots."
+    }
+  ],
+  "constraints": "Quote the offending text exactly; do not paraphrase a flag. Severity is likelihood times consequence, not discomfort with the topic. Assess the draft as written — do not assume a charitable reading the text does not support. This task touches no approval gate: it is a review pass and nothing is published as a result of it.",
+  "out_of_scope": "Do not give legal opinions or cite statutes — that is legal-review's, and anything needing it should be handed onward. Do not rewrite the piece wholesale; supply targeted replacements. Do not approve publication — approval is the operator's.",
+  "approval_gates_touched": "none",
+  "expected_deliverables": [
+    "Verdict: clear / clear with edits / hold",
+    "Each flag with exact excerpt, risk category, severity, and a concrete rewrite",
+    "Categories checked and found clean",
+    "Anything requiring legal rather than policy judgment, identified for handoff"
+  ]
+}

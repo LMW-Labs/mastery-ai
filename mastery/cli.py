@@ -7,6 +7,7 @@ interactive prompts, output is plain text.
     mastery draft <request>       propose briefs from a raw request; runs nothing
     mastery run <brief.json>      run one delegation from a brief file
     mastery verify <brief.json>   verify a delegation already in the run log
+    mastery ingest                copy run logs into Postgres for querying
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import roster, schema, verdict
+from . import roster, schema, verdict, warehouse
 from .brief import ContextItem, build
 from .config import Config
 from .delegate import SdkRunner
@@ -219,6 +220,24 @@ def _eval(config: Config, set_baseline: str | None, agent: str | None) -> int:
     return 0
 
 
+def _ingest(config: Config, url: str | None, run_id: str | None) -> int:
+    """Copy run logs into Postgres. Never called during a run — see warehouse.py."""
+    from . import warehouse
+
+    try:
+        report = warehouse.ingest(config.log_dir, url=url, run_id=run_id)
+    except warehouse.WarehouseUnavailable as exc:
+        print(f"ingest unavailable: {exc}", file=sys.stderr)
+        return 2
+
+    print(f"ingested from {config.log_dir}: {report}")
+    for complaint in report.malformed:
+        # Named, not swallowed. A line that would not parse is a real defect in
+        # the log and the operator is the only one who can decide it is benign.
+        print(f"  malformed: {complaint}", file=sys.stderr)
+    return 1 if report.malformed else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     _force_utf8_stdio()
     parser = argparse.ArgumentParser(prog="mastery")
@@ -258,10 +277,25 @@ def main(argv: list[str] | None = None) -> int:
         "--agent", default=None, help="required with --set-baseline: which agent"
     )
 
+    ingest_cmd = sub.add_parser(
+        "ingest", help="copy run logs into Postgres for querying (does not run anything)"
+    )
+    ingest_cmd.add_argument(
+        "--dsn", default=None, help=f"connection string; defaults to ${warehouse.DSN_ENV}"
+    )
+    ingest_cmd.add_argument(
+        "--run", default=None, help="ingest only this run id; defaults to all logs"
+    )
+
     args = parser.parse_args(argv)
-    config = Config.load(args.config)
 
     try:
+        # Inside the handler: Config.load enforces the guardrail floor, so a
+        # config that tries to widen permission_mode or empty denied_tools
+        # raises here. That is an expected refusal with an actionable message,
+        # not a crash, and it should read like one.
+        config = Config.load(args.config)
+
         if args.command == "check":
             return _check(config)
         if args.command == "run":
@@ -276,6 +310,8 @@ def main(argv: list[str] | None = None) -> int:
             return asyncio.run(_draft(config, text, args.attach, args.out))
         if args.command == "eval":
             return _eval(config, args.set_baseline, args.agent)
+        if args.command == "ingest":
+            return _ingest(config, args.dsn, args.run)
     except OrchestratorError as exc:
         print(f"{type(exc).__name__}: {exc}", file=sys.stderr)
         return 2

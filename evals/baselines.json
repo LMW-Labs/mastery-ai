@@ -81,6 +81,29 @@
           "20260728-rd-004"
         ]
       }
+    },
+    "fact-checker|1|claude-haiku-4-5+claude-sonnet-5": {
+      "fresh-strong-model": {
+        "agent": "fact-checker",
+        "rubric_version": "1",
+        "model": "claude-haiku-4-5+claude-sonnet-5",
+        "label": "fresh-strong-model",
+        "n": 3,
+        "overall_mean": 3.0,
+        "normalised_mean": 1.0,
+        "per_dimension_mean": {
+          "claim_extraction_completeness": 3.0,
+          "correction_supportedness": 3.0,
+          "rating_calibration": 3.0,
+          "source_attribution_specificity": 3.0,
+          "unchecked_declared_not_passed": 3.0
+        },
+        "task_ids": [
+          "20260731-rd-004",
+          "20260731-rd-005",
+          "20260731-rd-006"
+        ]
+      }
     }
   }
 }
