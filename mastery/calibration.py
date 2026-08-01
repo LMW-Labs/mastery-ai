@@ -133,6 +133,25 @@ class CalibrationResult:
     per_rung: tuple[dict, ...] = field(default_factory=tuple)
 
     @property
+    def cost_usd(self) -> float | None:
+        """What this ladder actually cost. None if no rung reported a figure.
+
+        Recorded because the first two ladders did not record it, and their bill
+        is therefore unrecoverable: the probe drives `run_grader` directly, so no
+        `quality_score` event was ever written, and the `Invocation` carrying
+        `cost_usd` was read for its model name and discarded. Eight real grader
+        calls with no price on record.
+
+        That is the same defect as the untelemetered verdict call — a call path
+        that spends and does not account — reintroduced by a design note that
+        said "nothing here is written to the run log". True and deliberate about
+        *scores*, which would corrupt the trend. Never true about *cost*, which
+        is a separate concern that had no reason to be suppressed.
+        """
+        figures = [r["cost_usd"] for r in self.per_rung if r.get("cost_usd") is not None]
+        return round(sum(figures), 6) if figures else None
+
+    @property
     def spread(self) -> float:
         return round(max(self.observed) - min(self.observed), 3)
 
@@ -164,6 +183,7 @@ class CalibrationResult:
             "monotonic": self.monotonic,
             "discriminates": self.discriminates,
             "min_spread_required": MIN_SPREAD,
+            "cost_usd": self.cost_usd,
             "per_rung": list(self.per_rung),
         }
 

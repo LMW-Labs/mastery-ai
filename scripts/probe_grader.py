@@ -52,6 +52,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from mastery import calibration, quality, roster
+from mastery.cli import _force_utf8_stdio
 from mastery.brief import ContextItem, build
 from mastery.config import Config
 from mastery.delegate import SdkRunner, run_grader
@@ -71,6 +72,9 @@ class Observation:
     why: str
     score: quality.QualityScore | None
     model: str = ""
+    cost_usd: float | None = None
+    input_tokens: int = 0
+    output_tokens: int = 0
     error: str | None = None
 
 
@@ -116,7 +120,15 @@ async def _grade(ladder: dict, rung: dict, agent: str, config: Config) -> Observ
         )
     except OrchestratorError as exc:
         return Observation(**common, score=None, error=f"{type(exc).__name__}: {exc}")
-    return Observation(**common, score=score, model=_model_of(invocation))
+    usage = getattr(invocation, "usage", None)
+    return Observation(
+        **common,
+        score=score,
+        model=_model_of(invocation),
+        cost_usd=invocation.cost_usd,
+        input_tokens=getattr(usage, "input_tokens", 0),
+        output_tokens=getattr(usage, "output_tokens", 0),
+    )
 
 
 def _model_of(invocation) -> str:
@@ -172,6 +184,9 @@ def _report(observations: list[Observation], agent: str, rubric_version: str) ->
                 "intended": o.intended,
                 "observed": o.score.overall,
                 "dimensions": {d.dimension: d.score for d in o.score.dimensions},
+                "cost_usd": o.cost_usd,
+                "input_tokens": o.input_tokens,
+                "output_tokens": o.output_tokens,
             }
             for o in ordered
         ),
@@ -190,6 +205,10 @@ def _report(observations: list[Observation], agent: str, rubric_version: str) ->
     print("  observed   " + "  ".join(f"{o:.1f}" for o in result.observed))
     print(f"  spread     {result.spread:.2f}  (needs >= {calibration.MIN_SPREAD} on a 3-point scale)")
     print(f"  monotonic  {result.monotonic}")
+    if result.cost_usd is not None:
+        per = [r["cost_usd"] for r in result.per_rung if r.get("cost_usd") is not None]
+        print(f"  cost       ${result.cost_usd} for {len(per)} calls "
+              f"(per-call ${min(per)} - ${max(per)})")
     if flat:
         print(f"  flat dims  {', '.join(flat)}  (same score on every rung)")
     print(f"{'-' * 78}")
@@ -241,6 +260,12 @@ def _print_status() -> int:
 
 
 async def main() -> int:
+    # Borrowed from cli.main rather than reimplemented. Without it this script
+    # dies in print() on any justification containing an arrow or a dash -- after
+    # every grader call has been paid for. That is the exact failure cli.py's
+    # docstring describes, and it recurred here because the probe is a second
+    # entry point that never went through cli.main. Two ladders were lost to it.
+    _force_utf8_stdio()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--agent", default=None, help="which rubric to calibrate")
     parser.add_argument(
