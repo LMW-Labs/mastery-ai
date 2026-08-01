@@ -105,5 +105,14 @@
         ]
       }
     }
-  }
+  },
+  "_calibration_note": [
+    "Recorded before calibration was required (2026-08-01). These baselines rest on",
+    "rubrics whose discriminating power was never established, and `set_baseline`",
+    "would refuse to write them today. They are kept, not deleted: they are the",
+    "real record of what was measured and when. Treat them as provisional until",
+    "their rubric has a passing ladder in evals/calibration.json.",
+    "",
+    "Provisional: researcher|1|claude-haiku-4-5+claude-sonnet-5, content|1|claude-haiku-4-5+claude-sonnet-5"
+  ]
 }

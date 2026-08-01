@@ -18,7 +18,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import roster, schema, verdict, warehouse
+from . import calibration, quality, roster, schema, verdict, warehouse
 from .brief import ContextItem, build
 from .config import Config
 from .delegate import SdkRunner
@@ -61,6 +61,19 @@ def _check(config: Config) -> int:
     print(f"  model             {config.delegation.model}")
     print(f"  denied tools      {', '.join(config.delegation.denied_tools)}")
     print(f"  auth mode         {config.auth.mode}")
+
+    # Coverage, not a failure. An uncalibrated rubric still runs and still scores;
+    # it just cannot carry a baseline. Reporting it here means the number is in
+    # front of the operator before they go looking for a baseline that will be
+    # refused, rather than after.
+    calibrated = sum(
+        1
+        for a in (x.name for x in roster.DELEGATABLE)
+        if quality.has_rubric(a)
+        and calibration.status(a, quality.rubric_version(a))[0].trusted
+    )
+    print(f"  rubrics calibrated {calibrated}/{len(roster.DELEGATABLE)}  "
+          f"(uncalibrated rubrics score but cannot carry a baseline)")
     return 0
 
 
@@ -206,6 +219,11 @@ def _eval(config: Config, set_baseline: str | None, agent: str | None) -> int:
     except evals.IncomparableScores as exc:
         # Refused rather than averaged. An average across incomparable runs looks
         # like a number, which is worse than having none.
+        print(f"refused: {exc}", file=sys.stderr)
+        return 2
+    except calibration.Uncalibrated as exc:
+        # Same refusal, one step earlier: these scores may be perfectly comparable
+        # with each other and still come from an instrument nobody has checked.
         print(f"refused: {exc}", file=sys.stderr)
         return 2
 
