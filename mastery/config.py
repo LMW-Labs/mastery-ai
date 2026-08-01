@@ -197,4 +197,54 @@ class Config:
             cfg = replace(cfg, log_dir=Path(raw["log_dir"]))
         if "cwd" in raw:
             cfg = replace(cfg, cwd=Path(raw["cwd"]))
+        _enforce_floor(cfg, path)
         return cfg
+
+
+def _enforce_floor(cfg: "Config", path: Path) -> None:
+    """Refuse a config that widens a runtime guardrail past its default.
+
+    Caps are deliberately not floored here — lowering `max_delegations` or
+    `task_timeout_seconds` is a legitimate thing to want, and raising them costs
+    money rather than safety. What this covers is the three settings that decide
+    whether a delegation can act on the world at all:
+
+      * `denied_tools` may only grow. Removing `Agent` restores spawning;
+        removing `Bash`, `Write`, or `Edit` restores mutation.
+      * `permission_mode` may not move off the default. It is the control that
+        actually refuses non-allowlisted tools at call time, so widening it to
+        `bypassPermissions` or `acceptEdits` silently un-sandboxes every
+        delegation while `allowed_tools` still looks correct.
+      * `setting_sources` must stay empty, or the SDK auto-loads CLAUDE.md and
+        user settings into sub-agents that are supposed to see only their brief.
+
+    Deliberately not reachable by a sub-agent — none has a write tool, so none
+    can edit a config file. This is a floor under operator and developer error,
+    not a containment boundary.
+    """
+    from .errors import GuardrailWeakened
+
+    default = Delegation()
+    where = f" (from {path})" if path else ""
+
+    missing = set(default.denied_tools) - set(cfg.delegation.denied_tools)
+    if missing:
+        raise GuardrailWeakened(
+            f"config{where} removes default-denied tool(s): {', '.join(sorted(missing))}. "
+            f"denied_tools may add to {list(default.denied_tools)}, never subtract."
+        )
+
+    if cfg.delegation.permission_mode != default.permission_mode:
+        raise GuardrailWeakened(
+            f"config{where} sets permission_mode={cfg.delegation.permission_mode!r}; "
+            f"only {default.permission_mode!r} is accepted. This is the setting that "
+            f"refuses non-allowlisted tools at call time — changing it here would "
+            f"un-sandbox every delegation while allowed_tools still looked correct."
+        )
+
+    if tuple(cfg.delegation.setting_sources) != ():
+        raise GuardrailWeakened(
+            f"config{where} sets setting_sources={list(cfg.delegation.setting_sources)}; "
+            f"it must stay empty. A non-empty value auto-loads CLAUDE.md and user "
+            f"settings into delegations that should see only their brief."
+        )

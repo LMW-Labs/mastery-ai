@@ -109,7 +109,7 @@ model from the decision entirely.
 **Scope note for whoever implements this.** The invocation boundary is not one place:
 - SDK tool calls — currently moot by construction. `config.delegation.denied_tools` hard-denies `Agent`, `Bash`, `Write`, `Edit`, `NotebookEdit`, and `permission_mode="dontAsk"` refuses anything not pre-approved, so the sub-agent tool surface is read-only today. The map still gets built, because it must already exist the day a write tool is granted.
 - `integrations/` method calls — this is where the rule bites *now*. `meta_client.publish_ig_post` / `publish_page_post` / `reply_to_comment` / `delete_comment` are the real gated targets (`public`, `public`, `public`, `irreversible`). They currently `raise NotImplementedError`, which is fail-closed by accident; this stop makes it fail-closed on purpose, by class.
-- Supabase writes, once Stop 4 lands — `permissions` for schema/RLS changes, `irreversible` for deletes.
+- Supabase writes, *if* the Supabase state-layer path is resumed — `permissions` for schema/RLS changes, `irreversible` for deletes. Note Stop 4 landed as a read-only Postgres projection instead, which has no sub-agent write path, so this target does not exist today.
 - NEXT → Stop 4
 
 ## STOP 3 — Routing as pure code — MET
@@ -118,13 +118,88 @@ model from the decision entirely.
 - EVIDENCE: on the `mastery run` path the brief names the agent and `roster.get()` validates it (`roster.py:114-126`), raising `RoutingError` on anything not in the roster — no model call. The drafter also validates model-proposed routes in code (`drafter.py:161-163`). The only LLM routing anywhere is `mastery draft`, which by design proposes and never runs, and whose output the operator edits before it executes.
 - CONSIDERED AND REJECTED: converting the drafter to first-match keyword matching. The drafter also writes objectives, success criteria, and out-of-scope text; keyword matching cannot produce those. Zero-token routing is already true on the path that actually executes work.
 
-## STOP 4 — Persistent state layer (Supabase) — APPROVED 2026-07-29, two conditions
+## STOP 4 — Queryable run warehouse — MET 2026-07-30, narrower than specified
+**Read this before crediting the stop.** What shipped is a **queryable warehouse**: every
+run log mirrored into Postgres as verbatim `jsonb`, idempotent ingest, and views that join
+cost and quality by `task_id`. What was *originally specified* — a persistent state layer
+whose headline guarantee was "a repeat claim reuses a stored verdict instead of recomputing"
+— **did not ship and is not built.** The two are not the same thing and the second does not
+follow from the first. See "What is NOT built" below before assuming otherwise.
+
+Two divergences from the 2026-07-29 approval, both deliberate, both recorded here rather
+than quietly absorbed:
+
+- **Postgres, not Supabase.** The store is self-hosted Postgres 16 on the DigitalOcean
+  droplet, not a Supabase project. Conditions 1 and 2 below were written for the Supabase
+  path; they are therefore **neither satisfied nor violated** — they are unexercised. If
+  Supabase is still wanted as the state layer, both conditions remain open as written.
+- **A projection, not a state layer.** The warehouse is downstream-only. Nothing in the
+  orchestrator imports `warehouse.py`, `psycopg` is absent from `requirements.txt`, and
+  ingest is an explicit `mastery ingest` — so the system runs unchanged with the database
+  down or absent. That is the design (JSONL stays the source of truth; a local append has
+  no network failure mode), and it is also precisely why this cannot serve claim reuse as
+  built: nothing reads from it on the run path.
+
+**Shipped:**
+- [x] Runs mirrored to a queryable store — `events (run_id, seq, ts, event, task_id, payload jsonb)`, payload a faithful copy of the logged record
+- [x] Idempotent ingest — `(run_id, seq)` primary key with `ON CONFLICT DO NOTHING`; `seq` is the line number, so re-ingest of an unchanged log inserts zero rows
+- [x] Cost and quality views joinable by `task_id` — 9 views; `v_stage_cost` sums delegation + verdict + quality into `total_cost_usd`
+- [x] Crash visibility — `v_open_delegations` surfaces a `delegation_start` with no matching end
+- [x] Malformed lines named, not swallowed — reported by file and line; one torn line does not cost the rest of the run
+- EVIDENCE: `mastery/warehouse.py`, `scripts/postgres_schema.sql`, `scripts/provision_postgres.sh` (idempotent, carries the grants fix), `mastery ingest` in `cli.py`. 16 unit tests in `tests/test_warehouse.py` cover log→rows without a server and deliberately import no psycopg. `scripts/check_warehouse.py` covers the half that cannot be faked — 22 assertions against a live server, including "second ingest inserts zero rows" and `v_stage_cost` summing 0.25 + 0.05 to **0.30**, proving verdict cost is not dropped.
+- RE-VERIFIED 2026-07-31 on clean infrastructure. The predecessor droplet was destroyed and a fresh one (`masteryOS`, id 588880069) provisioned from zero. Pre-flight confirmed the rebuild actually took — new host key, 12-minute uptime, all eleven predecessor artifacts absent — after an earlier teardown had been reported complete and silently had not. `provision_postgres.sh` ran clean from a bare Ubuntu 24.04 box (its first ever from-zero run, so the "works on a rebuilt droplet" claim in its header is now tested rather than asserted), applied the grants block, and was a no-op on re-run. All 22 live assertions pass against the new server, including a second ingest inserting 0 rows and `v_stage_cost` returning 0.30 against a delegation figure of 0.25. Credentials regenerated on-box at mode 0600; Postgres bound to 127.0.0.1 only. The check was run over an SSH tunnel from the repo — nothing was copied onto the droplet.
+
+**What is NOT built — do not credit these:**
+- [ ] Claim-level verdict reuse — a repeat claim does **not** reuse a stored verdict; it recomputes every time. Nothing hashes claims, nothing reads the store on the run path. This is the original headline guarantee of the stop and it is absent. If wanted, it is a **separate future stop**, and a real one: it needs a claim-identity scheme, a staleness policy, and an honest-degradation path for when the store is unreachable — none of which the warehouse implies.
+- [ ] KPI history persisted
+- [ ] Reject-with-reason persisted as structured rows
+- [ ] Supabase project isolation with RLS verified (Condition 1 — unexercised, see above)
+- [ ] Service-role key at `~/.config/mastery/supabase.env` (Condition 2 — unexercised, see above)
+- [ ] Writes classified against the Stop 2 tool→class map — not yet needed: the warehouse has no write path from a sub-agent, and `mastery ingest` is operator-invoked
+- DONE-WHEN (**met, as rewritten**): runs are mirrored to a queryable store; ingest is idempotent under repeat runs; cost and quality views are joinable by `task_id`; and the orchestrator still runs with the store absent.
+- DONE-WHEN (**original, not met**): a repeat claim reuses a stored verdict instead of recomputing; a rejection writes a queryable row; agent state is provably in its own project/schema with RLS on.
+- NEXT → Stop 7 (Stop 6's second half is blocked behind Stop 7 — see below)
+
+---
+
+### Original approval record — the Supabase state-layer path (unexercised)
+Retained because the approval and its conditions still stand if that path is resumed.
+
 Authorized as the state layer. Rationale recorded: Supabase is already in-stack, so this is
 an authorized dependency, not a silent paid failover — it does not trip the "no silent
 billable fallback" rule.
 
-**Condition 1 — isolation.** Separate Supabase project, or at minimum a separate schema,
-from FaithFeed prod. Agent state must not co-mingle with app or user data. RLS on.
+**Condition 1 — isolation.** Mastery OS gets its **own dedicated Supabase project**,
+reserved for the governor. RLS on.
+
+Stated positively and self-standing, corrected 2026-07-30. It previously read "separate
+project, or at minimum a separate schema, from FaithFeed prod", which was wrong twice:
+
+- It defined the governor's own requirement *relative to a vertical* — the same defect
+  logged in BACKLOG about `pipelines.py`. The governor's store is its own because it is the
+  governor's, not because of what else exists in the account. The requirement holds if
+  every other project is deleted tomorrow.
+- **The schema fallback was unsafe and is removed.** A Supabase service-role key is scoped
+  to the *project* and bypasses RLS. A schema-level split sharing one project would hand
+  the governor's key full read/write over everything else in that project, so Condition 1
+  and Condition 2 contradicted each other. Schema separation is not a weaker version of
+  project separation here; it is not isolation at all.
+
+Naming: do not name the project after a vertical. It is the governor's store.
+
+**Account state as of 2026-07-30** (read-only check, nothing created): org
+`efufvmgzgxnlkpelrilg` (LMW-Labs's Org) holds four projects — `himsportsgroup`
+(ACTIVE_HEALTHY), `faithfeedAI` (INACTIVE), `hodge_performance` (INACTIVE), `lmwlabs-web`
+(INACTIVE). No governor project exists. A new project costs **$0/month**.
+
+**Open question before this stop starts — free-tier auto-pause.** Three of four existing
+projects are already INACTIVE. A paused project means the state layer is unavailable, which
+breaks this stop's own DONE-WHEN: a repeat claim cannot reuse a stored verdict from a
+database that is asleep. Decide whether the governor's store can tolerate pausing (and the
+orchestrator must then degrade honestly rather than silently recompute), or whether it needs
+to hold an always-on slot. This is a design decision, not a detail — a state layer that
+silently vanishes and gets silently recomputed is the fabricated-success failure mode
+wearing a different hat.
 
 **Condition 2 — credentials.** Service-role key handled per the credential decision from
 the hermes thread. **RESOLVED:** the hermes `.env` turned out to be byte-identical to
@@ -134,15 +209,11 @@ and the pattern to use is the one this project already established for Meta:
 committed, never passed into a brief payload. A service-role key bypasses RLS, so it is
 operator-only and must never reach a sub-agent's context.
 
-- [ ] Separate project or schema from FaithFeed prod; RLS enabled and verified
-- [ ] Service-role key at `~/.config/mastery/supabase.env`, `chmod 600`, gitignored
-- [ ] Single chokepoint module, same shape as `integrations/meta_client.py` — sub-agents call methods, never see the key, never build queries
-- [ ] Writes classified against the Stop 2 tool→class map before any write path is enabled
-- [ ] Persist research/debunk verdicts keyed by claim hash
-- [ ] Persist KPI history
-- [ ] Persist reject-with-reason as structured rows
-- DONE-WHEN: a repeat claim reuses a stored verdict instead of recomputing; a rejection writes a queryable row; agent state is provably in its own project/schema with RLS on; the service-role key is absent from the repo and from every brief payload.
-- NEXT → Stop 7 (Stop 6's second half is blocked behind Stop 7 — see below)
+If this path is resumed, the outstanding items are the unchecked boxes recorded above under
+"What is NOT built", plus a single chokepoint module in the shape of
+`integrations/meta_client.py` — sub-agents call methods, never see the key, never build
+queries — and the requirement that the service-role key stay absent from the repo and from
+every brief payload.
 
 ## STOP 5 — Manager context from state, not inline — MET
 - [x] Manager does not carry all returns inline across stages
@@ -167,7 +238,104 @@ mode. Eval first, then tier.* Do not start 6b to "get ahead" while Stop 7 is ope
 win that cannot be checked against a quality baseline is not a win, it is an unmeasured
 regression that looks like one.
 
-- [ ] BLOCKER: Stop 7 MET, with a quality baseline recorded on the strong model **before** any role is tiered down
+- [~] BLOCKER: Stop 7 MET, with a quality baseline recorded on the strong model **before** any role is tiered down — **partially satisfied 2026-07-31, and the gap is the interesting part. Read below before treating this as clear.**
+
+**What was found when this blocker was actually checked, rather than assumed from "Stop 7 is MET".**
+Stop 7 being MET satisfies the *letter* of this blocker. It did not satisfy the substance.
+Baselines existed for `researcher` and `content` only — **neither of which 6b proposes to
+tier**. The three roles it does target had no baseline at all:
+
+| Role 6b would tier down | Baseline as of 2026-07-31 |
+|---|---|
+| fact-check retrieval (`fact-checker`) | none — its only run returned `blocked`, and blocked outcomes are never scored |
+| verify-only (`delegate.run_verdict`) | **none, and not obtainable this way** — the manager verdict is control flow, not a rubric-scored output |
+| validation | none — schema validation is code, with no model call to tier |
+
+So starting 6b would have tiered exactly the roles whose quality could not be compared to
+anything, which is the failure the operator's own blocking note describes.
+
+**`fact-checker` baseline recorded 2026-07-31.** Three briefs
+(`20260731-rd-004/005/006`) with drafts that are genuinely well-sourced — the inverse of
+the gate test. All three returned `partial` ("publishable with corrections"), all three
+were accepted by the manager, all three were scored. n=3, matching the existing baselines'
+shape. $1.04 total.
+
+**The baseline is at the ceiling, and that is a weakness, not a result.** 3.0/3 on every
+dimension of every run — 15 of 15 anchors at maximum, zero variance. It is *sufficient for
+detecting regression*, which is literally what 6b's DONE-WHEN asks, so it does unblock
+that. It is **not** sufficient to show the rubric discriminates at all. If a cheaper model
+also scores 3.0 on these tasks, that result is uninterpretable: it cannot distinguish "the
+cheap model is just as good" from "this rubric cannot tell them apart at this difficulty."
+The cause is task design — sources supplied in the payload, short drafts, unambiguous
+defects. Before the tiering comparison is run, the baseline set needs harder cases with
+observed spread, or the comparison proves nothing.
+
+**Two smaller findings from the same runs.** `fact-checker` returned `partial` even on the
+draft written to be fully clean: it found an *implied* comparative claim nobody planted —
+that juxtaposing our 22% against a 19% category average asserts a like-for-like comparison
+the two sources do not establish are methodologically comparable. Worth knowing that this
+agent will rarely return `complete` on real promotional copy. And the recorded model string
+is `claude-haiku-4-5+claude-sonnet-5`, the joined usage names, same as the existing
+baselines — comparability holds, but the label is muddier than "strong model" implies.
+
+- [ ] REMAINING BLOCKER: decide how verify-only quality is measured before tiering it. It has no rubric and is not an agent output; the honest measure is verdict *agreement* against the strong model on the same returns, which is a different mechanism than this stop currently assumes.
+- [x] ~~REMAINING BLOCKER: a gate agent's quality cannot be measured by the current eval loop at all.~~ **Fixed 2026-07-31** — gate closures are now scored; see the BACKLOG entry. The measurement can now reach a gate's actual work.
+- [x] ~~REMAINING BLOCKER: **no observed score variance anywhere.**~~ **Resolved 2026-08-01 by calibration rather than by sampling.** Every `fact-checker` score on record is still a 3, and that is no longer the objection it was.
+
+  The blocker's real content was that a flat result is *uninterpretable*: it cannot distinguish "the cheap model is just as good" from "this rubric cannot tell them apart." Waiting for a non-3 to appear was the wrong remedy — if the instrument were broken, more runs would return 3.0 and read as confirmation. Sampling cannot audit the instrument doing the sampling.
+
+  `scripts/probe_grader.py` calibrates it directly. Four synthetic `fact-checker` returns on one fixed brief, each written against a named row of the rubric's own anchor text — a 0, a 1, a 2, a 3 — graded over the real `run_grader` path. Result: **0.2 / 0.6 / 1.2 / 3.0, monotonic, spread 2.80 on a 3-point scale.** The rubric discriminates, and STOP 6b's comparison is now interpretable: a cheap model scoring 3.0 means it is genuinely as good on these tasks, because the instrument demonstrably registers a drop when there is one.
+
+  **The grader runs strict, not lenient** — the opposite of the failure mode suspected. It scored *below* intent on both middle rungs, and reading the justifications, it was right and the rung labels were generous: it caught that rung-2's correction appended "the sharpest decline the series has recorded" with nothing supporting it, and that rung-2 rated the superlative `PARTIALLY SUPPORTED` on outside knowledge the supplied source did not contain. Both were deliberately planted; neither was described to the grader.
+
+  Consequence for the existing baseline: the 15-of-15 maximum in `evals/baselines.json` is now positive evidence about the agent rather than an unread dial. A strict instrument returning 3.0 means the work was good.
+
+  Nothing from the probe is written to the run log — synthetic scores would corrupt the trend they exist to audit, so it drives the runner directly and never touches `Orchestrator` or `runlog`.
+
+- [ ] REMAINING BLOCKER: the ladder covers `fact-checker` only. The other 16 rubrics are uncalibrated, and nine of those were written in bulk and are still not operator-reviewed. Calibrating a rubric costs four grader calls, so this is cheap per role — but it has not been done, and a rubric that has never been shown a bad output is an untested instrument regardless of how carefully it was written.
+
+**A harder baseline set was attempted 2026-07-31 and produced ZERO scores. That is the
+finding.** Three cases built to need reasoning rather than pattern-matching: a survey figure
+from a self-selected in-app sample projected onto the whole account base; a preprint cited
+as peer-reviewed whose authors explicitly disclaim causation; and two correct subgroup
+retention figures compared causally, with a planted contradiction between the sources
+(0.22×34 + 0.78×12 = 16.84%, against a stated overall of 22%).
+
+`fact-checker` handled them well. It caught the selection-bias projection, caught the
+preprint mislabelling *and* the completers-only sample *and* the self-report measure, and
+on the third produced a report the manager twice returned as `revise` for
+self-contradiction — which is the verdict loop working, then failing honestly at the retry
+cap.
+
+None of it was scored:
+
+| Case | Outcome | Scored |
+|---|---|---|
+| rd-007 selection bias | `blocked` (not publishable) | no |
+| rd-008 preprint / causation | `blocked` (not publishable) | no |
+| rd-009 contradictory sources | `partial` → `revise` ×2 → `failed` | no |
+
+**Why, in code.** `orchestrator.py:261` scores only on `Verdict.ACCEPT`, and `blocked`
+short-circuits before a verdict is requested at all. The rationale is written in the
+comment: *"Grading a failed or halted return would score work that is not being used, and
+would bias the trend with attempts nobody kept."* That is correct for `failed`. **For a
+gate agent it is backwards.** A gate's `blocked` is not unused work — per the status table
+in CLAUDE.md, `blocked` is how a gate returns *closed*, which is its most valuable output.
+The rule was written treating `blocked` as "did not finish"; for `qa`, `fact-checker`,
+`risk-review`, and `legal-review` it means "finished, and the answer was no."
+
+**The consequence for this stop.** A gate agent can only ever be scored on inputs it did
+*not* need to stop — the cases where it had least to do. The 3.0/3 ceiling on the easy set
+is therefore not an artefact of my task design; it is structural. Every discriminating
+input is censored out of the sample by construction. 6b's DONE-WHEN — *"quality scores
+after tiering are compared against the pre-tiering baseline and do not regress"* — is
+**not achievable as written for `fact-checker`**, because the comparison can never reach
+the behaviour that matters. Tiering a gate down on the strength of a baseline built only
+from its easy cases would be a measured cost win against an unmeasurable quality risk,
+which is the precise thing this stop was blocked to prevent.
+
+`roster.py` already carries `is_gate` on every agent, so the distinction needed to fix this
+exists in code today. → BACKLOG: score gate closures.
 - [ ] Tier DOWN mechanical roles only: validation, verify-only (`delegate.run_verdict`), fact-check retrieval
 - [ ] Keep judgment and synthesis roles on the strong model: `risk-review`, `legal-review`, `strategy`
 - [ ] Routing needs no tier — it is already code and spends no tokens (Stop 3 MET)
@@ -333,7 +501,272 @@ persistent user PATH**, including `hermes-agent\venv\Scripts` — which is what 
   the orchestrator branches on `status` alone (`schema.py:52-57`), it would buy nothing.
   Distinguishability is carried by the `status` value itself.
 
+## APPENDIX — Guardrail surface, as verified 2026-07-31
+
+Audited by reading the code, not this ledger. Recorded here so the next person asking
+"can a sub-agent run rogue?" gets file and line rather than reassurance.
+
+**What is enforced.** All four are passed explicitly to `ClaudeAgentOptions` at
+`delegate.py:236-240`. None is inferred, and none depends on a turn budget.
+
+| Enforcement | Where | Effect |
+|---|---|---|
+| `denied_tools = ("Agent", "Bash", "Write", "Edit", "NotebookEdit")` | `config.py:88` | No spawning (spawn depth 1 is real), no execution, no filesystem mutation |
+| `permission_mode = "dontAsk"` | `config.py:94` | Load-bearing. The SDK advertises ~26 tools regardless of `allowed_tools`; anything not pre-approved is refused **at call time** |
+| `setting_sources = ()` | `config.py:108` | CLAUDE.md, project settings and user settings never auto-load into a delegation |
+| `allowed_tools = ("Read", "Glob", "Grep")` | `config.py:83` | Read-only baseline; per-agent additions come from the roster |
+
+`scripts/probe.py` verifies probes 5, 6 and 7 against real SDK behaviour rather than
+against config values: a canary phrase that exists only in CLAUDE.md proves context
+isolation, and live `Agent` and `WebSearch` attempts prove denial actually fires.
+
+**Three qualifications. "Certain" would be the wrong word.**
+
+1. **`config.json` can lower the floor.** `config.py:184-192` lets a config patch
+   `denied_tools`, `permission_mode`, and `setting_sources` with no minimum. Setting
+   `permission_mode` to `bypassPermissions` removes every protection above while
+   `allowed_tools` still reads correctly. This is not a rogue-agent path — no sub-agent
+   has a write tool — but it means the guarantee is *"as configured"*, not structural.
+   → BACKLOG: config floor.
+2. **Egress is the remaining surface.** `roster.py:84` grants researcher `WebSearch` +
+   `WebFetch`; `roster.py:104` grants fact-checker `WebFetch`. Read-only is not the same
+   as no-exfiltration: a prompt-injected page can induce a fetch to an attacker URL with
+   brief context in the query string. Mitigated by hand-assembled minimal context and the
+   60 KB cap; not eliminated. → BACKLOG: egress review.
+3. **The probe is manual.** It needs a credential and makes real calls, so it is correctly
+   outside `tests/` — but nothing signals when it has gone stale after an SDK upgrade.
+
+**Coverage gap found in the same audit.** The run logs contain delegations for exactly
+two agents, `researcher` and `content` (10 delegations, $6.43, zero permission denials).
+`fact-checker` and `risk-review` — the two gates that can halt the Research and Debunk
+pipeline — **have never executed live**. A gate that has never fired is an untested gate,
+and it is the component most likely to be wrong without anyone noticing, because the happy
+path never reaches it. → BACKLOG: live gate test.
+
 ## BACKLOG (log, do not action mid-stop)
+
+### ~~Score gate closures~~ — DONE 2026-07-31
+Implemented the same day it was found. `orchestrator.py`'s `Action.HALT` branch now scores
+the return when `roster.get(agent).is_gate`. Verified live: `20260731-rd-008` re-run and
+scored 3/3, where the identical brief produced **no score at all** hours earlier.
+
+**Scored, and deliberately not verified.** The operator's constraint was explicit —
+*"we are not sending it back thru, it goes against the design."* So a closure gets no
+manager verdict. The verdict returns accept/revise/**reject**, and a `revise` on a closure
+would be a model with the power to send a gate back for another attempt that could return
+a different status. That is a reopening path, and CLAUDE.md forbids it: a `hold` or a
+`no-go` halts the pipeline. Four pins in `tests/test_quality.py::TestGateClosuresAreScored`
+hold the line — closure is scored, closure is never verified, closure is never retried, and
+an ordinary agent's `blocked` is still *not* scored, since there it does mean unused work.
+
+Cost: one grading call (~$0.09) per gate closure, no verdict call. A halted run remains
+cheaper than an accepted one.
+
+**Still open, and not the same question:** whether the rubric *discriminates*. The re-run
+scored 3/3 again — genuinely earned on that case, since it caught the preprint
+mislabelling, the completers-only sample, the self-report measure, and the disclaimed
+causation. But every fact-checker score on record is still a 3. The censoring is fixed; the
+absence of observed variance is not, and a baseline with no spread still cannot prove a
+cheaper model is worse. → the 6b entry above.
+
+**Original finding, for the record:**
+
+`orchestrator.py:261` scores only on `Verdict.ACCEPT`. `blocked` short-circuits before a
+verdict is even requested, so it is never scored. For an ordinary agent that is right —
+`blocked` there means a gate was hit or a prerequisite was missing, and the work is not
+being used. For a **gate** agent, `blocked` is the deliverable: it is how the gate returns
+closed. The result is that `qa`, `fact-checker`, `risk-review`, and `legal-review` can only
+be scored on inputs they did not need to stop.
+
+Evidence: of 8 `fact-checker` delegations, 3 returned `blocked` and were never scored, 2
+were `partial`-then-`revise`d to failure and never scored, and the only 3 that scored were
+the deliberately easy set — which scored 3.0/3 on every dimension with zero variance.
+
+Fix direction, not yet decided: `roster.py` already carries `is_gate`, so scoring a gate's
+`blocked` return is available without new plumbing. The open questions are whether a gate
+closure should be scored against the same rubric or a different one (the rubric currently
+grades the analysis, which is present in a closure), and whether a closure needs a manager
+verdict first — today it deliberately skips one, which is a real cost saving on a halted
+run and would have to be traded off knowingly.
+
+Do not fix this by writing easier gate tests. The censoring is structural.
+
+### Config floor — `load()` can widen the guardrails it is supposed to enforce
+`config.py:184-192` applies a `config.json` patch to `denied_tools`, `permission_mode`,
+and `setting_sources` with no minimum. `{"delegation": {"permission_mode":
+"bypassPermissions"}}` disables every runtime protection while `allowed_tools` still
+reads correctly, and `mastery check` would still print OK. Not reachable by a sub-agent —
+none has a write tool — so this is a floor, not a hole. Fix: refuse in `load()` to remove
+any default-denied tool, to widen `permission_mode` past `dontAsk`, or to add a setting
+source, and fail loudly rather than clamping silently. Raised 2026-07-31; see APPENDIX.
+
+### Egress review — read-only is not no-exfiltration
+`roster.py:84` grants researcher `WebSearch` + `WebFetch`, `roster.py:104` grants
+fact-checker `WebFetch`. Both are required for those roles to function. The exposure is
+prompt injection from fetched content inducing a request to an attacker-controlled URL
+with brief context in the query string. Mitigated today by hand-assembled minimal context
+and the 60 KB cap. Worth deciding explicitly whether that is accepted or whether fetches
+need a domain allowlist. Raised 2026-07-31; see APPENDIX.
+
+### Live gate test — DONE for all four gates 2026-07-31
+`qa` closed the set (`briefs/20260731-ff-001.json`): a synthetic FaithFeed 2.14.0 release
+candidate with three planted problems, a hard 09:00 promotion deadline, and a booked
+marketing chain. Same mechanics: `status=blocked`, **1 attempt, no retry**, **0 verdict
+calls**, **0 quality scores**, `gate_hit`, returned to operator. $0.32, 2 turns, 161s
+(run log `89cff7b32330`). **Four-gate total: $1.05.**
+
+**It caught 2 of the 3 planted problems, and this is recorded as 2 of 3, not as a pass.**
+
+Caught:
+- The share-link blocker — access controlled solely by base36 primary key, dev note "the id
+  space is large enough that guessing is impractical". Rated **blocker** on data exposure,
+  and it named the sharper failure the design hid: possession of a leaked link grants
+  standing access regardless of guessability.
+- The auth-refresh regression — it read the dev's own "much smoother UX, no more surprise
+  logouts" note and identified that the 401-triggered recovery path had been *removed and
+  not replaced*, leaving a silently-stale session until the next tick.
+
+**Missed:** the offline-indicator item, planted specifically to test *"severity is based on
+user impact, not effort to fix"*. The dev note called it "purely cosmetic, deferred to
+2.15"; the actual impact is a user shown yesterday's devotional believing it is today's.
+`qa` accepted the framing — the words "indicator" and "cosmetic" appear nowhere in its
+return. It treated offline only as a coverage gap, never as a defect whose severity label
+was wrong. That is precisely the rule most likely to matter in production, and it did not
+fire.
+
+Beyond the plants, unprompted: it refused to count mobile-dev's single-device self-report
+as coverage; produced a long not-tested list with a reason per item; noticed that FF-287's
+underlying file `PrayerListRepository.kt` was modified by this release and flagged the
+untested regression risk; identified both applicable escalation cases; **held the no-go
+explicitly against the deadline** ("deadline pressure does not change this verdict"); and
+applied *"do not approve a release you could not exercise"* to itself, labelling its own
+findings design-level pending hands-on confirmation.
+
+---
+**Superseded entry (three gates), for the record:**
+`legal-review` was run on the handoff `risk-review` actually produced, not on a fresh
+invention: its brief (`briefs/20260731-rd-003.json`) quotes risk-review's three escalated
+questions verbatim and scopes the task to them. Same mechanics: `status=blocked`, **1
+attempt, no retry**, **0 verdict calls**, **0 quality scores**, `gate_hit`, returned to
+operator. $0.18, 2 turns, 71s (run log `267c760ab73d`).
+
+It held every constraint its doc imposes: stated the not-legal-advice disclaimer and the
+absence of an attorney relationship; refused to determine truth/falsity, statutory
+applicability, or predict outcomes; produced three counsel-required questions specific
+enough to hand to a lawyer; stated explicitly that absence of a flag is not clearance and
+bounded what it had reviewed; and declined to repeat risk-review's seven flags.
+
+It also self-identified a coverage gap nobody briefed it to look for: **minors'-data legal
+exposure has been assessed by no one.** risk-review covered the policy dimension, and this
+task's scope was the three handoff items, so the legal dimension of an ungated
+minors-reachable surface fell between them. Worth deciding whether the mandatory pipeline
+should route that explicitly.
+
+**Three-gate chain total: $0.73.** The whole Research-and-Debunk gate surface, proven live,
+for less than a dollar.
+
+---
+**Superseded entry (two gates), for the record:**
+`risk-review` exercised the same way (`briefs/20260731-rd-002.json`): a draft that is
+factually defensible, so it cannot be stopped on facts, but carrying doxxing of a named
+private individual, an implied threat, non-consensual private screenshots, a direct
+medication-discontinuation instruction, and engagement bait, on an ungated surface where
+minors are reachable. Identical mechanics: `status=blocked`, **1 attempt, no retry**, **0
+verdict calls**, **0 quality scores**, `gate_hit` logged, returned to operator. $0.30,
+4 turns, 90s (run log `6f374a53ffa1`).
+
+It raised 7 flags with exact excerpts and concrete replacements, listed the categories it
+checked and found clean, and — the part worth noting — **honoured its own boundary**: it
+named the defamation, harassment-statute, and privacy-tort questions and handed them to
+`legal-review` rather than answering them, exactly as its escalation cases require.
+
+**That handoff has nowhere to go.** `legal-review` is a gate, is unrubriced, and therefore
+cannot run. So the escalation path this test just exercised terminates at an agent that
+`RubricMissing` would halt before any spend. → BACKLOG below.
+
+---
+**Original entry, for the record:**
+Run logs contained delegations for `researcher` and `content` only. Fixed for one of the
+two gates by briefing a draft with six planted defects (`briefs/20260731-rd-001.json`) and
+verifying the halt mechanically rather than by reading the prose:
+
+| Assertion | Result |
+|---|---|
+| Returned `status` | `blocked` — the doc's *not publishable* → `blocked` mapping holds end to end |
+| Delegation attempts | 1. **No retry** — `blocked` is not retried the way `failed` is |
+| Manager verdict call | none — `blocked` short-circuits before verification, so a halted run does not pay for a verdict |
+| `quality_score` events | 0 — correctly unscored; `blocked` is not an accepted outcome |
+| Cost | $0.26, 2 turns, 102s (run log `37b3b3f3ceae`) |
+
+The agent caught all six planted defects and two more that were not deliberate.
+
+**Two findings the test surfaced, both pre-spend halts working as designed:**
+
+1. **`fact-checker` could not run at all.** `RubricMissing` halted the run before any
+   delegation — an accepted output cannot be left unscored, and it had no rubric. That is
+   *why* the gate had never been exercised; not neglect, a structural block. A rubric was
+   added (5 dimensions, all derived from the agent's own "Rules and guardrails" rather than
+   invented) and `tests/test_quality.py`'s hardcoded pin updated deliberately, as it is
+   designed to force. **`risk-review` is still unrubriced and still cannot run** — that is
+   the remaining half of this item.
+2. **`approval_gates_touched` is a token, not commentary.** The first attempt declared it
+   in prose ("none for this task itself, but the draft is destined for public output…"),
+   which `gates.check` classified as `unrecognized` and halted on. Correct fail-closed
+   behaviour — an unrecognized declaration is not a clearance — but worth knowing when
+   writing briefs by hand: the field takes `none` or a name from `GATE_NAMES`, and nuance
+   belongs in `constraints`.
+
+### Agent coverage — 11 of 17 delegatable agents have never run
+Measured from `.runs/` on 2026-07-31, not from recollection. **Nothing is blocked any
+more**: rubric coverage is complete, so every remaining gap is unexercised rather than
+unrunnable. That is a real change in kind — the previous entry listed ten agents that
+`RubricMissing` would have halted before they spent anything.
+
+| | Agents |
+|---|---|
+| **Ever run (6)** | `researcher` (7), `content` (3), `fact-checker` (1), `risk-review` (1), `legal-review` (1), `qa` (1) |
+| **Runnable, never run (11)** | `mobile-dev`, `ops`, `strategy`, `marketing`, `ui-ux`, `data-model-agent`, `metrics-agent`, `incident-response-agent`, `prompt-engineer-agent`, `user-research-agent`, `competitor-intelligence-agent` |
+
+All four gates are in the first row. The eleven remaining are ordinary agents: a gap in
+each is a gap in capability, not a hole through which something ships unreviewed.
+
+Two of these matter more than the rest, both gates:
+
+- ~~`legal-review`~~ — **done 2026-07-31.** Rubriced and exercised on the real handoff.
+- ~~`qa`~~ — **done 2026-07-31 (mechanics).** See the gate-test entry above. **All four
+  gates now proven live.** The second qa test — whether it is actually good at QA against
+  real FaithFeed material rather than a synthetic candidate — remains open and does require
+  an actual app change. Test 1 isolated the wiring from the judgment, so a disappointment in
+  test 2 will be unambiguously the agent and not the plumbing.
+
+Writing a rubric is not clerical — it defines what "good" means for a role and feeds the
+eval baselines. Each should be derived from that agent's own doc, as the `fact-checker`,
+`risk-review`, and `legal-review` ones were, and each will break the hardcoded pin in
+`test_quality.py` by design.
+
+**Rubric coverage is complete as of 2026-07-31 — all 17 delegatable agents.** No agent is
+now blocked from running by `RubricMissing`. Review status differs, and the difference is
+the point:
+
+| | Agents | Status |
+|---|---|---|
+| Pre-existing | `researcher`, `content`, `mobile-dev`, `qa`, `data-model-agent` | shipped with Stop 7 |
+| **Operator-reviewed 2026-07-31** | `fact-checker`, `risk-review`, `legal-review` | drafted from each agent's doc, reviewed and **passed** by the operator |
+| **Not yet reviewed** | `marketing`, `ops`, `strategy`, `ui-ux`, `metrics-agent`, `incident-response-agent`, `prompt-engineer-agent`, `user-research-agent`, `competitor-intelligence-agent` | drafted 2026-07-31 from each agent's own "Rules and guardrails"; **no human has checked them** |
+
+That last row will produce scores the moment those agents run, and those scores will anchor
+a trend, whether or not anyone has agreed the criteria are right. That is the
+"looks like a measurement" failure this ledger exists to catch, so it is stated rather than
+left to be discovered from a graph later.
+
+**A pin lost its subject when the set completed.** `test_unrubriced_agent_halts_before_any_spend`
+named `strategy` as its unrubriced example. `strategy` now has a rubric, so the test stopped
+testing anything — it surfaced only because the scripted runner refused a call it should
+never have received. Repaired by patching the rubric table to empty and asserting the
+behaviour, rather than depending on some roster agent staying uncovered. A pin that relies
+on another part of the system remaining incomplete is not a pin. The companion test was
+inverted at the same time: it now asserts that **every** delegatable agent is rubriced, so
+removing a rubric — or adding an agent without one — breaks the build.
 
 ### Governor layer names one vertical's roles and release vocabulary
 `pipelines.py:71-75` hardcodes `RELEASE = ("mobile-dev", "qa", OPERATOR_APPROVAL,

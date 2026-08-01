@@ -84,6 +84,45 @@ These sequences are enforced in orchestrator code. The manager cannot skip a sta
 
 - A qa `no-go` halts the pipeline. Deadline pressure does not override it.
 
+## Three layers, and which rules apply to which
+
+Everything below about gates, caps, and pipelines governs **layer 1 only**. Confusing the
+layers has already caused a real error: an assistant developing this repo cited "the money
+gate" as the reason it would not create a cloud resource, which invoked this file's rules
+for an action this file's rules never covered. The gates are not a general code of conduct;
+they are runtime enforcement on a specific machine.
+
+**Layer 1 — the Mastery OS runtime.** Sub-agents, delegations, pipelines, `integrations/`.
+Governed by the approval gates below, enforced in orchestrator code. This is the machine.
+
+**Layer 2 — the operator.** Austin. Writes briefs, assembles context by hand, grants or
+withholds approval. Gates return *to* this layer; they are never satisfied within it. The
+operator is not gated, because the operator is who a gate is asking.
+
+**Layer 3 — development on Mastery OS.** An assistant or a human editing this repository:
+writing `mastery/`, adding tests, running the suite, provisioning infrastructure the system
+will later use. Governed by ordinary care and the operator's direction — **not** by
+`gates.py`. Building a gate is not passing through one.
+
+Two consequences worth stating, because both have been got wrong:
+
+- **Layer 3 must not invoke layer 1's rules for its own actions.** Doing so blocks work
+  that needed no blocking, and worse, it can leave the operator believing the system
+  enforced something it never touched. Layer 3 confirms before consequential or
+  irreversible actions for the ordinary reason — it is someone else's account and someone
+  else's repository — and it should say that reason rather than borrowing this file's.
+- **Layer 3 is not the manager.** The manager has no tools (`tools=()`, see the
+  orchestrator requirements table) and cannot act; it routes, gates, and verifies. A
+  developer working here has every tool and full repository context. That asymmetry is the
+  whole reason the guardrails are code: a guardrail that depended on the good behaviour of
+  whoever is editing the repo would not be a guardrail.
+
+One boundary to watch. Context assembly is the operator's act (see *Context delegation*),
+and `mastery draft` deliberately refuses to do it. When layer 3 writes a brief and fills
+its context — for a test run, a baseline, a demonstration — it is performing a layer 2 act
+under delegation. Sanctioned when the operator asks for it; never a habit, and never
+something to slide into unremarked.
+
 ## Approval gates
 
 When an approval gate is hit, the orchestrator halts the run and returns to the operator.
@@ -183,10 +222,44 @@ stage's `context` as `<<< FILL >>>` placeholders and stops. Filling them is the 
 step, and it is the step that keeps this section true — a drafter that assembled context
 itself would move context selection into a model.
 
+## Two ledgers, and when to write to them
+
+Both are append-only records of decisions, not status dashboards. Neither is optional,
+and neither is a substitute for the other. Read the relevant one before claiming a stop
+is done; write to it as part of the work, not as a chore afterwards.
+
+| File | Track | Audience | Write when |
+|---|---|---|---|
+| `BUILD_LEDGER.md` | Mastery OS build | the operator, and future audits | a stop's DONE-WHEN is verified, a stop is cut, or new work is found (→ BACKLOG) |
+| `mastery-os-fde-ledger.md` | FDE case study | hiring managers, non-technical readers | a decision was non-obvious, a trap was avoided, or an honest gap was recorded |
+
+Keep the two tracks separate — `BUILD_LEDGER.md`'s own operating rules say so, and
+interleaving them makes both harder to read.
+
+**Cadence is per milestone, not per commit.** An FDE entry is a decision with a story and
+a consequence; most commits are not that. A day's work is usually one entry, sometimes
+none. Adding an entry per commit dilutes the document into a changelog, which is what git
+already is.
+
+**The FDE ledger's entry structure is fixed** — numbered heading, Plain-English Story,
+Hard Engineering Facts (Vulnerability / "Aha" Discovery / FDE Fix), horizontal rule, and
+a matching talking point at the end. Match the existing entries; do not invent a new shape.
+
+The bar for an FDE entry is the same as for ledger evidence generally: a claim without a
+file, line, or log path is not evidence. That document's whole value is that its stories
+are checkable, so an entry that overstates what shipped costs more than no entry at all.
+
 ## Project-specific notes
 
 - FaithFeed is live on Google Play. Apple is planned, not started.
 - The system must stay usable from a VPS and a mobile shell.
+- **Postgres is a projection of the run logs, never the write path.** JSONL stays the
+  source of truth: it is a local append with no network dependency, which is the only
+  reason a run that crashes still leaves a record of how far it got. Ingest is a separate
+  `mastery ingest`, `psycopg` is not in `requirements.txt`, and nothing in the orchestrator
+  imports `warehouse.py` — so the whole system runs with the database down or absent.
+  Provisioned by `scripts/provision_postgres.sh` (idempotent); schema in
+  `scripts/postgres_schema.sql`; verified live by `scripts/check_warehouse.py`.
 - There is no per-role model routing; `delegation.model` is global.
 - **Auth runs on the Claude Code OAuth credential** (`~/.claude/.credentials.json`),
   verified working with claude-agent-sdk 0.2.128. `auth.mode="subscription"` asserts no
@@ -198,6 +271,7 @@ itself would move context selection into a model.
   - `mastery check` — validates config, roster, and schemas without a model call.
   - `mastery draft <request>` — proposes briefs. Does not run them.
   - `mastery run <brief.json>` — runs one brief to a verified outcome.
+  - `mastery ingest` — copies run logs into Postgres for querying. Runs nothing.
 
   The delegation cap is per operator request, and one `mastery run` is one request. A plan
   whose stage count reaches the cap is run as separate `mastery run` invocations, not as a
