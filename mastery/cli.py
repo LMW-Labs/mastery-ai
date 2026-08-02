@@ -74,6 +74,11 @@ def _check(config: Config) -> int:
     )
     print(f"  rubrics calibrated {calibrated}/{len(roster.DELEGATABLE)}  "
           f"(uncalibrated rubrics score but cannot carry a baseline)")
+    # Shown because it is the one input to that count a reader cannot see in any
+    # file they would think to open. A count that dropped after a prompt edit
+    # would otherwise look like corruption rather than the correct answer.
+    print(f"  grading prompt {quality.prompt_fingerprint()}  "
+          f"(calibrations are bound to it; changing it voids them)")
     return 0
 
 

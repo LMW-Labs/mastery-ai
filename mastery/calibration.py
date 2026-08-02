@@ -20,10 +20,31 @@ compare. If the reported scores track the intended ones, the rubric has markings
 
 **This is a per-rubric obligation, not a one-time gate.** Calibrating one rubric
 says nothing about the other sixteen — they are different dimensions, different
-anchors, and different failure modes. And it is bound to `rubric_version`: editing
-a rubric invalidates its calibration, because the anchors the ladder was written
-against no longer exist. A calibration that silently carried across a version bump
-would be worse than none, since it would attest to markings nobody had checked.
+anchors, and different failure modes.
+
+**It is bound to two things, because a calibration is a claim about two.** A
+ladder run says "this rubric discriminates *when a grader is shown these facts
+about the output*". Both halves can move:
+
+- the **rubric** (`rubric_version`) — editing it invalidates the calibration,
+  because the anchors the rungs were written against no longer exist;
+- the **grading prompt** (`quality.prompt_fingerprint`) — changing what
+  `quality._render` puts in front of the grader invalidates it just as
+  completely, because the instrument answered a different question.
+
+Only the first was bound at first, and the omission surfaced in the way these
+things do: `content`'s ladder failed because two of its four dimensions ask
+whether the output honoured instructions the grader is never shown — the angle
+lives in the context payload, the word limit in `constraints`, and neither
+reaches the prompt. The fix is to show the grader more. But under version-binding
+alone that fix would have silently voided all seventeen calibrations while every
+one of them went on reporting `calibrated` — version-binding's own trap, arriving
+through the door version-binding does not cover. Hence the fingerprint, and hence
+`PROMPT_CHANGED` as a verdict distinct from `STALE`: different cause, different
+repair, and collapsing them would hide which of the two actually moved.
+
+A calibration that silently carried across either bump would be worse than none,
+since it would attest to markings nobody had checked.
 
 **What a missing calibration blocks, and what it does not.** It does not block
 delegations, and it does not block scoring. Scores stay write-only and
@@ -48,6 +69,7 @@ from enum import Enum
 from functools import lru_cache
 from pathlib import Path
 
+from . import quality
 from .config import REPO_ROOT
 from .errors import OrchestratorError
 
@@ -75,6 +97,7 @@ class Verdict(str, Enum):
     CALIBRATED = "calibrated"
     MISSING = "missing"
     STALE = "stale"
+    PROMPT_CHANGED = "prompt-changed"
     FAILED = "failed"
 
     @property
@@ -131,6 +154,11 @@ class CalibrationResult:
     intended: tuple[int, ...]
     observed: tuple[float, ...]
     per_rung: tuple[dict, ...] = field(default_factory=tuple)
+    # The grading prompt this ladder was actually run through. No default: a
+    # result that does not know which prompt produced it is not evidence about
+    # any prompt, and defaulting it to "whatever is current" would manufacture
+    # exactly the false attestation the fingerprint exists to prevent.
+    prompt_fingerprint: str = ""
 
     @property
     def cost_usd(self) -> float | None:
@@ -175,6 +203,7 @@ class CalibrationResult:
         return {
             "agent": self.agent,
             "rubric_version": self.rubric_version,
+            "prompt_fingerprint": self.prompt_fingerprint,
             "model": self.model,
             "ts": self.ts,
             "intended": list(self.intended),
@@ -192,6 +221,7 @@ class CalibrationResult:
         return cls(
             agent=d["agent"],
             rubric_version=d["rubric_version"],
+            prompt_fingerprint=d.get("prompt_fingerprint", ""),
             model=d.get("model", ""),
             ts=d.get("ts", ""),
             intended=tuple(d["intended"]),
@@ -215,8 +245,22 @@ def load_results(path: Path = RESULTS_PATH) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def result_key(agent: str, rubric_version: str) -> str:
-    return f"{agent}|{rubric_version}"
+def result_key(agent: str, rubric_version: str, prompt_fingerprint: str) -> str:
+    """Both axes in the key, so a mismatch on either one simply misses.
+
+    Keyed rather than compared-after-lookup on purpose: a lookup that found the
+    entry and then checked a field would leave a code path where the entry is in
+    hand and the check could be forgotten. There is no such path if the key is
+    wrong from the start.
+    """
+    return f"{agent}|{rubric_version}|{prompt_fingerprint}"
+
+
+def _parts(key: str) -> tuple[str, str, str]:
+    """Split a stored key, tolerating the two-field keys written before the
+    fingerprint existed. Those are reported as unfingerprinted, never as a match."""
+    bits = key.split("|")
+    return (bits[0], bits[1] if len(bits) > 1 else "", bits[2] if len(bits) > 2 else "")
 
 
 def record(result: CalibrationResult, *, path: Path = RESULTS_PATH) -> dict:
@@ -227,21 +271,38 @@ def record(result: CalibrationResult, *, path: Path = RESULTS_PATH) -> dict:
     rubric merely *unmeasured* rather than *known bad* — a strictly worse state to
     hand the next person, who would have no way to tell the two apart.
     """
+    if not result.prompt_fingerprint:
+        raise Uncalibrated(
+            f"{result.agent}'s ladder result carries no prompt fingerprint, so there "
+            f"is no record of which grading prompt produced it. Recording it would "
+            f"put an unattributable number where an attestation belongs."
+        )
+    key = result_key(result.agent, result.rubric_version, result.prompt_fingerprint)
     data = load_results(path)
     data.setdefault("calibrations", {})
-    data["calibrations"][result_key(result.agent, result.rubric_version)] = result.as_dict()
+    data["calibrations"][key] = result.as_dict()
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
-    return data["calibrations"][result_key(result.agent, result.rubric_version)]
+    return data["calibrations"][key]
 
 
 def status(
-    agent: str, rubric_version: str, *, path: Path = RESULTS_PATH
+    agent: str,
+    rubric_version: str,
+    *,
+    prompt_fingerprint: str | None = None,
+    path: Path = RESULTS_PATH,
 ) -> tuple[Verdict, str]:
-    """Trust state for one rubric version, and a sentence saying why."""
+    """Trust state for one (rubric version, grading prompt), and why.
+
+    Order matters. An exact hit is decided on its own merits; after that the
+    near-misses are reported most-specific first, so the message names the thing
+    that actually moved rather than the first difference found.
+    """
+    fingerprint = prompt_fingerprint or quality.prompt_fingerprint()
     data = load_results(path).get("calibrations", {})
 
-    entry = data.get(result_key(agent, rubric_version))
+    entry = data.get(result_key(agent, rubric_version, fingerprint))
     if entry is not None:
         if entry.get("discriminates"):
             return (
@@ -258,15 +319,25 @@ def status(
             f"monotonic={entry.get('monotonic')}",
         )
 
-    others = sorted(
-        v for k, v in ((k, k.split("|", 1)) for k in data) if v[0] == agent
-    )
-    if others:
-        versions = ", ".join(f"v{v[1]}" for v in others)
+    mine = [_parts(k) for k in data if _parts(k)[0] == agent]
+
+    same_rubric = sorted({p[2] or "(unfingerprinted)" for p in mine if p[1] == rubric_version})
+    if same_rubric:
+        return (
+            Verdict.PROMPT_CHANGED,
+            f"calibrated at rubric v{rubric_version} — which has not changed — but "
+            f"through grading prompt {', '.join(same_rubric)}, and the prompt is now "
+            f"{fingerprint}. The grader is being shown a different set of facts than "
+            f"the ladder proved it could read. Re-run the ladder; the rubric is fine.",
+        )
+
+    versions = sorted({p[1] for p in mine})
+    if versions:
         return (
             Verdict.STALE,
-            f"calibrated at {versions}, but the rubric is now v{rubric_version}. "
-            f"The anchors the ladder was written against have changed.",
+            f"calibrated at {', '.join(f'v{v}' for v in versions)}, but the rubric is "
+            f"now v{rubric_version}. The anchors the ladder was written against have "
+            f"changed.",
         )
 
     return (
@@ -277,7 +348,11 @@ def status(
 
 
 def require_calibrated(
-    agent: str, rubric_version: str, *, path: Path = RESULTS_PATH
+    agent: str,
+    rubric_version: str,
+    *,
+    prompt_fingerprint: str | None = None,
+    path: Path = RESULTS_PATH,
 ) -> None:
     """Refuse to treat this rubric's scores as evidence until it is calibrated.
 
@@ -285,7 +360,9 @@ def require_calibrated(
     uncalibrated rubric still runs, still scores, and still logs. What it cannot
     do is have those scores promoted into a baseline that later decisions rest on.
     """
-    verdict, why = status(agent, rubric_version, path=path)
+    verdict, why = status(
+        agent, rubric_version, prompt_fingerprint=prompt_fingerprint, path=path
+    )
     if verdict.trusted:
         return
     raise Uncalibrated(
