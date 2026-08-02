@@ -2876,6 +2876,260 @@
           "output_tokens": 1599
         }
       ]
+    },
+    "user-research-agent|2|93074072ad14": {
+      "agent": "user-research-agent",
+      "rubric_version": "2",
+      "prompt_fingerprint": "93074072ad14",
+      "model": "claude-haiku-4-5+claude-sonnet-5",
+      "ts": "2026-08-02T02:14:35+00:00",
+      "intended": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "observed": [
+        0,
+        1.2,
+        1.8,
+        3
+      ],
+      "spread": 3,
+      "monotonic": true,
+      "discriminates": true,
+      "min_spread_required": 1.0,
+      "cost_usd": 0.203572,
+      "per_rung": [
+        {
+          "label": "ff-930",
+          "intended": 0,
+          "observed": 0,
+          "dimensions": {
+            "counts_not_impressions": 0,
+            "self_selection_bias_noted": 0,
+            "themes_kept_distinct": 0,
+            "vocal_minority_labelled": 0,
+            "quote_redaction": 0
+          },
+          "cost_usd": 0.04426870000000001,
+          "input_tokens": 1798,
+          "output_tokens": 1010
+        },
+        {
+          "label": "ff-931",
+          "intended": 1,
+          "observed": 1.2,
+          "dimensions": {
+            "counts_not_impressions": 1,
+            "self_selection_bias_noted": 1,
+            "themes_kept_distinct": 2,
+            "vocal_minority_labelled": 1,
+            "quote_redaction": 1
+          },
+          "cost_usd": 0.0501487,
+          "input_tokens": 1789,
+          "output_tokens": 1411
+        },
+        {
+          "label": "ff-932",
+          "intended": 2,
+          "observed": 1.8,
+          "dimensions": {
+            "counts_not_impressions": 2,
+            "self_selection_bias_noted": 2,
+            "themes_kept_distinct": 2,
+            "vocal_minority_labelled": 1,
+            "quote_redaction": 2
+          },
+          "cost_usd": 0.0597437,
+          "input_tokens": 1827,
+          "output_tokens": 2024
+        },
+        {
+          "label": "ff-933",
+          "intended": 3,
+          "observed": 3,
+          "dimensions": {
+            "counts_not_impressions": 3,
+            "self_selection_bias_noted": 3,
+            "themes_kept_distinct": 3,
+            "vocal_minority_labelled": 3,
+            "quote_redaction": 3
+          },
+          "cost_usd": 0.049410699999999995,
+          "input_tokens": 2393,
+          "output_tokens": 967
+        }
+      ]
+    },
+    "researcher|2|93074072ad14": {
+      "agent": "researcher",
+      "rubric_version": "2",
+      "prompt_fingerprint": "93074072ad14",
+      "model": "claude-haiku-4-5+claude-sonnet-5",
+      "ts": "2026-08-02T02:16:41+00:00",
+      "intended": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "observed": [
+        0.25,
+        1,
+        2.25,
+        3
+      ],
+      "spread": 2.75,
+      "monotonic": true,
+      "discriminates": true,
+      "min_spread_required": 1.0,
+      "cost_usd": 0.280377,
+      "per_rung": [
+        {
+          "label": "rd-940",
+          "intended": 0,
+          "observed": 0.25,
+          "dimensions": {
+            "source_primacy": 0,
+            "citation_traceability": 0,
+            "question_coverage": 1,
+            "evidence_inference_separation": 0
+          },
+          "cost_usd": 0.044238700000000006,
+          "input_tokens": 1635,
+          "output_tokens": 1125
+        },
+        {
+          "label": "rd-941",
+          "intended": 1,
+          "observed": 1,
+          "dimensions": {
+            "source_primacy": 1,
+            "citation_traceability": 1,
+            "question_coverage": 1,
+            "evidence_inference_separation": 1
+          },
+          "cost_usd": 0.0762727,
+          "input_tokens": 1660,
+          "output_tokens": 3246
+        },
+        {
+          "label": "rd-942",
+          "intended": 2,
+          "observed": 2.25,
+          "dimensions": {
+            "source_primacy": 3,
+            "citation_traceability": 1,
+            "question_coverage": 3,
+            "evidence_inference_separation": 2
+          },
+          "cost_usd": 0.0821037,
+          "input_tokens": 1847,
+          "output_tokens": 3524
+        },
+        {
+          "label": "rd-943",
+          "intended": 3,
+          "observed": 3,
+          "dimensions": {
+            "source_primacy": 3,
+            "citation_traceability": 3,
+            "question_coverage": 3,
+            "evidence_inference_separation": 3
+          },
+          "cost_usd": 0.07776170000000002,
+          "input_tokens": 2293,
+          "output_tokens": 2666
+        }
+      ]
+    },
+    "strategy|2|93074072ad14": {
+      "agent": "strategy",
+      "rubric_version": "2",
+      "prompt_fingerprint": "93074072ad14",
+      "model": "claude-haiku-4-5+claude-sonnet-5",
+      "ts": "2026-08-02T02:18:47+00:00",
+      "intended": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "observed": [
+        0.2,
+        0.6,
+        1.8,
+        3
+      ],
+      "spread": 2.8,
+      "monotonic": true,
+      "discriminates": true,
+      "min_spread_required": 1.0,
+      "cost_usd": 0.27865,
+      "per_rung": [
+        {
+          "label": "rd-970",
+          "intended": 0,
+          "observed": 0.2,
+          "dimensions": {
+            "assumptions_marked": 0,
+            "reversibility_preference_declared": 1,
+            "refuses_to_rank_bad_options": 0,
+            "unsourced_claims_requested": 0,
+            "recommendation_decisiveness": 0
+          },
+          "cost_usd": 0.0733187,
+          "input_tokens": 1834,
+          "output_tokens": 2658
+        },
+        {
+          "label": "rd-971",
+          "intended": 1,
+          "observed": 0.6,
+          "dimensions": {
+            "assumptions_marked": 0,
+            "reversibility_preference_declared": 1,
+            "refuses_to_rank_bad_options": 1,
+            "unsourced_claims_requested": 0,
+            "recommendation_decisiveness": 1
+          },
+          "cost_usd": 0.062462699999999996,
+          "input_tokens": 1836,
+          "output_tokens": 1932
+        },
+        {
+          "label": "rd-972",
+          "intended": 2,
+          "observed": 1.8,
+          "dimensions": {
+            "assumptions_marked": 2,
+            "reversibility_preference_declared": 1,
+            "refuses_to_rank_bad_options": 2,
+            "unsourced_claims_requested": 1,
+            "recommendation_decisiveness": 3
+          },
+          "cost_usd": 0.0753567,
+          "input_tokens": 1890,
+          "output_tokens": 3038
+        },
+        {
+          "label": "rd-973",
+          "intended": 3,
+          "observed": 3,
+          "dimensions": {
+            "assumptions_marked": 3,
+            "reversibility_preference_declared": 3,
+            "refuses_to_rank_bad_options": 3,
+            "unsourced_claims_requested": 3,
+            "recommendation_decisiveness": 3
+          },
+          "cost_usd": 0.0675117,
+          "input_tokens": 2357,
+          "output_tokens": 2210
+        }
+      ]
     }
   },
   "_fingerprint_backfill": "The 17 entries below were run before the prompt fingerprint existed and were rekeyed onto 93d071d96c17 rather than re-run. Checkable, not asserted: mastery/quality.py was last committed in 98a47b9, which predates both calibration commits, and the later split of build_prompt into _render was verified to leave the rendered prompt byte-identical for all 17 agents. Any prompt change after this note invalidates every entry, and status() will say so rather than this file.",

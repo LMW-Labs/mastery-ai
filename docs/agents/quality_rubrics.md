@@ -23,7 +23,7 @@
     "silent skipping is the bypass the STOP 7 pin exists to catch."
   ],
   "researcher": {
-    "rubric_version": "1",
+    "rubric_version": "2",
     "dimensions": [
       {
         "dimension": "source_primacy",
@@ -41,8 +41,8 @@
         "anchors": {
           "0": "Claims with no citation, or citations too vague to follow.",
           "1": "Sources named but not locatable — no URL, section, or identifier.",
-          "2": "Every source locatable; the specific passage sometimes left to the reader.",
-          "3": "Every claim traceable to a locatable source and a specific passage within it."
+          "2": "Every source is locatable, but at least one claim leaves the reader to find the passage within it.",
+          "3": "Every claim carries both a source locator (URL, DOI, or document identifier) and a within-source pointer (named table, figure, section, page, or quoted phrase). No claim requires the reader to search the document."
         }
       },
       {
@@ -522,7 +522,7 @@
     ]
   },
   "strategy": {
-    "rubric_version": "1",
+    "rubric_version": "2",
     "dimensions": [
       {
         "dimension": "assumptions_marked",
@@ -568,8 +568,8 @@
         "dimension": "recommendation_decisiveness",
         "asks": "Is there a ranked recommendation rather than a survey of possibilities?",
         "anchors": {
-          "0": "Options listed with no ranking or recommendation.",
-          "1": "A recommendation so qualified it commits to nothing.",
+          "0": "Two or more options are described in comparable terms with none marked preferred, and the return ends without naming a course of action -- the reader is left to choose.",
+          "1": "A course of action is named but hedged until it does not constrain execution: no owner, no start condition, or explicitly deferred to a later decision.",
           "2": "Ranked, but the reasoning for the top choice is thin.",
           "3": "Ranked, with the deciding factor named and the runner-up's case stated fairly."
         }
@@ -852,7 +852,7 @@
     ]
   },
   "user-research-agent": {
-    "rubric_version": "1",
+    "rubric_version": "2",
     "dimensions": [
       {
         "dimension": "counts_not_impressions",
@@ -896,12 +896,12 @@
       },
       {
         "dimension": "quote_redaction",
-        "asks": "Are identifying details redacted from quotes?",
+        "asks": "Is identifying detail removed from quotes, both direct identifiers and indirect ones that would single out an author?",
         "anchors": {
-          "0": "Usernames or contact details reproduced.",
-          "1": "Handles partially redacted but still identifiable.",
-          "2": "Redacted, but a quote is specific enough to identify its author.",
-          "3": "All identifying detail removed, and quotes checked for indirect identifiability before use."
+          "0": "A direct identifier is reproduced verbatim: username, handle, email, phone, or full name.",
+          "1": "Direct identifiers are masked, but reversibly: a partial handle, initials, or a redaction leaving enough characters to search on.",
+          "2": "No direct identifier survives, but at least one quote carries indirect identifiers -- a named organisation, congregation, employer, or location -- and the return does not flag them.",
+          "3": "No direct identifier survives, and every quote is either free of indirect identifiers or has them generalised, with that check stated explicitly."
         }
       }
     ]

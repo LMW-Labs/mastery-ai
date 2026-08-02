@@ -481,6 +481,70 @@ is what would have caught it originally. The probe had been assembling briefs wi
 which checks only the task id. Cost of finding it this way: nothing. Cost of finding it after
 the re-run: 68 calls and a set of numbers that looked fine.
 
+**Reading the dimensions rather than the totals found eight more defects under seventeen
+passing scores. Three fixed 2026-08-02, one per failure kind.** All 17 aggregates were
+monotonic and passing. Underneath them, 8 of 79 dimensions were not — the same masking that
+hid `content`. Three buckets, and the diagnosis differed in each:
+
+| kind | dimension | observed | what was actually wrong |
+|---|---|---|---|
+| ordering | `user-research-agent` / `quote_redaction` | `[0, 1, 0, 3]` | **the anchors** |
+| ceiling | `researcher` / `citation_traceability` | `[0, 0, 1, 2]` | **the rung**, and a vague anchor |
+| floor | `strategy` / `recommendation_decisiveness` | `[2, 1, 3, 3]` | **the rung**, and an anchor describing an absence |
+
+**Ordering — the anchors could not be ranked.** Levels 1 and 2 both ended in *"still
+identifiable"*: one described a partially-masked handle, the other a quote whose content
+identifies its author. Two *mechanisms*, not two *severities*, so there was nothing for the
+grader to rank on. The ladder content inverted them outright — rung 1 carried
+`prayerw****_deb`, rung 2 carried *"the beta at Grace Fellowship in Tulsa"*, a named
+congregation and city, which is plainly more identifying. **Scoring rung 2 below rung 1 was
+correct.** Re-cut onto one monotone axis (direct identifier present → masked reversibly →
+indirect only and unflagged → none, and checked). The existing rungs then fit the new anchors
+without being rewritten, which is the strongest available evidence that the anchors were the
+fault. `[0, 1, 0, 3]` → `[0, 1, 2, 3]`.
+
+**Ceiling — the grader was right and the test was wrong.** Rung 3 claimed *"every claim
+traceable to a locatable source and a specific passage within it"* while citing Pew at
+`chapter on religious practices` and Faith Communities Today with no locator at all. "Every
+claim" was not satisfied; 2 was the correct score. **The bar was not lowered** — pinpoint
+citation is precisely what a researcher rubric should demand. The 3-anchor was made
+*checkable* instead (naming what counts as a within-source pointer: table, figure, section,
+page, or quoted phrase) and the rung repaired to clear it. `[0, 0, 1, 2]` → `[0, 1, 1, 3]`.
+
+**Floor — an anchor describing an absence, and a rung that did not exhibit it.** Rung 0 read
+*"Build iOS now. It is the clear winner"* with a six-month commitment named. That is a
+decisive ranked recommendation; it was built to fail this rubric's *other* dimensions, and on
+this one it was genuinely good. Scoring it 2 was correct. The anchor compounded it: *"options
+listed with no ranking"* describes an **absence**, and a grader does not reliably read absence
+as failure when the output is confident and well-formed. Level 0 restated as an observable
+positive property, and the rung rewritten into a real non-decision. `[2, 1, 3, 3]` →
+`[0, 1, 3, 3]`.
+
+**The generalisable finding:** across the three, *two of the three faults were the ladder, not
+the rubric.* The instinct on seeing a bad calibration number is to edit the rubric; that would
+have been wrong twice out of three times, and in the `researcher` case it would have quietly
+lowered a standard that was correct. **A calibration failure names a disagreement between the
+anchor and the rung. It does not say which one is wrong.**
+
+**Verified.** All three ladders re-run: `user-research-agent` spread 3, `researcher` 2.75,
+`strategy` 2.8, all monotonic and discriminating. **Zero flagged dimensions remain across the
+14 dimensions of the three repaired rubrics** — the fixes did not displace the problem onto a
+neighbouring dimension. Suite 210 green; `mastery check` back to **17/17**. Cost **$0.762599**
+for 12 calls against a $0.72 estimate, 5.9% over.
+
+Mechanically the version binding did exactly what it exists to do: bumping three rubrics to v2
+dropped `mastery check` to `14/17` with all three reading `STALE` and naming the *rubric edit*
+rather than the prompt — the two-axis keying attributing cause correctly without being told.
+The other 14 rubrics were untouched, asserted in the edit script rather than checked by eye.
+
+`researcher`'s grandfathered baseline is now **doubly superseded** — old grading prompt *and*
+old rubric version — and `evals/baselines.json` says so. Kept as the record; usable for nothing.
+
+**Five flagged dimensions remain open, deliberately:** `paraphrase_discipline`,
+`exposure_severity_calibration`, `decision_specificity`, `link_and_date_per_claim`,
+`definition_and_window_attached`. Left so the three repair patterns above could be judged
+before being applied at scale. → BACKLOG.
+
 **A harder baseline set was attempted 2026-07-31 and produced ZERO scores. That is the
 finding.** Three cases built to need reasoning rather than pattern-matching: a survey figure
 from a self-selected in-app sample projected onto the whole account base; a preprint cited
