@@ -357,7 +357,7 @@
     ]
   },
   "legal-review": {
-    "rubric_version": "1",
+    "rubric_version": "2",
     "dimensions": [
       {
         "dimension": "non_advice_framing",
@@ -405,14 +405,14 @@
         "anchors": {
           "0": "Severity unrelated to commercial/public/named-party status.",
           "1": "Named private individual in commercial public content not treated as elevated.",
-          "2": "Elevation applied broadly; one factor of the three under-weighted.",
-          "3": "Severity explicitly reflects commercial use, public distribution, and identifiability of a real party."
+          "2": "The three factors are applied across the assessment, but at least one exposure's severity does not say which of them drive it.",
+          "3": "The three factors -- commercial use, public distribution, and identifiability of a real party -- are named for the assessment, and every exposure's severity states which of them drive that particular rating."
         }
       }
     ]
   },
   "marketing": {
-    "rubric_version": "1",
+    "rubric_version": "2",
     "dimensions": [
       {
         "dimension": "figure_provenance",
@@ -458,8 +458,8 @@
         "dimension": "decision_specificity",
         "asks": "Did it actually decide what runs, where, when, and whether it continues?",
         "anchors": {
-          "0": "Produced options with no decision.",
-          "1": "A decision so hedged it does not constrain execution.",
+          "0": "Two or more directions are laid out in comparable terms with none marked as chosen, and the return ends without naming what runs -- the operator is left to pick.",
+          "1": "A campaign is named but hedged until it does not constrain execution: no surface, no date, or explicitly deferred to a later call.",
           "2": "Decides the what; leaves where or when unresolved without saying why.",
           "3": "States what runs, on which surface, when, and the condition under which it stops."
         }
@@ -632,7 +632,7 @@
     ]
   },
   "metrics-agent": {
-    "rubric_version": "1",
+    "rubric_version": "2",
     "dimensions": [
       {
         "dimension": "definition_and_window_attached",
@@ -797,7 +797,7 @@
     ]
   },
   "competitor-intelligence-agent": {
-    "rubric_version": "1",
+    "rubric_version": "2",
     "dimensions": [
       {
         "dimension": "public_sources_only",
@@ -843,10 +843,10 @@
         "dimension": "paraphrase_discipline",
         "asks": "Is competitor copy paraphrased, with quotes only where exact wording is the point?",
         "anchors": {
-          "0": "Competitor copy reproduced at length.",
-          "1": "Long quotes where a paraphrase would serve.",
-          "2": "Mostly paraphrased, with one over-long quote.",
-          "3": "Paraphrased throughout; short quotes only where the exact wording is itself the finding."
+          "0": "Competitor copy reproduced as a block: a passage of 50 words or more, or several passages used in place of summary.",
+          "1": "More than one quote runs past 25 words where a paraphrase would carry the same finding.",
+          "2": "Paraphrased apart from a single quote that runs past 25 words.",
+          "3": "Paraphrased throughout; every quote is 25 words or fewer, and the return says why the exact wording is itself the finding."
         }
       }
     ]

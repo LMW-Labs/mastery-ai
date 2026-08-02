@@ -540,10 +540,49 @@ The other 14 rubrics were untouched, asserted in the edit script rather than che
 `researcher`'s grandfathered baseline is now **doubly superseded** — old grading prompt *and*
 old rubric version — and `evals/baselines.json` says so. Kept as the record; usable for nothing.
 
-**Five flagged dimensions remain open, deliberately:** `paraphrase_discipline`,
-`exposure_severity_calibration`, `decision_specificity`, `link_and_date_per_claim`,
-`definition_and_window_attached`. Left so the three repair patterns above could be judged
-before being applied at scale. → BACKLOG.
+**The remaining five were taken in a second pass the same day, once the three patterns had
+been judged. All 79 dimensions across all 17 rubrics are now clean.**
+
+| dimension | observed | fault |
+|---|---|---|
+| `marketing` / `decision_specificity` | `[2,1,2,3]` → `[0,1,1,3]` | rung + anchor |
+| `competitor-intelligence-agent` / `paraphrase_discipline` | `[0,1,0,3]` → `[0,0,2,3]` | anchor + rung |
+| `competitor-intelligence-agent` / `link_and_date_per_claim` | `[0,0,2,2]` → `[0,1,2,3]` | **rung only** |
+| `legal-review` / `exposure_severity_calibration` | `[0,0,3,2]` → `[0,0,1,3]` | anchor scope + rung |
+| `metrics-agent` / `definition_and_window_attached` | `[0,1,2,2]` → `[0,1,2,3]` | **rung only** |
+
+Notes worth keeping from the second pass:
+
+- **`decision_specificity`'s ladder confessed in writing.** Rung 0's `why` read *"but decisions
+  are made, so only the first four dimensions sit at 0"* — the ladder author knowing the rung
+  did not exercise this dimension and shipping it anyway. The repair had to keep the rung
+  failing `approval_boundary_respected`, whose 0-anchor needs something committed without
+  approval. Compatible, and checked rather than assumed: the rung now books $4,000 of Meta
+  spend *and* declines to say which of two directions it carries.
+- **`paraphrase_discipline` was unrankable by quantity, not by kind.** Levels 1 and 2 differed
+  only in *how many* over-long quotes, with no threshold — and both rungs carried exactly one,
+  so they were indistinguishable and the grader ordered them arbitrarily. Anchors now count
+  words (25 / 50); rung 1 gained a real second long quote. Same family as `quote_redaction`,
+  different mechanism, different repair.
+- **`exposure_severity_calibration` was an anchor that never said at what scope.** *"Severity
+  explicitly reflects"* three factors — per assessment, or per exposure? The rung enumerated
+  them for one exposure of four. Scope made explicit; the rung now names which factors drive
+  each of the four ratings.
+- A zero-width space (`U+200B`) was found sitting inside `n=8,​119` in a `metrics-agent`
+  deliverable and stripped, with an assertion added that no ladder contains one.
+
+**The finding across all eight, which is the reason to record this at all:** *the ladder was
+implicated in seven of the eight.* Only `quote_redaction` was fixed by editing the rubric
+alone; two were the rung alone; five needed both. **The reflex on seeing a bad calibration
+number is to edit the rubric, and that reflex would have been wrong or insufficient seven
+times out of eight.** A calibration failure reports a disagreement between an anchor and a
+rung. It does not say which side is wrong, and the rung is the better first suspect.
+
+**Verified.** 79 of 79 dimensions clean across all 17 rubrics; every ladder monotonic and
+discriminating; suite 210 green; `mastery check` **17/17**. Second pass cost **$1.035847** for
+16 calls against a $1.00 estimate (3.6% over); both passes together **$1.798446**. Seven
+rubrics now sit at v2. Cumulative calibration spend on record: **$9.524033** across 41
+recorded runs, both prompt generations and both rubric generations retained.
 
 **A harder baseline set was attempted 2026-07-31 and produced ZERO scores. That is the
 finding.** Three cases built to need reasoning rather than pattern-matching: a survey figure
