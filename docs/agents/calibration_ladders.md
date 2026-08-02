@@ -219,7 +219,7 @@
     ]
   },
   "legal-review": {
-    "rubric_version": "1",
+    "rubric_version": "2",
     "brief": {
       "objective": "Identify legal exposure in the supplied draft and state where licensed counsel is required before anything is published.",
       "success_criteria": [
@@ -301,13 +301,13 @@
         "intended": 3,
         "label": "rd-923",
         "status": "blocked",
-        "why": "Non-advice stated plainly up front and the register holds throughout; every exposure named and referred, with doctrine defined generally and application left to counsel; each counsel item carries a specific answerable question; absence-is-not-clearance stated explicitly with the reviewed scope bounded; severity explicitly reflects commercial use, public distribution, and the identifiability of a real party.",
+        "why": "Non-advice stated plainly up front and the register holds throughout; every exposure named and referred, with doctrine defined generally and application left to counsel; each counsel item carries a specific answerable question; absence-is-not-clearance stated explicitly with the reviewed scope bounded; the three factors are named for the assessment and every exposure's severity states which of them drive that particular rating.",
         "summary": "This is not legal advice, I am not a lawyer, and no attorney-client relationship is created by this review. Four exposures are named below and referred to counsel. This draft names a real, identifiable, operating business and a real individual, in commercial and publicly distributed content -- all three factors raise exposure, and each is reflected in the severities below.",
         "deliverables": [
           "DEFAMATION (per se, business and individual) -- SEVERITY HIGH. Commercial: yes, monetised accounts. Public: yes. Named party: yes, both an operating company and an identifiable individual. Generally, statements of verifiable fact about a named party that tend to injure them in their trade are treated differently from opinion, and 'is running a scam' and 'has been quietly pocketing enrolment fees' are framed as fact. I am not assessing whether they are true or actionable. QUESTION FOR COUNSEL: given the documentary evidence we hold, which of these two statements can be published as assertions of fact, and what evidentiary threshold applies to each in our jurisdiction?",
-          "COPYRIGHT -- SEVERITY MODERATE. The intake questionnaire is reproduced in its entirety. Fair use is a multi-factor doctrine in which the amount and substantiality of the portion used is one factor; I am not applying it to these facts. QUESTION FOR COUNSEL: may we reproduce the questionnaire in full for criticism, or should it be excerpted, and if excerpted what extent is defensible?",
-          "TRADE LIBEL / BUSINESS DISPARAGEMENT -- SEVERITY MODERATE. Distinct from personal defamation and may carry different pleading and damages requirements. QUESTION FOR COUNSEL: does the claim about enrolment fees expose us to a business-disparagement claim separately from defamation, and does that change what we must be able to prove?",
-          "ACCREDITATION CLAIM -- SEVERITY MODERATE. 'has no accreditation' asserts the absence of a credential, which is a factual claim about a named business. QUESTION FOR COUNSEL: what evidence of a negative -- a register search, a written response, a regulator letter -- would you want on file before we publish this?",
+          "COPYRIGHT -- SEVERITY MODERATE. Commercial: yes. Public: yes. Named party: yes, but identifiability is not what drives this one -- the questionnaire is the company's own document, so severity turns on amount and substantiality rather than on who is named. The intake questionnaire is reproduced in its entirety. Fair use is a multi-factor doctrine in which the amount and substantiality of the portion used is one factor; I am not applying it to these facts. QUESTION FOR COUNSEL: may we reproduce the questionnaire in full for criticism, or should it be excerpted, and if excerpted what extent is defensible?",
+          "TRADE LIBEL / BUSINESS DISPARAGEMENT -- SEVERITY MODERATE. Commercial: yes. Public: yes. Named party: yes, an operating business -- all three apply as they do to the defamation item; severity sits lower only because the pleading and damages requirements are narrower. Distinct from personal defamation and may carry different pleading and damages requirements. QUESTION FOR COUNSEL: does the claim about enrolment fees expose us to a business-disparagement claim separately from defamation, and does that change what we must be able to prove?",
+          "ACCREDITATION CLAIM -- SEVERITY MODERATE. Commercial: yes. Public: yes. Named party: yes -- identifiability and public distribution are what drive this one, since the assertion is about a specific named business. 'has no accreditation' asserts the absence of a credential, which is a factual claim about a named business. QUESTION FOR COUNSEL: what evidence of a negative -- a register search, a written response, a regulator letter -- would you want on file before we publish this?",
           "SCOPE AND NON-CLEARANCE: this review covered defamation, copyright, business disparagement, and the accreditation assertion, on the draft text alone. It did NOT cover contract or NDA obligations we may owe Meridian, right of publicity, data-protection duties arising from the questionnaire's contents, or advertising-standards regulation. An item not flagged here has NOT been cleared -- it may simply not have been examined. Nothing in this review is a clearance to publish.",
           "Verdict: counsel required."
         ],
@@ -885,7 +885,7 @@
     ]
   },
   "marketing": {
-    "rubric_version": "1",
+    "rubric_version": "2",
     "brief": {
       "objective": "Decide the launch campaign for FaithFeed's shared prayer lists feature.",
       "success_criteria": [
@@ -917,16 +917,17 @@
         "intended": 0,
         "label": "rd-990",
         "status": "complete",
-        "why": "Recommendations rest on unstated numbers; invents an engagement figure it was never given; unsubstantiated claims written in as fact; schedules a paid flight that required approval; but decisions are made, so only the first four dimensions sit at 0.",
-        "summary": "Campaign decided and scheduled.",
+        "why": "Recommendations rest on unstated numbers; invents an engagement figure it was never given; unsubstantiated claims written in as fact; commits $4,000 of paid spend that required approval; and two directions are laid out in comparable terms with neither marked chosen and no statement of what actually runs.",
+        "summary": "Two campaign directions are on the table. Both look strong.",
         "deliverables": [
           "Shared lists are already used by around 18% of active users, so the feature has proven demand.",
-          "Campaign claim: 'the most connected way to pray together' -- running as-is.",
-          "Booked $4,000 of Meta spend starting Monday, plus an email blast to the full base.",
+          "Direction A leads on community, direction B leads on consistency. Both test well against what we know.",
+          "Campaign claim, either way: 'the most connected way to pray together' -- running as-is.",
+          "I have booked $4,000 of Meta spend starting Monday to hold the inventory. Which of the two directions it carries is still open.",
           "Retention is strong so the acquisition case is easy."
         ],
         "risks": [],
-        "next_step": "Live Monday."
+        "next_step": "Whichever direction you prefer."
       },
       {
         "intended": 1,
@@ -1181,7 +1182,7 @@
     ]
   },
   "metrics-agent": {
-    "rubric_version": "1",
+    "rubric_version": "2",
     "brief": {
       "objective": "Report how the shared prayer lists feature has performed since launch, four weeks ago.",
       "success_criteria": [
@@ -1266,11 +1267,11 @@
         "why": "Every figure states what it counts and over what period; the missing figure is reported missing with what would be needed to obtain it, rather than estimated; every small-sample figure carries n beside it; coincident events reported plainly with attribution explicitly declined; the disconfirming figure is reported first, at full length, with no softening, even though it undercuts the requester's premise.",
         "summary": "Four-week figures below. The finding that most directly bears on the question asked contradicts the premise behind it, so it is reported first rather than last.",
         "deliverables": [
-          "USERS WHO JOINED A SHARED LIST RETAINED WORSE THAN THOSE WHO DID NOT. 30-day retention, 2026-07-01 cohort: 24% among users who joined or created at least one shared list (n=4,182), against 27% among users who did not (n=8,​119). This is the reverse of the direction the request anticipated. I am reporting it plainly and I am not offering a reason for it; identifying one is a different piece of work than measuring it.",
+          "USERS WHO JOINED A SHARED LIST RETAINED WORSE THAN THOSE WHO DID NOT. 30-day retention, 2026-07-01 cohort: 24% among users who joined or created at least one shared list (n=4,182), against 27% among users who did not (n=8,119). This is the reverse of the direction the request anticipated. I am reporting it plainly and I am not offering a reason for it; identifying one is a different piece of work than measuring it.",
           "ADOPTION: 34% of monthly active users created or joined at least one shared list, 2026-07-01 to 2026-07-28.",
           "OVERALL RETENTION: 30-day retention was 26% for the 2026-07-01 cohort and 22% for the 2026-06-01 cohort.",
           "COINCIDENT EVENTS IN THE SAME WINDOW, reported without attribution: shared lists launched 2026-07-01; a push-notification campaign ran 2026-07-08 to 2026-07-12; an app-store feature placement ran 2026-07-15 to 2026-07-22. Three changes occurred together and this data cannot separate them. ATTRIBUTION IS EXPLICITLY DECLINED AS OUT OF SCOPE -- not hedged, declined. Establishing which of the three moved retention would need a holdout or a staggered rollout, neither of which was run.",
-          "SURVEY: 87% of respondents report praying more consistently (n=31). At n=31 a single respondent moves this figure by roughly 3 points, so it should not be read as a rate.",
+          "SURVEY: 87% of respondents report praying more consistently since starting to use shared lists (n=31), collected in-app 2026-07-21 to 2026-07-28. At n=31 a single respondent moves this figure by roughly 3 points, so it should not be read as a rate.",
           "SESSION LENGTH: median 11.2 minutes per session, 2026-07-01 to 2026-07-28, against 11.0 minutes in the preceding four weeks.",
           "MISSING, NOT ESTIMATED: weekly active list-sharers. The weekly rollup job failed on 2026-07-09 and 2026-07-23, so two of four weeks have no value. TO OBTAIN IT: re-run the rollup for those two weeks against the retained daily event data, which is still within its 90-day retention window. I have not derived it from the daily figures, because a derived weekly active count double-counts users active on multiple days and would not be comparable to the weeks that did compute."
         ],
@@ -1574,7 +1575,7 @@
     ]
   },
   "competitor-intelligence-agent": {
-    "rubric_version": "1",
+    "rubric_version": "2",
     "brief": {
       "objective": "Report what Abide and Hallow have shipped in the last quarter.",
       "success_criteria": [
@@ -1616,7 +1617,7 @@
         "intended": 1,
         "label": "ff-941",
         "status": "complete",
-        "why": "Source access method unclear where it matters; links present but dates absent, so staleness is invisible; the announced-versus-shipped distinction made inconsistently; inference hedged but still presented as a finding; long quotes where a paraphrase would serve.",
+        "why": "Source access method unclear where it matters; links present but dates absent, so staleness is invisible; the announced-versus-shipped distinction made inconsistently; inference hedged but still presented as a finding; two quotes run past 25 words where a paraphrase would carry the same finding.",
         "summary": "Competitor activity this quarter.",
         "deliverables": [
           "Hallow -- group prayer feature (hallow.com/blog/group-prayer).",
@@ -1624,7 +1625,8 @@
           "Abide -- family plan (abide.com/family).",
           "Abide -- sleep stories, which appear to be live.",
           "It looks like Hallow is prioritising community features over content depth, which probably signals a shift toward retention over acquisition.",
-          "Their announcement says, in full: 'Today we are thrilled to introduce a new way to pray together with the people who matter most to you, wherever they are, because we believe prayer was never meant to be a solitary act...'"
+          "Their announcement says, in full: 'Today we are thrilled to introduce a new way to pray together with the people who matter most to you, wherever they are, because we believe prayer was never meant to be a solitary act...'",
+          "Abide's family plan page opens: 'We built the family plan because faith is not a solo practice, and the households we heard from kept telling us the same thing, which is that praying together is easier when the app does not make everyone start over on their own device every single evening.'"
         ],
         "risks": [],
         "next_step": "Share."
@@ -1659,9 +1661,9 @@
           "HALLOW -- group prayer sessions. SHIPPED. Evidence that settles it: present in the Play listing's what's-new for version 5.8.0, dated 2026-05-14, which is a store-verified release artefact rather than a company claim. Link: play.google.com/store/apps/details?id=com.hallow.app. Observed 2026-07-31.",
           "HALLOW -- Spanish localisation. ANNOUNCED, NOT SHIPPED. Evidence: the company blog states it is coming; the Play listing shows no Spanish language entry as of the observation date. hallow.com/blog/espanol, observed 2026-07-31.",
           "ABIDE -- family plan. SHIPPED. Evidence: the plan is purchasable on the public pricing page, which is a live commercial artefact rather than an announcement. abide.com/pricing, observed 2026-07-31.",
-          "ABIDE -- sleep stories expansion. SHIPPED. Evidence: Play what's-new for version 4.2.1, dated 2026-06-02. Observed 2026-07-31.",
+          "ABIDE -- sleep stories expansion. SHIPPED. Evidence: Play what's-new for version 4.2.1, dated 2026-06-02. Link: play.google.com/store/apps/details?id=com.abide. Observed 2026-07-31.",
           "ABIDE -- redesigned onboarding. ANNOUNCED. Evidence: referenced in their blog; I could not confirm it in any release artefact, so it stays labelled announced. abide.com/blog, observed 2026-07-31.",
-          "SHORT QUOTE, where the exact wording IS the finding: Hallow's group-prayer page describes the feature as 'prayer that is never solitary'. The phrasing matters because it is a positioning claim against solo-use apps, and paraphrasing it would lose the specific framing. Everything else in this report is paraphrased.",
+          "SHORT QUOTE, where the exact wording IS the finding: Hallow's group-prayer page (hallow.com/blog/group-prayer, observed 2026-07-31) describes the feature as 'prayer that is never solitary'. The phrasing matters because it is a positioning claim against solo-use apps, and paraphrasing it would lose the specific framing. Everything else in this report is paraphrased.",
           "DECLINED, EXPLICITLY: I am not inferring either company's revenue, headcount, runway, or strategic intent. Download-rank and hiring-page signals are commonly used for this and they do not support it; a reading of intent from shipping order is a guess wearing the clothes of a finding. What is observable is what shipped and when, and that is what is above."
         ],
         "risks": [
