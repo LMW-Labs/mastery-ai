@@ -292,7 +292,194 @@ baselines — comparability holds, but the label is muddier than "strong model" 
 
   Nothing from the probe is written to the run log — synthetic scores would corrupt the trend they exist to audit, so it drives the runner directly and never touches `Orchestrator` or `runlog`.
 
-- [ ] REMAINING BLOCKER: the ladder covers `fact-checker` only. The other 16 rubrics are uncalibrated, and nine of those were written in bulk and are still not operator-reviewed. Calibrating a rubric costs four grader calls, so this is cheap per role — but it has not been done, and a rubric that has never been shown a bad output is an untested instrument regardless of how carefully it was written.
+- [x] ~~REMAINING BLOCKER: the ladder covers `fact-checker` only.~~ **All 17 ladders written and run 2026-08-01. 16 pass, 1 fails.** `mastery check` reports `16/17`.
+
+**The one failure is the most valuable result here.** `content` came back `[1.5, 1.25, 2.75, 2.5]` — **not monotonic**: the rung built to be a 0 outscored the rung built to be a 1, and the rung built to be a 3 scored *below* the rung built to be a 2. `set_baseline` refuses on it, and `content` is one of the two agents that already had a grandfathered baseline. That baseline is now known to rest on an instrument that does not order its own anchors.
+
+What I cannot say is *why*, and I am not going to guess: it is either the rubric failing to discriminate, or my ladder being badly built for it — plausibly the 0-rung, which is a competent post on the wrong angle and may be earning hook and CTA credit the anchors do not intend. Distinguishing those needs a second ladder, not an opinion. **Open, and assigned to nobody yet.**
+
+Two mechanical near-misses worth recording, because both were caught by machinery rather than by care:
+
+- **The 4-digit task-id ladders never spent anything.** `ui-ux`, `data-model-agent` and `metrics-agent` were written with labels like `rd-1000`; `brief.build` rejects `NNNN`, so all three failed *before* the first grader call. The `rd-9xx` block was also nearly exhausted, so the remaining ladders moved to the `ff-9xx` and `ops-9xx` verticals.
+- **`UnicodeEncodeError` cost 8 grader calls, and it was a known bug in a new place.** `probe_grader.py` is a second entry point that never went through `cli.main`, so it never called `_force_utf8_stdio()`. Any grader justification containing `→` killed the script *after* all four calls were paid for — precisely the failure `cli.py`'s own docstring describes ("the work is done… and then thrown away at the last step"). Two ladders lost that way. Fixed by importing the existing guard rather than reimplementing it, since a duplicate is what would let the two drift.
+
+**What it actually cost, measured not estimated.** Cost telemetry was threaded into `CalibrationResult.per_rung` *before* these runs, specifically so this number would exist:
+
+| | |
+|---|---|
+| Recorded total, 68 priced calls | **$3.632134** |
+| Per ladder | min $0.175126, max $0.261709, mean $0.213655 |
+| Per call | min $0.0256156, max $0.0933757, mean $0.0534137 |
+| Unpriced calls | ~16 (two pre-telemetry `fact-checker` runs, two crashed runs) |
+| Honest total | **≈$4.48** — the unpriced calls are ~$0.85 at the observed mean and cannot be recovered exactly |
+
+**The earlier projection was high, and its stated caveat was the reason.** Pricing from four real `fact-checker` grader calls projected $4.78–$5.91 for 64 calls, point $5.38. Actual for the 16 new ladders was ≈$3.42. The flagged reason was correct: `fact-checker` has the largest rubric of the seventeen, so it was the top of the range rather than a representative unit. The proxy per-call mean ($0.08409565) over-stated the real one ($0.0534137) by about 57%, because those proxy calls graded real agent returns rather than ladder rungs.
+
+**Calibration is a standing per-rubric obligation, not a one-time gate — enforced 2026-08-01.** The operator's framing, and it is the right one: a pass for `fact-checker` says nothing about the other sixteen, which have different dimensions, different anchors, and different failure modes.
+
+| Piece | Where | What it does |
+|---|---|---|
+| Ladders as data | `docs/agents/calibration_ladders.md` | one brief + one return per level, per rubric. Adding a role is writing data, not editing code |
+| Trust state | `mastery/calibration.py` | `calibrated` / `missing` / `stale` / `failed`, keyed `(agent, rubric_version)` |
+| The refusal | `evals.set_baseline` | raises `Uncalibrated` unless a passing ladder exists for that exact version |
+| Visibility | `mastery eval`, `mastery check`, `probe_grader.py --status` | uncalibrated groups are marked inline; coverage is printed as `n/17` |
+| Recording | `probe_grader.py --record` → `evals/calibration.json` | passes **and failures** stored |
+
+Four decisions worth stating, because each had a plausible alternative:
+
+1. **It binds baselines, not delegations.** An uncalibrated rubric still runs and still scores — scoring stays write-only and observational, and `status` remains the only thing the orchestrator branches on. Halting real work over an unwritten ladder would make an uncalibrated rubric *worse than no rubric*, which would push people to delete rubrics to get their work done. A baseline is the artifact that gets trusted, so that is where the refusal belongs.
+2. **It is version-bound, and that is the trap the whole thing turns on.** A ladder is written against specific anchor text. Edit the rubric and the rungs claim levels that no longer exist, so a calibration that silently carried across a version bump would be *worse* than none — it would attest to markings nobody had checked. `status` returns `stale` and the refusal stands. Pinned by `test_calibration_does_not_carry_across_a_rubric_edit`.
+3. **A failed calibration is recorded, not discarded.** Deleting it would leave the rubric merely *unmeasured* rather than *known bad*, and the next person would have no way to tell those apart.
+4. **Spread alone is not a pass.** A ladder must be monotonic as well as clear `MIN_SPREAD`; a grader that separates outputs but orders them wrongly is responding to something other than the anchors.
+
+**A real bug this shook out:** the coverage counter reported a confident `0/17` because `roster.DELEGATABLE` holds `Agent` objects while the rubric and calibration tables are keyed by name, so every lookup returned False. A counter failing exactly the way the grader it counts was suspected of failing. Fixed and pinned by `test_coverage_is_counted_by_agent_name_not_agent_object`.
+
+**The existing baselines are grandfathered, and say so.** `researcher` and `content` have baselines recorded before this rule existed; `set_baseline` would refuse to write them today. They are kept rather than deleted — they are the real record of what was measured and when — and `evals/baselines.json` now carries a `_calibration_note` naming both as provisional until their rubric has a passing ladder.
+
+**That note was rewritten 2026-08-02, because as written it would have resolved itself
+backwards.** It said to treat the baselines as provisional *until their rubric has a passing
+ladder*. All 17 rubrics now have one — and that licenses none of the three, because every
+baseline score was produced by grading prompt `93d071d96c17` and the passing ladders are for
+`93074072ad14`. A condition that reads as satisfied while the thing it was protecting against
+is still true is worse than no condition, and this one was three hours from looking satisfied.
+Resolved per baseline instead of in general:
+
+| baseline | instrument that produced it | standing |
+|---|---|---|
+| `researcher\|1` | `93d071d96c17`, whose researcher ladder **passed** | usable, caveated: not the current prompt |
+| `fact-checker\|1` | `93d071d96c17`, **passed**, and reproduced byte-for-byte since | same caveat, plus the gate-closure censoring below |
+| `content\|1` | `93d071d96c17`, whose content ladder **failed** | **not evidence.** n=1, scored 2.75/3 by an instrument since proven unable to separate a deliberately awful content output from a good one |
+
+`content`'s is the one worth stating plainly: it is not a weak baseline, it is a number
+produced by a broken gauge, and it sat in the file for two days reading as 91.7%. Kept only
+as the record that it was once believed.
+
+**Reproducibility, recorded honestly:** the `fact-checker` ladder was run twice. The middle rung moved `1.2 → 1.6` between runs; the 0-rung, the 3-rung, monotonicity, and the 2.80 spread were stable. The verdict is robust; individual rung values are not exact. Worth knowing before anyone reads a single calibration number as precise.
+
+**`content`'s ladder failed, and diagnosing it found a second axis the calibration was
+never bound to. 2026-08-01.** Sixteen of seventeen ladders passed. `content` returned
+`[1.5, 1.25, 2.75, 2.5]` against intended `[0, 1, 2, 3]` — spread 1.5, not monotonic. Per
+dimension:
+
+| dimension | r0 | r1 | r2 | r3 | ordered |
+|---|---|---|---|---|---|
+| `executes_the_given_angle` | 2 | 1 | 3 | 3 | no |
+| `hook_strength` | 2 | 1 | 3 | 3 | no |
+| `cta_present_and_matched` | 0 | 1 | 3 | 3 | yes |
+| `declared_constraints_honored` | 2 | 2 | 2 | 1 | backwards |
+
+**Not a bad ladder.** `quality.build_prompt` passes the grader the success criteria, the
+status, the summary, the deliverables, the risks, and the rubric — deliberately *not* the
+context payload, and incidentally not `constraints` either. Two of `content`'s four
+dimensions ask whether the output honoured instructions that live in exactly those two
+places: the angle is in the context payload, the 150-word cap is in `constraints`. Checked
+directly against the rendered prompt — the angle: absent; the word limit: absent. So
+`declared_constraints_honored` scoring `2, 2, 2, 1` is not noise around a signal, it *is*
+noise: rung 0 violated every constraint and scored 2, rung 3 met them all and scored 1,
+its honest "constraint tension" note reading as an admission. The dimension is unscoreable
+by construction.
+
+This is also why one rubric failed and sixteen passed. The other rubrics' dimensions are
+self-evidencing from the output alone — *does every flag quote verbatim, does every action
+state its undo, does every claim carry a link*. `content`'s are **relational**: does this
+match what it was told to do. A grader denied the instruction cannot answer them.
+
+**The fix is to show the grader the brief's constraints — and that fix would have silently
+voided all seventeen calibrations.** Calibration was keyed `(agent, rubric_version)`. The
+grading prompt was not in the key. Change what the grader sees and every entry on file
+goes on reporting `calibrated` about an instrument that no longer exists — the exact trap
+version-binding was built to catch, arriving through the one door version-binding does not
+cover. Found before making the change, not after.
+
+| Piece | Where | Note |
+|---|---|---|
+| The hash | `quality.prompt_fingerprint` | `_render` against fixed sentinel fixtures, sha256, first 12 hex. Currently `93d071d96c17` |
+| The key | `calibration.result_key` | now `agent\|rubric_version\|prompt_fingerprint`; a mismatch on either axis simply misses |
+| The verdict | `calibration.Verdict.PROMPT_CHANGED` | distinct from `STALE`: different cause, different repair |
+| Visibility | `mastery check`, `probe_grader.py --status` | fingerprint printed alongside the `n/17` count |
+
+Three decisions worth their reasons:
+
+1. **It hashes the rendered prompt, not this module's source.** A source hash would void
+   seventeen ladders over a docstring edit, and the obvious way to stop that noise would be
+   to stop believing the fingerprint. Rewording the grader's instructions *does* move the
+   hash, and should — that text is the grader's calibration in the ordinary sense.
+2. **The rubric is passed into `_render` rather than looked up inside it**, so the
+   fingerprint is independent of `quality_rubrics.md`. The two axes move separately instead
+   of each dragging the other. Pinned by
+   `test_the_fingerprint_does_not_move_when_a_rubric_moves`.
+3. **A result with no fingerprint is refused at the write**, not tolerated and filtered at
+   the read. A stored row that names no prompt is not evidence about any prompt, and every
+   reader would have to special-case it forever — which is where a default of "assume
+   current" eventually gets written.
+
+**The seventeen existing entries were rekeyed onto `93d071d96c17`, not re-run. The claim is
+checkable, which is the only reason it was allowed.** `mastery/quality.py` was last
+committed in `98a47b9`, which predates both calibration commits, so no ladder could have
+run through any other prompt; and the later split of `build_prompt` into `_render` was
+verified to leave the rendered text **byte-identical for all 17 agents** before the rekey
+was applied. Recorded in `evals/calibration.json` under `_fingerprint_backfill` and pinned
+by `test_every_recorded_calibration_names_the_prompt_it_ran_through`.
+
+**Verified.** Suite 204 → **210 passed**; `mastery check` exit 0, `16/17`, prompt
+`93d071d96c17`. Simulating the coming change live — adding the brief's constraints to the
+prompt — moves the fingerprint to `25809eb1e704` and flips all 17 rubrics to
+`prompt-changed`, naming the rubric as unaffected. No spend: the fingerprint is pure
+computation.
+
+**Both halves done the same night, in that order. 2026-08-02.** The operator authorised the
+spend on the grounds that subscription usage is quota against an already-paid ceiling, not
+marginal dollars — consistent with the auth note in `CLAUDE.md`. `quality._render` now
+passes `brief.objective` and `brief.constraints`; fingerprint moved `93d071d96c17` →
+`93074072ad14`; all 17 ladders re-run and recorded.
+
+**`content` is fixed, decisively:**
+
+| | r0 | r1 | r2 | r3 | spread | monotonic |
+|---|---|---|---|---|---|---|
+| before | 1.5 | 1.25 | 2.75 | 2.5 | 1.5 | **no** |
+| after | 0.25 | 1.25 | 2.75 | 3.0 | 2.75 | yes |
+
+The two dead dimensions came alive. `declared_constraints_honored` was `2, 2, 2, 1` — the
+rung that broke every constraint scoring above the rung that met them all — and is now
+ordered up the ladder, with the grader quoting the specific violation ("the post uses the
+explicitly forbidden word 'journey'"). It could not have written that sentence before,
+because it had never been shown the word list.
+
+**17 of 17 calibrated.** `mastery check` exit 0, prompt `93074072ad14`.
+
+**What the change did to the other sixteen, measured rather than assumed.** Their rubrics
+did not change, so any movement is the prompt plus ordinary run-to-run variance. Across 64
+rung values: mean signed delta **−0.038**, mean absolute delta **0.125**, max **0.75**, and
+**38 of 64 rungs identical**. `fact-checker` reproduced byte-for-byte. Every verdict held;
+monotonicity went 16 → 17. So the honest reading is that showing the grader the instruction
+did not meaningfully move roles whose dimensions were already answerable from the output —
+which is exactly what the diagnosis predicted, and is the closest thing to a control this
+setup can produce. Set against the earlier note that `fact-checker`'s middle rung moved
+`1.2 → 1.6` between two runs of the *same* prompt, a 0.125 mean shift is at or below the
+noise floor.
+
+**Cost, actual.** **$4.093453** across 68 priced calls — per-call min $0.0389017, max
+$0.1301167, mean $0.0601978; per-ladder mean $0.240791. Against the previous run's
+$3.632134 that is **+12.7% per call**, from the larger prompt. My projection of ~$4.48 was
+built on the old per-call rate and came in **8.6% low**; recording that so the next estimate
+starts from a rate that includes the objective and constraints blocks.
+
+**The old generation was not overwritten, and that is worth keeping.** Because the
+fingerprint is part of the key, re-running wrote 17 *new* entries beside the 17 old ones —
+`evals/calibration.json` now holds 34. Unplanned, and correct: the file is now a before/after
+of an instrument change rather than only its current state. The `_note` records that both
+generations are kept deliberately.
+
+**A latent bug the fix exposed, found pre-spend.** All 17 ladder briefs carried `constraints`
+and `out_of_scope` as JSON **lists**, while `TaskBrief` declares both as strings and every
+brief in `briefs/` is a string. Invisible for as long as the grader could not see those
+fields; the moment it could, all 17 ladders would have rendered a Python list repr that no
+production run ever produces — calibrating the instrument against a prompt that does not
+exist. Converted to strings, and `probe_grader._brief` now calls `brief.validate()`, which
+is what would have caught it originally. The probe had been assembling briefs with `build()`,
+which checks only the task id. Cost of finding it this way: nothing. Cost of finding it after
+the re-run: 68 calls and a set of numbers that looked fine.
 
 **A harder baseline set was attempted 2026-07-31 and produced ZERO scores. That is the
 finding.** Three cases built to need reasoning rather than pattern-matching: a survey figure
@@ -544,6 +731,37 @@ and it is the component most likely to be wrong without anyone noticing, because
 path never reaches it. → BACKLOG: live gate test.
 
 ## BACKLOG (log, do not action mid-stop)
+
+### ~~Show the grader the brief's constraints, then re-run all 17 ladders~~ — DONE 2026-08-02
+Landed the same night the mechanism did. `quality._render` now passes `brief.objective` and
+`brief.constraints`; fingerprint `93d071d96c17` → `93074072ad14`; all 17 ladders re-run.
+Results under Stop 6. Original reasoning kept below because the rejected options are the
+part worth keeping.
+
+`content`'s ladder fails because two of its four dimensions ask whether the output honoured
+instructions the grader is never shown (full diagnosis under Stop 6, 2026-08-01). The fix
+is to pass `brief.constraints` — and `brief.objective` — into `quality._render`.
+
+**Pass the constraints, not the context payload.** Constraints are short and declarative;
+showing them does not let the grader re-do the task or check sources for itself, which is
+what the context exclusion actually exists to prevent. The exclusion stays.
+
+**The trap to refuse:** restating the angle and the word limit inside `success_criteria`,
+which *does* reach the grader. It costs nothing, makes `content` pass by tomorrow, and
+leaves every real `content` run still graded blind on two of four dimensions. That is
+letter-satisfaction — the same failure already recorded once in this ledger — and it would
+be harder to find the second time, because the calibration would say `calibrated`.
+
+**Consequences, both of which are the point:**
+- The prompt fingerprint moves (verified: `93d071d96c17` → `25809eb1e704`), so all 17
+  calibrations correctly become `prompt-changed`. Nothing silently survives.
+- Re-running all 17 ladders costs **~$4.48** at the measured rate ($3.632134 recorded
+  across 68 priced calls, plus ~16 unpriced early calls at the observed mean). Real spend,
+  operator's call, not a side effect of a code change.
+
+The alternative — amending `content`'s rubric to drop the two relational dimensions — is
+cheaper and honest but throws away most of what "good content" means. Rejected in favour of
+fixing the instrument rather than narrowing the question.
 
 ### ~~Score gate closures~~ — DONE 2026-07-31
 Implemented the same day it was found. `orchestrator.py`'s `Action.HALT` branch now scores

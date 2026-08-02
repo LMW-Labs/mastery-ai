@@ -1,39 +1,43 @@
-"""Calibration probe for the quality grader. STOP 7's open question.
+"""Calibration probe for the quality grader — run it against every rubric.
 
-Every fact-checker score on record is a 3.0/3. Two explanations fit that, and
-they have opposite consequences:
+`quality.py` scores an output against its role's rubric. Nothing in that path
+establishes that the rubric *discriminates*, and a grader that returns 3 whatever
+it is shown produces a clean, plausible, entirely uninformative trend. The trend
+cannot detect it: a rubber-stamp grader and an excellent agent draw the same flat
+line.
 
-  A. **Sampling.** Only accepted outcomes were scored, so every run that had to
-     stop something was censored out of the sample. Fixed 2026-07-31 — gate
-     closures are scored now.
-  B. **Instrument.** The grader returns 3 whatever it is shown, and the number
-     has never measured anything.
+The obvious remedy — run harder cases until a low score appears — is circular.
+Under the rubber-stamp hypothesis those runs also come back 3.0 and read as
+corroboration, so the investigation grows more confident as it grows more wrong.
+**Sampling cannot audit the instrument doing the sampling.** The question is
+answered with known inputs, not more unknown ones.
 
-A flat trend cannot distinguish them, and neither can more real runs: if (B)
-holds, those runs also come back 3.0 and look like confirmation. The only way
-to separate them is to stop sampling and start calibrating — feed the grader
-outputs whose correct score is already known, and see what it says.
+So this feeds the real grader a *ladder*: one fixed brief, one return per rubric
+level, each written against that rubric's own anchor text, so its correct score is
+known before the grader sees it. If the reported scores track the intended ones,
+the rubric has markings.
 
-That is what this does. Four returns for the same task, each written against
-one row of the fact-checker rubric's own anchor text: a 0, a 1, a 2, a 3. The
-real grader, over the real `run_grader` path, no tools. If the reported scores
-track the intended ones the instrument discriminates and (A) was the story. If
-everything comes back 3, the baseline in `evals/baselines.json` is measuring
-nothing and STOP 6 has no evidence under it.
+**This is a per-rubric obligation, not a one-time gate.** A pass for one role says
+nothing about the other sixteen — different dimensions, different anchors,
+different failure modes — and it is void the moment that rubric's version changes.
+Until a rubric has a passing ladder on record, `mastery eval --set-baseline`
+refuses to record a baseline from its scores. See `mastery/calibration.py` for why
+that is the enforcement point and not the delegation path.
 
-The ladder is scored on the anchors, not on my opinion of the writing. Each
-rung names the anchors it was built to satisfy, so a disagreement between
-intent and result is arguable against a fixed reference rather than a matter
-of taste.
+Ladders are data, in `docs/agents/calibration_ladders.md`. Adding a role is
+writing one, not editing this file.
 
-**Nothing here is written to the run log.** These returns are synthetic and
-their scores would corrupt the trend they exist to audit, so the probe drives
-the runner directly and never touches `Orchestrator` or `runlog`.
+**Nothing here is written to the run log.** These returns are synthetic and their
+scores would be indistinguishable from real ones in the very trend the probe
+exists to audit, so it drives the runner directly and never touches `Orchestrator`
+or `runlog`. The calibration result goes to `evals/calibration.json` instead,
+under `--record`.
 
 Costs one grader call per rung. Needs a credential.
 
-    python scripts/probe_grader.py
-    python scripts/probe_grader.py --agent risk-review   # ladder is fact-checker only
+    python scripts/probe_grader.py --agent fact-checker
+    python scripts/probe_grader.py --agent fact-checker --record
+    python scripts/probe_grader.py --status
 """
 
 from __future__ import annotations
@@ -47,318 +51,289 @@ from pathlib import Path
 # Runnable as `python scripts/probe_grader.py` from anywhere.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from mastery import quality
+from mastery import calibration, quality, roster
+from mastery.cli import _force_utf8_stdio
 from mastery.brief import ContextItem, build
 from mastery.config import Config
 from mastery.delegate import SdkRunner, run_grader
 from mastery.errors import OrchestratorError
 from mastery.schema import Status, TaskResult
 
-# The draft under review, and the one source supplied to check it against. Kept
-# small on purpose: the grader is judging the fact-check, not the underlying
-# question, and a long fixture would let a rung score well for being thorough
-# about something the rubric never asked about.
-DRAFT = """A 2024 Pew study found that 63% of US adults pray daily. That makes
-America the most prayerful nation in the developed world, and as Dr. Ellen Marsh
-put it, we are watching "a generational shift" in public faith."""
-
-SOURCE = """Pew Research Center, "Religious Landscape Study" (2024), p. 12:
-"45% of U.S. adults say they pray daily, down from 58% in 2007." The report
-covers the United States only and makes no cross-national comparison. No
-researcher named Ellen Marsh appears in the report or its acknowledgements."""
-
-# Three checkable assertions live in DRAFT: the 63% figure (explicit, numeric,
-# and false against the source), the "most prayerful in the developed world"
-# superlative (implied, and uncheckable from the supplied source), and the
-# Marsh quote (an attribution the source cannot confirm). A rung's level is
-# mostly determined by how many of those three it touches and how honestly.
-
-
-# Task ids have to satisfy `brief.build`, so the rungs get real-shaped ones in a
+# Task ids have to satisfy `brief.build`, so rungs carry real-shaped ids in a
 # reserved 9xx block. Nothing here is logged, but a synthetic id that could
 # collide with a real task would be a trap for whoever greps the logs later.
 PROBE_DATE = "20260801"
 
 
 @dataclass(frozen=True)
-class Rung:
-    """One return, built to sit at a known level on every dimension."""
-
+class Observation:
     intended: int
     label: str
     why: str
-    summary: str
-    deliverables: tuple[str, ...]
-    risks: tuple[str, ...]
-    next_step: str
-    status: Status = Status.BLOCKED
-
-
-LADDER: tuple[Rung, ...] = (
-    Rung(
-        intended=0,
-        label="rd-900",
-        why=(
-            "Only the headline claim adjudicated; the false figure rated supported; "
-            "no source referenced; the uncheckable claims silently passed; no corrections."
-        ),
-        status=Status.COMPLETE,
-        summary="Checked the post. The prayer statistic is accurate and the piece is fine to run.",
-        deliverables=(
-            "Claim 'a 2024 Pew study found 63% of US adults pray daily' - SUPPORTED.",
-            "Overall: publishable.",
-        ),
-        risks=("None identified.",),
-        next_step="Send to risk-review.",
-    ),
-    Rung(
-        intended=1,
-        label="rd-901",
-        why=(
-            "Explicit numeric claim found, superlative and attribution missed; a softened "
-            "version checked so the overstatement passed; source named in general only; "
-            "unchecked claims passed without comment; correction no better sourced."
-        ),
-        status=Status.COMPLETE,
-        summary=(
-            "Verified the prayer figure against the Pew material. A majority-pray framing is "
-            "broadly consistent with the research, so the claim stands with a small edit."
-        ),
-        deliverables=(
-            "Claim: many US adults pray daily - SUPPORTED by the Pew study.",
-            "Suggested wording: 'a large share of US adults pray daily'.",
-        ),
-        risks=("Figures in this area move between survey waves.",),
-        next_step="Send to risk-review.",
-    ),
-    Rung(
-        intended=2,
-        label="rd-902",
-        why=(
-            "Explicit claim plus one implied one; the attribution left out entirely; ratings "
-            "defensible but the superlative rated too generously; most ratings tied to a named "
-            "source, one not; the unchecked claim noted with a vague reason; correction mostly "
-            "supported but reaches slightly past the source."
-        ),
-        summary=(
-            "Two of the post's assertions were checked against the supplied Pew report. The 63% "
-            "figure is wrong and the international comparison is not something this source settles."
-        ),
-        deliverables=(
-            "Claim '63% of US adults pray daily' - FALSE. Pew 2024 reports 45%.",
-            "Claim 'most prayerful nation in the developed world' - PARTIALLY SUPPORTED; US "
-            "religiosity does run high among wealthy democracies, though this report is US-only.",
-            "Correction: 'a 2024 Pew study found 45% of US adults pray daily, down from 58% "
-            "in 2007, the sharpest decline the series has recorded'.",
-        ),
-        risks=("One assertion in the draft could not be resolved from what was supplied.",),
-        next_step="Return to content for correction, then re-check.",
-    ),
-    Rung(
-        intended=3,
-        label="rd-903",
-        why=(
-            "All three assertions adjudicated including the implied superlative and the "
-            "attribution; each rating the one the source permits; every rating names the page "
-            "and passage; both uncheckable claims listed with the reason; the correction is "
-            "wording the source actually supports and invents no citation."
-        ),
-        summary=(
-            "Three checkable assertions in the draft. One is false against the supplied source, "
-            "two cannot be checked from it at all. Not publishable as written."
-        ),
-        deliverables=(
-            "Claim '63% of US adults pray daily' - FALSE. Pew 2024 p.12 states '45% of U.S. "
-            "adults say they pray daily, down from 58% in 2007'. The draft overstates by 18 points.",
-            "Claim 'most prayerful nation in the developed world' - UNCHECKED. Pew 2024 p.12 "
-            "covers the United States only and makes no cross-national comparison, so the "
-            "supplied source cannot settle this claim either way. No other source was provided.",
-            "Attribution 'Dr. Ellen Marsh: a generational shift' - UNCHECKED. No researcher of "
-            "that name appears in the report or its acknowledgements. Absence from this source "
-            "is not proof the quote is fabricated, but nothing supplied supports it.",
-            "Correction, using only what the source states: 'a 2024 Pew study found 45% of US "
-            "adults say they pray daily, down from 58% in 2007'. The superlative and the Marsh "
-            "quote should be cut or independently sourced; no citation was invented to keep them.",
-        ),
-        risks=(
-            "Two of three assertions rest on sources not supplied to this check; a verdict on "
-            "them requires evidence this task did not have.",
-            "The 18-point gap is large enough that the draft's argument may not survive correction.",
-        ),
-        next_step=(
-            "Blocked: not publishable. Return to content with the correction, and source the "
-            "superlative and the Marsh quote or drop them."
-        ),
-    ),
-)
-
-
-def _brief(rung: Rung, agent: str):
-    """The same brief for every rung — only the return varies.
-
-    Holding the brief fixed is what makes the rungs comparable: any difference
-    in score has to come from the output, because nothing else changed.
-    """
-    return build(
-        task_id=f"{PROBE_DATE}-{rung.label}",
-        agent=agent,
-        urgency="normal",
-        objective=(
-            "Adjudicate every checkable claim in the supplied draft against the supplied "
-            "source, and state which claims cannot be checked from it."
-        ),
-        success_criteria=[
-            "Every checkable assertion in the draft is adjudicated, including implied "
-            "claims, superlatives, and attributions.",
-            "Each rating names the specific source passage it was checked against.",
-            "Claims that cannot be checked from the supplied source are listed as unchecked, "
-            "with the reason, rather than passed.",
-            "Any corrected wording is supported by the supplied source.",
-        ],
-        context=[
-            ContextItem("draft under review", DRAFT),
-            ContextItem("supplied source", SOURCE),
-        ],
-        constraints=[
-            "Use only the supplied source. Do not look anything up.",
-            "Return `blocked` if the draft is not publishable as written.",
-        ],
-        out_of_scope=["Rewriting the piece beyond the minimal correction."],
-        approval_gates_touched="none",
-        expected_deliverables=["A per-claim adjudication with sources.", "Corrected wording."],
-    )
-
-
-def _result(rung: Rung) -> TaskResult:
-    return TaskResult(
-        task_id=f"{PROBE_DATE}-{rung.label}",
-        status=rung.status,
-        summary=rung.summary,
-        deliverables=rung.deliverables,
-        risks=rung.risks,
-        next_step=rung.next_step,
-    )
-
-
-@dataclass(frozen=True)
-class Observation:
-    rung: Rung
     score: quality.QualityScore | None
+    model: str = ""
+    cost_usd: float | None = None
+    input_tokens: int = 0
+    output_tokens: int = 0
     error: str | None = None
 
 
-async def _grade(rung: Rung, agent: str, config: Config) -> Observation:
-    brief = _brief(rung, agent)
-    prompt = quality.build_prompt(brief, _result(rung))
+def _brief(ladder: dict, rung: dict, agent: str):
+    """The ladder's one brief. Identical for every rung, by construction.
+
+    Holding it constant is what makes the rungs comparable: any difference in
+    score has to come from the output, because nothing else changed.
+    """
+    b = ladder["brief"]
+    brief = build(
+        task_id=f"{PROBE_DATE}-{rung['label']}",
+        agent=agent,
+        urgency="normal",
+        objective=b["objective"],
+        success_criteria=list(b["success_criteria"]),
+        context=[ContextItem(c["label"], c["body"]) for c in b["context"]],
+        constraints=b["constraints"],
+        out_of_scope=b["out_of_scope"],
+        approval_gates_touched="none",
+        expected_deliverables=list(b["expected_deliverables"]),
+    )
+    # Held to the same contract as a real brief, and for a reason that already
+    # cost something: these were assembled by `build`, which checks only the task
+    # id, and the ladders carried `constraints` as a *list* where `TaskBrief`
+    # declares a string. Invisible while the grader was never shown the field.
+    # The moment it is, every ladder renders a Python list repr that no real run
+    # produces, and calibrates against a prompt nobody will ever see in
+    # production. `validate` catches it here, before any call is paid for.
+    brief.validate(Config.load().caps.max_context_bytes)
+    return brief
+
+
+def _result(rung: dict) -> TaskResult:
+    return TaskResult(
+        task_id=f"{PROBE_DATE}-{rung['label']}",
+        status=Status(rung["status"]),
+        summary=rung["summary"],
+        deliverables=tuple(rung["deliverables"]),
+        risks=tuple(rung["risks"]),
+        next_step=rung["next_step"],
+    )
+
+
+async def _grade(ladder: dict, rung: dict, agent: str, config: Config) -> Observation:
+    brief = _brief(ladder, rung, agent)
+    common = dict(intended=rung["intended"], label=rung["label"], why=rung["why"])
     try:
-        invocation = await run_grader(prompt, SdkRunner(config), config)
+        invocation = await run_grader(quality.build_prompt(brief, _result(rung)), SdkRunner(config), config)
         score = quality.parse(
             invocation.raw, expected_task_id=brief.task_id, expected_agent=agent
         )
     except OrchestratorError as exc:
-        return Observation(rung, None, f"{type(exc).__name__}: {exc}")
-    return Observation(rung, score)
+        return Observation(**common, score=None, error=f"{type(exc).__name__}: {exc}")
+    usage = getattr(invocation, "usage", None)
+    return Observation(
+        **common,
+        score=score,
+        model=_model_of(invocation),
+        cost_usd=invocation.cost_usd,
+        input_tokens=getattr(usage, "input_tokens", 0),
+        output_tokens=getattr(usage, "output_tokens", 0),
+    )
 
 
-def _report(observations: list[Observation], agent: str) -> bool:
-    """Print the ladder and return True if the grader discriminated."""
-    rubric = quality.rubric_for(agent)
-    dims = [d["dimension"] for d in rubric["dimensions"]]
+def _model_of(invocation) -> str:
+    """The model that actually graded — `Usage.model`, already joined by
+    `delegate.usage_from` when a call spans more than one.
 
-    print(f"\n{'=' * 78}\nGRADER CALIBRATION — agent {agent}, rubric v{rubric['rubric_version']}\n{'=' * 78}")
+    Recorded on the calibration so a later reader can tell whether the ladder was
+    run on the same model as the scores it is being used to license. A ladder
+    passed on a strong model does not license a cheap model's numbers.
+    """
+    usage = getattr(invocation, "usage", None)
+    return getattr(usage, "model", "") or ""
+
+
+def _report(observations: list[Observation], agent: str, rubric_version: str) -> calibration.CalibrationResult | None:
+    """Print the ladder. Returns the result, or None if it could not be assessed."""
+    print(f"\n{'=' * 78}")
+    print(
+        f"GRADER CALIBRATION — agent {agent}, rubric v{rubric_version}, "
+        f"prompt {quality.prompt_fingerprint()}"
+    )
+    print(f"{'=' * 78}")
 
     for obs in observations:
-        print(f"\n{obs.rung.label}  intended {obs.rung.intended}/3")
-        print(f"  built to be: {obs.rung.why}")
+        print(f"\n{obs.label}  intended {obs.intended}/3")
+        print(f"  built to be: {obs.why}")
         if obs.error:
             print(f"  GRADER FAILED: {obs.error}")
             continue
         for d in obs.score.dimensions:
-            delta = d.score - obs.rung.intended
+            delta = d.score - obs.intended
             flag = "  " if delta == 0 else f" {delta:+d}"
             print(f"    {d.dimension:34} {d.score}/3{flag}  {d.justification}")
         print(f"    {'OVERALL':34} {obs.score.overall}/3")
 
     graded = [o for o in observations if o.score is not None]
     if len(graded) < len(observations):
-        print(f"\nINCONCLUSIVE — {len(observations) - len(graded)} of {len(observations)} "
-              f"rungs did not return a score. The instrument cannot be assessed from a "
-              f"partial ladder; fix the failures and re-run.")
-        return False
+        print(
+            f"\nINCONCLUSIVE — {len(observations) - len(graded)} of {len(observations)} "
+            f"rungs did not return a score. A partial ladder cannot assess the "
+            f"instrument, and is not recorded either way; fix the failures and re-run."
+        )
+        return None
 
-    overalls = [o.score.overall for o in graded]
-    intended = [o.rung.intended for o in graded]
-    spread = max(overalls) - min(overalls)
-    monotonic = all(a <= b for a, b in zip(overalls, overalls[1:]))
-
-    print(f"\n{'-' * 78}")
-    print("  intended   " + "  ".join(f"{i}.0" for i in intended))
-    print("  observed   " + "  ".join(f"{o:.1f}" for o in overalls))
-    print(f"  spread     {spread:.2f}  (0-rung to 3-rung, on a 3-point scale)")
-    print(f"  monotonic  {monotonic}")
+    ordered = sorted(graded, key=lambda o: o.intended)
+    result = calibration.CalibrationResult(
+        agent=agent,
+        rubric_version=rubric_version,
+        # What the grader was shown, hashed. A ladder proves a rubric readable
+        # through one particular prompt and says nothing about any other, so the
+        # result records which one it ran through rather than leaving a reader to
+        # assume it was whatever the prompt happens to be when they look.
+        prompt_fingerprint=quality.prompt_fingerprint(),
+        model="+".join(sorted({o.model for o in ordered if o.model})),
+        ts=calibration.now_ts(),
+        intended=tuple(o.intended for o in ordered),
+        observed=tuple(o.score.overall for o in ordered),
+        per_rung=tuple(
+            {
+                "label": o.label,
+                "intended": o.intended,
+                "observed": o.score.overall,
+                "dimensions": {d.dimension: d.score for d in o.score.dimensions},
+                "cost_usd": o.cost_usd,
+                "input_tokens": o.input_tokens,
+                "output_tokens": o.output_tokens,
+            }
+            for o in ordered
+        ),
+    )
 
     # A dimension that never moves is dead weight in the aggregate: it adds a
     # constant to every score and dilutes the dimensions that do discriminate.
     flat = [
         name
-        for i, name in enumerate(dims)
-        if len({o.score.dimensions[i].score for o in graded}) == 1
+        for name in (d.dimension for d in ordered[0].score.dimensions)
+        if len({dict((x.dimension, x.score) for x in o.score.dimensions)[name] for o in ordered}) == 1
     ]
-    if flat:
-        print(f"  flat dims  {', '.join(flat)}  (same score on all four rungs)")
 
+    print(f"\n{'-' * 78}")
+    print("  intended   " + "  ".join(f"{i}.0" for i in result.intended))
+    print("  observed   " + "  ".join(f"{o:.1f}" for o in result.observed))
+    print(f"  spread     {result.spread:.2f}  (needs >= {calibration.MIN_SPREAD} on a 3-point scale)")
+    print(f"  monotonic  {result.monotonic}")
+    if result.cost_usd is not None:
+        per = [r["cost_usd"] for r in result.per_rung if r.get("cost_usd") is not None]
+        print(f"  cost       ${result.cost_usd} for {len(per)} calls "
+              f"(per-call ${min(per)} - ${max(per)})")
+    if flat:
+        print(f"  flat dims  {', '.join(flat)}  (same score on every rung)")
     print(f"{'-' * 78}")
 
-    if spread < 1.0:
+    if result.spread < calibration.MIN_SPREAD:
         print(
-            f"\nRUBBER STAMP — a deliberately 0-level output and a deliberately 3-level\n"
-            f"output scored within {spread:.2f} of each other. The grader is not reading the\n"
-            f"anchors, and every score in evals/baselines.json is uninformative. STOP 6\n"
-            f"tiering has no evidence under it until this is fixed."
+            f"\nRUBBER STAMP — a deliberately {result.intended[0]}-level output and a "
+            f"deliberately {result.intended[-1]}-level output scored within "
+            f"{result.spread:.2f} of each other.\nThis rubric is not reading its own "
+            f"anchors, and any score it has produced is uninformative. No baseline can\n"
+            f"be recorded from it until the rubric or the ladder is fixed."
         )
-        return False
-
-    if not monotonic:
+    elif not result.monotonic:
         print(
             "\nNOT MONOTONIC — the grader separates outputs but does not order them the way\n"
             "the anchors do. It is responding to something, though not reliably to quality.\n"
-            "Treat the trend as noisy rather than wrong, and re-run before drawing on it."
+            "Treat the trend as noisy rather than wrong; no baseline until it orders."
         )
-        return False
+    else:
+        print(
+            f"\nDISCRIMINATES — ordered, spread {result.spread:.2f} on a 3-point scale.\n"
+            f"This rubric's scores can carry a baseline, for rubric v{rubric_version}\n"
+            f"read through grading prompt {quality.prompt_fingerprint()}, and nothing else:\n"
+            f"editing either the rubric or the prompt voids this and the ladder is re-run."
+        )
+    return result
 
+
+def _print_status() -> int:
+    """Where every rubric stands. No model calls."""
+    rows = []
+    for agent in sorted(a.name for a in roster.DELEGATABLE):
+        if not quality.has_rubric(agent):
+            rows.append((agent, "-", "NO RUBRIC", "cannot be delegated at all"))
+            continue
+        version = quality.rubric_version(agent)
+        verdict, why = calibration.status(agent, version)
+        rows.append((agent, f"v{version}", verdict.value.upper(), why))
+
+    width = max(len(r[0]) for r in rows)
+    state_width = max(len(r[2]) for r in rows)
+    trusted = sum(1 for r in rows if r[2] == "CALIBRATED")
     print(
-        f"\nDISCRIMINATES — the ladder came back ordered, spread {spread:.2f} on a 3-point\n"
-        f"scale. The instrument reads the anchors, so the flat 3.0 baseline was a property\n"
-        f"of the sample, not of the grader: only accepted outcomes were ever scored."
+        f"calibration status — {trusted} of {len(rows)} rubrics calibrated, "
+        f"grading prompt {quality.prompt_fingerprint()}\n"
     )
-    return True
+    for agent, version, state, why in rows:
+        print(f"  {agent:{width}}  {version:4} {state:{state_width}} {why}")
+    print(
+        f"\nAn uncalibrated rubric still runs and still scores. What it cannot do is\n"
+        f"have a baseline recorded from those scores — see mastery/calibration.py."
+    )
+    return 0 if trusted == len(rows) else 1
 
 
 async def main() -> int:
+    # Borrowed from cli.main rather than reimplemented. Without it this script
+    # dies in print() on any justification containing an arrow or a dash -- after
+    # every grader call has been paid for. That is the exact failure cli.py's
+    # docstring describes, and it recurred here because the probe is a second
+    # entry point that never went through cli.main. Two ladders were lost to it.
+    _force_utf8_stdio()
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--agent", default=None, help="which rubric to calibrate")
     parser.add_argument(
-        "--agent",
-        default="fact-checker",
-        help="agent whose rubric to calibrate. The ladder is written against "
-        "fact-checker's anchors; another agent grades the same text on the wrong "
-        "rubric, which measures nothing.",
+        "--record",
+        action="store_true",
+        help=f"write the result to {calibration.RESULTS_PATH.name}, pass or fail",
+    )
+    parser.add_argument(
+        "--status", action="store_true", help="show every rubric's state; no model calls"
     )
     args = parser.parse_args()
 
-    if args.agent != "fact-checker":
-        print(
-            f"NOTE: the ladder's four rungs are written against fact-checker's anchors. "
-            f"Grading them on {args.agent}'s rubric compares outputs to criteria they were "
-            f"never built for, and a poor result would say nothing about the grader.\n",
-            file=sys.stderr,
-        )
+    if args.status:
+        return _print_status()
+    if not args.agent:
+        print("--agent is required (or --status). Ladders are per rubric.", file=sys.stderr)
+        return 2
 
     config = Config.load()
     quality.require_rubric(args.agent)
+    version = quality.rubric_version(args.agent)
 
-    print(f"grading {len(LADDER)} synthetic returns — {len(LADDER)} model calls, no run log written")
-    observations = [await _grade(rung, args.agent, config) for rung in LADDER]
-    return 0 if _report(observations, args.agent) else 1
+    try:
+        ladder = calibration.ladder_for(args.agent, rubric_version=version)
+    except calibration.LadderMissing as exc:
+        print(f"{exc}", file=sys.stderr)
+        return 2
+
+    rungs = sorted(ladder["rungs"], key=lambda r: r["intended"])
+    print(
+        f"grading {len(rungs)} synthetic returns for {args.agent} "
+        f"(rubric v{version}) — {len(rungs)} model calls, no run log written"
+    )
+
+    observations = [await _grade(ladder, rung, args.agent, config) for rung in rungs]
+    result = _report(observations, args.agent, version)
+
+    if result is None:
+        return 1
+    if args.record:
+        calibration.record(result)
+        print(f"\nrecorded -> {calibration.RESULTS_PATH}")
+    elif result.discriminates:
+        print("\nNOT recorded. Re-run with --record to license baselines for this rubric.")
+
+    return 0 if result.discriminates else 1
 
 
 if __name__ == "__main__":

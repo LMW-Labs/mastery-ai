@@ -30,6 +30,7 @@ Four properties are load-bearing, and each one is pinned by a test:
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import dataclass
 from functools import lru_cache
@@ -37,10 +38,10 @@ from statistics import mean
 
 from jsonschema import Draft202012Validator
 
-from .brief import TaskBrief
+from .brief import ContextItem, TaskBrief
 from .config import REPO_ROOT
 from .errors import RubricMissing, SchemaViolation
-from .schema import TaskResult, extract_json
+from .schema import Status, TaskResult, extract_json
 
 RUBRICS_PATH = REPO_ROOT / "docs" / "agents" / "quality_rubrics.md"
 SCORE_SCHEMA_PATH = REPO_ROOT / "docs" / "agents" / "quality_score_schema.md"
@@ -147,11 +148,39 @@ class QualityScore:
 def build_prompt(brief: TaskBrief, result: TaskResult) -> str:
     """The grading prompt.
 
-    Gets the rubric, the brief's criteria, and the return. Not the context
-    payload — the grader is judging the output against a fixed reference, not
-    re-doing the task or checking sources for itself.
+    Gets the rubric, what the task was asked to do — objective, success criteria,
+    constraints — and what came back. **Not the context payload**, which is the
+    line that matters: the grader judges the output against a fixed reference, it
+    does not re-do the task or check sources for itself.
+
+    Constraints and objective were originally withheld too, and that was wrong in
+    a way only calibration could find. `content`'s ladder failed non-monotonically
+    because two of its four dimensions ask whether the output honoured
+    instructions this prompt never showed: the angle lives in `objective`, the
+    word cap in `constraints`. `declared_constraints_honored` scored 2, 2, 2, 1
+    across rungs built to be 0, 1, 2, 3 — the rung that broke every constraint
+    scored 2, the rung that met them all scored 1. Not a noisy signal; no signal.
+    A relational question ("does this match what it was told to do") cannot be
+    answered from the output alone, and sixteen rubrics passed only because their
+    dimensions happen to be self-evidencing.
+
+    Adding these two does not reopen what the context exclusion closes. They are
+    short and declarative — the *instruction*, not the material. The grader still
+    cannot see the sources, the prior drafts, or the payload, so it still cannot
+    do the work over and grade its own version instead.
     """
-    rubric = rubric_for(brief.agent)
+    return _render(brief, result, rubric_for(brief.agent))
+
+
+def _render(brief: TaskBrief, result: TaskResult, rubric: dict) -> str:
+    """The prompt text, with the rubric passed in rather than looked up.
+
+    Split out for one reason: `prompt_fingerprint` renders this against fixed
+    fixtures to get a hash of *what the grader is shown*. Keeping the rubric a
+    parameter is what lets that hash stay independent of the rubrics file, so
+    the two axes a calibration is bound to — the rubric and the prompt — move
+    separately instead of each dragging the other.
+    """
     criteria = "\n".join(f"- {c}" for c in brief.success_criteria)
     delivered = "\n".join(f"- {d}" for d in result.deliverables) or "- (none)"
     risks = "\n".join(f"- {r}" for r in result.risks) or "- (none)"
@@ -178,9 +207,20 @@ Use the anchors literally. If the output matches the "1" description, the score 
 1, even if it feels harsh. A rubric whose anchors are ignored produces numbers that
 drift, and drifting numbers are worse than none.
 
-## The task's own success criteria, for context
+## What the task was asked to do
 
+Objective: {brief.objective}
+
+Success criteria:
 {criteria}
+
+Constraints it was given:
+{brief.constraints}
+
+Judge conformance to this section only where a rubric dimension asks for it. It
+is here so that a dimension asking whether an instruction was followed has the
+instruction to check against; it is not an invitation to grade the output against
+your own idea of what the task should have been.
 
 ## What was returned
 
@@ -210,6 +250,78 @@ aggregate is computed outside this call.
 
 {{"task_id": "{brief.task_id}", "agent": "{brief.agent}", "rubric_version": "{rubric['rubric_version']}", "dimension_scores": [{", ".join(f'{{"dimension": "{n}", "score": 0-3, "justification": "..."}}' for n in names)}]}}
 """
+
+
+# -- what the grader is shown, as a hash ------------------------------------
+#
+# A calibration attests that one rubric discriminates *when a grader is shown a
+# particular set of facts about the output*. It was bound to `rubric_version`
+# from the start. It was not bound to the prompt, and that was a hole of the
+# same shape: change what `_render` puts in front of the grader — add a field,
+# drop one, reword the instruction to use the anchors literally — and every
+# calibration on file goes on attesting to an instrument that no longer exists,
+# with nothing able to notice. Version-binding's own trap, through another door.
+#
+# So: render the prompt against fixtures that never change and hash the result.
+# Sentinels rather than realistic text, one per field, so the hash answers
+# exactly one question — which facts reach the grader, in what frame — and moves
+# if and only if that answer does.
+#
+# Deliberately *not* a hash of this module's source: a docstring edit would
+# invalidate seventeen ladders and a real change to the fixtures' rendering
+# would not be distinguishable from it. Rewording the instructions does move the
+# hash, and should: that text is the grader's calibration in the ordinary sense
+# of the word.
+
+_CANON_BRIEF = TaskBrief(
+    task_id="<task_id>",
+    agent="<agent>",
+    vertical="<vertical>",
+    urgency="<urgency>",
+    objective="<objective>",
+    success_criteria=("<success_criterion>",),
+    context=(ContextItem("<context_label>", "<context_body>"),),
+    constraints="<constraints>",
+    out_of_scope="<out_of_scope>",
+    approval_gates_touched="<approval_gates_touched>",
+    expected_deliverables=("<expected_deliverable>",),
+)
+
+_CANON_RESULT = TaskResult(
+    task_id="<task_id>",
+    status=Status.COMPLETE,
+    summary="<summary>",
+    deliverables=("<deliverable>",),
+    risks=("<risk>",),
+    next_step="<next_step>",
+)
+
+_CANON_RUBRIC = {
+    "rubric_version": "<rubric_version>",
+    "dimensions": [
+        {
+            "dimension": "<dimension>",
+            "asks": "<asks>",
+            "anchors": {"0": "<anchor_0>", "1": "<anchor_1>", "2": "<anchor_2>", "3": "<anchor_3>"},
+        }
+    ],
+}
+
+
+@lru_cache(maxsize=1)
+def prompt_fingerprint() -> str:
+    """Short hash of the grading prompt's shape. Calibrations are keyed on it."""
+    canon = _render(_CANON_BRIEF, _CANON_RESULT, _CANON_RUBRIC)
+    return hashlib.sha256(canon.encode("utf-8")).hexdigest()[:12]
+
+
+def canonical_prompt() -> str:
+    """The fingerprinted text itself, for when a hash mismatch needs diagnosing.
+
+    Printed by `mastery check --prompt`. A fingerprint that has moved says only
+    that something changed; this says what, against the last one on record.
+    """
+    return _render(_CANON_BRIEF, _CANON_RESULT, _CANON_RUBRIC)
 
 
 def parse(raw: str, *, expected_task_id: str, expected_agent: str) -> QualityScore:
