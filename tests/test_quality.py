@@ -439,7 +439,13 @@ def _rec(agent="researcher", version="1", model="claude-sonnet-4-5", overall=2.0
     )
 
 
-def _calibrated(tmp: str, agent="researcher", version="1", observed=(0.2, 1.0, 2.0, 3.0)) -> Path:
+def _calibrated(
+    tmp: str,
+    agent="researcher",
+    version="1",
+    observed=(0.2, 1.0, 2.0, 3.0),
+    fingerprint=None,
+) -> Path:
     """A calibration file saying this rubric's ladder passed.
 
     Baselines now require one. Tests that are about *comparability* still need to
@@ -457,6 +463,7 @@ def _calibrated(tmp: str, agent="researcher", version="1", observed=(0.2, 1.0, 2
             ts="2026-08-01T00:00:00+00:00",
             intended=(0, 1, 2, 3),
             observed=tuple(observed),
+            prompt_fingerprint=fingerprint or quality.prompt_fingerprint(),
         ),
         path=path,
     )
@@ -571,11 +578,135 @@ class TestPin4NoIncomparableAveraging(unittest.TestCase):
             self.assertIs(verdict, calibration.Verdict.FAILED)
             self.assertIn("did not discriminate", why)
 
-            self.assertIn("researcher|1", calibration.load_results(cal)["calibrations"])
+            key = calibration.result_key("researcher", "1", quality.prompt_fingerprint())
+            self.assertIn(key, calibration.load_results(cal)["calibrations"])
             with self.assertRaises(calibration.Uncalibrated):
                 evals.set_baseline(
                     [_rec()], label="x", path=Path(tmp) / "b.json", calibration_path=cal
                 )
+
+    def test_calibration_does_not_carry_across_a_grader_prompt_change(self):
+        """The second axis, and the one that was missing.
+
+        A ladder proves a rubric readable *through a particular prompt*. Change
+        what `quality._render` puts in front of the grader and the rubric is
+        untouched while the instrument is not — so every calibration on file
+        would go on reporting `calibrated` about a grader that no longer exists.
+        Version-binding's own trap, through the door version-binding leaves open.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            cal = _calibrated(tmp, fingerprint="0ldpr0mpt00")
+            verdict, why = calibration.status("researcher", "1", path=cal)
+            self.assertIs(verdict, calibration.Verdict.PROMPT_CHANGED)
+
+            with self.assertRaises(calibration.Uncalibrated):
+                evals.set_baseline(
+                    [_rec()], label="x", path=Path(tmp) / "b.json", calibration_path=cal
+                )
+
+    def test_a_changed_prompt_is_not_reported_as_a_changed_rubric(self):
+        """Two causes, two repairs. `STALE` means rewrite the ladder against new
+        anchors; `PROMPT_CHANGED` means the ladder is still correct and only needs
+        re-running. Collapsing them would send the reader to rewrite rungs that
+        were never wrong."""
+        with tempfile.TemporaryDirectory() as tmp:
+            cal = _calibrated(tmp, fingerprint="0ldpr0mpt00")
+            _, prompt_why = calibration.status("researcher", "1", path=cal)
+            _, rubric_why = calibration.status("researcher", "2", path=cal)
+
+            self.assertIn("the rubric is fine", prompt_why)
+            self.assertIn("anchors", rubric_why)
+            self.assertNotIn("anchors", prompt_why)
+
+    def test_a_result_that_cannot_name_its_prompt_is_not_recorded(self):
+        """Refused at the write, not tolerated and filtered at the read.
+
+        An entry with no fingerprint is not evidence about any prompt. Storing it
+        would create a row that has to be special-cased forever by everything that
+        reads the file, and special cases are where a default of 'assume current'
+        eventually gets written.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "calibration.json"
+            with self.assertRaises(calibration.Uncalibrated):
+                calibration.record(
+                    calibration.CalibrationResult(
+                        agent="researcher", rubric_version="1", model="m", ts="t",
+                        intended=(0, 1, 2, 3), observed=(0.0, 1.0, 2.0, 3.0),
+                    ),
+                    path=path,
+                )
+            self.assertFalse(path.exists())
+
+    def test_the_fingerprint_moves_when_the_grader_is_shown_a_new_field(self):
+        """The fingerprint has to detect the exact change that is coming next.
+
+        `content`'s ladder fails because two of its dimensions ask whether the
+        output honoured instructions the grader is never shown. The fix is to show
+        it the brief's constraints — and that fix must invalidate all seventeen
+        calibrations rather than pass unnoticed. This is that, in advance.
+        """
+        before = quality.prompt_fingerprint()
+        original = quality._render
+
+        def _render_with_constraints(brief, result, rubric):
+            return original(brief, result, rubric) + f"\nconstraints: {brief.constraints}\n"
+
+        try:
+            quality._render = _render_with_constraints
+            quality.prompt_fingerprint.cache_clear()
+            self.assertNotEqual(before, quality.prompt_fingerprint())
+        finally:
+            quality._render = original
+            quality.prompt_fingerprint.cache_clear()
+
+        self.assertEqual(before, quality.prompt_fingerprint())
+
+    def test_the_fingerprint_does_not_move_when_a_rubric_moves(self):
+        """The two axes stay separate.
+
+        A fingerprint that shifted whenever any rubric was edited would mark all
+        seventeen calibrations dead over a one-word change to one of them, and the
+        obvious way to stop the noise would be to stop believing the fingerprint.
+        Hence the canonical rubric fixture: the hash answers 'what does the grader
+        see', and `rubric_version` answers 'measured against what'.
+        """
+        before = quality.prompt_fingerprint()
+        original = quality._rubrics
+        edited = {
+            "researcher": {
+                "rubric_version": "99",
+                "dimensions": [
+                    {"dimension": "d", "asks": "different", "anchors": {"0": "x", "3": "y"}}
+                ],
+            }
+        }
+        try:
+            quality._rubrics = lambda: edited
+            quality.prompt_fingerprint.cache_clear()
+            self.assertEqual(before, quality.prompt_fingerprint())
+        finally:
+            quality._rubrics = original
+            quality.prompt_fingerprint.cache_clear()
+
+        self.assertEqual(before, quality.prompt_fingerprint())
+
+    def test_every_recorded_calibration_names_the_prompt_it_ran_through(self):
+        """The repo's own file, not a fixture.
+
+        The seventeen entries predate the fingerprint and were rekeyed rather than
+        re-run — defensible only because `quality.py` provably did not change
+        between the runs and the rekey. This pin makes any later entry that lacks
+        a fingerprint, or whose key disagrees with its body, a test failure rather
+        than a silent claim about a prompt nobody identified.
+        """
+        for key, entry in calibration.load_results()["calibrations"].items():
+            with self.subTest(key=key):
+                agent, version, fingerprint = calibration._parts(key)
+                self.assertTrue(fingerprint, "recorded calibration names no prompt")
+                self.assertEqual(entry.get("prompt_fingerprint"), fingerprint)
+                self.assertEqual(entry["agent"], agent)
+                self.assertEqual(entry["rubric_version"], version)
 
     def test_a_non_monotonic_ladder_is_not_a_pass(self):
         """Spread alone is not discrimination. A grader that separates outputs but

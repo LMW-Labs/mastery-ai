@@ -1,9 +1,10 @@
 {
-  "_note": "written by `python scripts/probe_grader.py --record`. Keyed agent|rubric_version. A rubric with no passing entry here cannot have a baseline recorded from its scores \u2014 see mastery/calibration.py.",
+  "_note": "written by `python scripts/probe_grader.py --record`. Keyed agent|rubric_version|prompt_fingerprint -- a calibration attests that one rubric discriminates when a grader is shown one particular set of facts, so editing either the rubric or quality._render voids it. A rubric with no passing entry here for the current pair cannot have a baseline recorded from its scores -- see mastery/calibration.py.",
   "calibrations": {
-    "fact-checker|1": {
+    "fact-checker|1|93d071d96c17": {
       "agent": "fact-checker",
       "rubric_version": "1",
+      "prompt_fingerprint": "93d071d96c17",
       "model": "claude-haiku-4-5+claude-sonnet-5",
       "ts": "2026-08-01T19:42:00+00:00",
       "intended": [
@@ -86,9 +87,10 @@
         }
       ]
     },
-    "legal-review|1": {
+    "legal-review|1|93d071d96c17": {
       "agent": "legal-review",
       "rubric_version": "1",
+      "prompt_fingerprint": "93d071d96c17",
       "model": "claude-haiku-4-5+claude-sonnet-5",
       "ts": "2026-08-01T16:11:31+00:00",
       "intended": [
@@ -171,9 +173,10 @@
         }
       ]
     },
-    "qa|1": {
+    "qa|1|93d071d96c17": {
       "agent": "qa",
       "rubric_version": "1",
+      "prompt_fingerprint": "93d071d96c17",
       "model": "claude-haiku-4-5+claude-sonnet-5",
       "ts": "2026-08-01T16:12:35+00:00",
       "intended": [
@@ -252,9 +255,10 @@
         }
       ]
     },
-    "researcher|1": {
+    "researcher|1|93d071d96c17": {
       "agent": "researcher",
       "rubric_version": "1",
+      "prompt_fingerprint": "93d071d96c17",
       "model": "claude-haiku-4-5+claude-sonnet-5",
       "ts": "2026-08-01T16:13:54+00:00",
       "intended": [
@@ -333,9 +337,10 @@
         }
       ]
     },
-    "risk-review|1": {
+    "risk-review|1|93d071d96c17": {
       "agent": "risk-review",
       "rubric_version": "1",
+      "prompt_fingerprint": "93d071d96c17",
       "model": "claude-haiku-4-5+claude-sonnet-5",
       "ts": "2026-08-01T16:18:14+00:00",
       "intended": [
@@ -418,9 +423,10 @@
         }
       ]
     },
-    "mobile-dev|1": {
+    "mobile-dev|1|93d071d96c17": {
       "agent": "mobile-dev",
       "rubric_version": "1",
+      "prompt_fingerprint": "93d071d96c17",
       "model": "claude-haiku-4-5+claude-sonnet-5",
       "ts": "2026-08-01T16:27:11+00:00",
       "intended": [
@@ -495,9 +501,10 @@
         }
       ]
     },
-    "strategy|1": {
+    "strategy|1|93d071d96c17": {
       "agent": "strategy",
       "rubric_version": "1",
+      "prompt_fingerprint": "93d071d96c17",
       "model": "claude-haiku-4-5+claude-sonnet-5",
       "ts": "2026-08-01T16:28:38+00:00",
       "intended": [
@@ -580,9 +587,10 @@
         }
       ]
     },
-    "ops|1": {
+    "ops|1|93d071d96c17": {
       "agent": "ops",
       "rubric_version": "1",
+      "prompt_fingerprint": "93d071d96c17",
       "model": "claude-haiku-4-5+claude-sonnet-5",
       "ts": "2026-08-01T16:30:29+00:00",
       "intended": [
@@ -665,9 +673,10 @@
         }
       ]
     },
-    "content|1": {
+    "content|1|93d071d96c17": {
       "agent": "content",
       "rubric_version": "1",
+      "prompt_fingerprint": "93d071d96c17",
       "model": "claude-haiku-4-5+claude-sonnet-5",
       "ts": "2026-08-01T17:06:21+00:00",
       "intended": [
@@ -746,9 +755,10 @@
         }
       ]
     },
-    "marketing|1": {
+    "marketing|1|93d071d96c17": {
       "agent": "marketing",
       "rubric_version": "1",
+      "prompt_fingerprint": "93d071d96c17",
       "model": "claude-haiku-4-5+claude-sonnet-5",
       "ts": "2026-08-01T18:13:58+00:00",
       "intended": [
@@ -831,9 +841,10 @@
         }
       ]
     },
-    "ui-ux|1": {
+    "ui-ux|1|93d071d96c17": {
       "agent": "ui-ux",
       "rubric_version": "1",
+      "prompt_fingerprint": "93d071d96c17",
       "model": "claude-haiku-4-5+claude-sonnet-5",
       "ts": "2026-08-01T19:10:47+00:00",
       "intended": [
@@ -916,9 +927,10 @@
         }
       ]
     },
-    "data-model-agent|1": {
+    "data-model-agent|1|93d071d96c17": {
       "agent": "data-model-agent",
       "rubric_version": "1",
+      "prompt_fingerprint": "93d071d96c17",
       "model": "claude-haiku-4-5+claude-sonnet-5",
       "ts": "2026-08-01T19:12:35+00:00",
       "intended": [
@@ -997,9 +1009,10 @@
         }
       ]
     },
-    "metrics-agent|1": {
+    "metrics-agent|1|93d071d96c17": {
       "agent": "metrics-agent",
       "rubric_version": "1",
+      "prompt_fingerprint": "93d071d96c17",
       "model": "claude-haiku-4-5+claude-sonnet-5",
       "ts": "2026-08-01T19:13:54+00:00",
       "intended": [
@@ -1082,9 +1095,10 @@
         }
       ]
     },
-    "incident-response-agent|1": {
+    "incident-response-agent|1|93d071d96c17": {
       "agent": "incident-response-agent",
       "rubric_version": "1",
+      "prompt_fingerprint": "93d071d96c17",
       "model": "claude-haiku-4-5+claude-sonnet-5",
       "ts": "2026-08-01T19:35:41+00:00",
       "intended": [
@@ -1167,9 +1181,10 @@
         }
       ]
     },
-    "prompt-engineer-agent|1": {
+    "prompt-engineer-agent|1|93d071d96c17": {
       "agent": "prompt-engineer-agent",
       "rubric_version": "1",
+      "prompt_fingerprint": "93d071d96c17",
       "model": "claude-haiku-4-5+claude-sonnet-5",
       "ts": "2026-08-01T19:36:50+00:00",
       "intended": [
@@ -1252,9 +1267,10 @@
         }
       ]
     },
-    "user-research-agent|1": {
+    "user-research-agent|1|93d071d96c17": {
       "agent": "user-research-agent",
       "rubric_version": "1",
+      "prompt_fingerprint": "93d071d96c17",
       "model": "claude-haiku-4-5+claude-sonnet-5",
       "ts": "2026-08-01T19:38:15+00:00",
       "intended": [
@@ -1337,9 +1353,10 @@
         }
       ]
     },
-    "competitor-intelligence-agent|1": {
+    "competitor-intelligence-agent|1|93d071d96c17": {
       "agent": "competitor-intelligence-agent",
       "rubric_version": "1",
+      "prompt_fingerprint": "93d071d96c17",
       "model": "claude-haiku-4-5+claude-sonnet-5",
       "ts": "2026-08-01T19:39:38+00:00",
       "intended": [
@@ -1422,5 +1439,6 @@
         }
       ]
     }
-  }
+  },
+  "_fingerprint_backfill": "The 17 entries below were run before the prompt fingerprint existed and were rekeyed onto 93d071d96c17 rather than re-run. Checkable, not asserted: mastery/quality.py was last committed in 98a47b9, which predates both calibration commits, and the later split of build_prompt into _render was verified to leave the rendered prompt byte-identical for all 17 agents. Any prompt change after this note invalidates every entry, and status() will say so rather than this file."
 }

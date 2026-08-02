@@ -146,7 +146,10 @@ def _model_of(invocation) -> str:
 def _report(observations: list[Observation], agent: str, rubric_version: str) -> calibration.CalibrationResult | None:
     """Print the ladder. Returns the result, or None if it could not be assessed."""
     print(f"\n{'=' * 78}")
-    print(f"GRADER CALIBRATION — agent {agent}, rubric v{rubric_version}")
+    print(
+        f"GRADER CALIBRATION — agent {agent}, rubric v{rubric_version}, "
+        f"prompt {quality.prompt_fingerprint()}"
+    )
     print(f"{'=' * 78}")
 
     for obs in observations:
@@ -174,6 +177,11 @@ def _report(observations: list[Observation], agent: str, rubric_version: str) ->
     result = calibration.CalibrationResult(
         agent=agent,
         rubric_version=rubric_version,
+        # What the grader was shown, hashed. A ladder proves a rubric readable
+        # through one particular prompt and says nothing about any other, so the
+        # result records which one it ran through rather than leaving a reader to
+        # assume it was whatever the prompt happens to be when they look.
+        prompt_fingerprint=quality.prompt_fingerprint(),
         model="+".join(sorted({o.model for o in ordered if o.model})),
         ts=calibration.now_ts(),
         intended=tuple(o.intended for o in ordered),
@@ -230,8 +238,9 @@ def _report(observations: list[Observation], agent: str, rubric_version: str) ->
     else:
         print(
             f"\nDISCRIMINATES — ordered, spread {result.spread:.2f} on a 3-point scale.\n"
-            f"This rubric's scores can carry a baseline, for rubric v{rubric_version} only:\n"
-            f"editing the rubric voids this and the ladder must be rewritten and re-run."
+            f"This rubric's scores can carry a baseline, for rubric v{rubric_version}\n"
+            f"read through grading prompt {quality.prompt_fingerprint()}, and nothing else:\n"
+            f"editing either the rubric or the prompt voids this and the ladder is re-run."
         )
     return result
 
@@ -248,10 +257,14 @@ def _print_status() -> int:
         rows.append((agent, f"v{version}", verdict.value.upper(), why))
 
     width = max(len(r[0]) for r in rows)
+    state_width = max(len(r[2]) for r in rows)
     trusted = sum(1 for r in rows if r[2] == "CALIBRATED")
-    print(f"calibration status — {trusted} of {len(rows)} rubrics calibrated\n")
+    print(
+        f"calibration status — {trusted} of {len(rows)} rubrics calibrated, "
+        f"grading prompt {quality.prompt_fingerprint()}\n"
+    )
     for agent, version, state, why in rows:
-        print(f"  {agent:{width}}  {version:4} {state:11} {why}")
+        print(f"  {agent:{width}}  {version:4} {state:{state_width}} {why}")
     print(
         f"\nAn uncalibrated rubric still runs and still scores. What it cannot do is\n"
         f"have a baseline recorded from those scores — see mastery/calibration.py."
