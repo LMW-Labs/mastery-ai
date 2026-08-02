@@ -85,18 +85,27 @@ def _brief(ladder: dict, rung: dict, agent: str):
     score has to come from the output, because nothing else changed.
     """
     b = ladder["brief"]
-    return build(
+    brief = build(
         task_id=f"{PROBE_DATE}-{rung['label']}",
         agent=agent,
         urgency="normal",
         objective=b["objective"],
         success_criteria=list(b["success_criteria"]),
         context=[ContextItem(c["label"], c["body"]) for c in b["context"]],
-        constraints=list(b["constraints"]),
-        out_of_scope=list(b["out_of_scope"]),
+        constraints=b["constraints"],
+        out_of_scope=b["out_of_scope"],
         approval_gates_touched="none",
         expected_deliverables=list(b["expected_deliverables"]),
     )
+    # Held to the same contract as a real brief, and for a reason that already
+    # cost something: these were assembled by `build`, which checks only the task
+    # id, and the ladders carried `constraints` as a *list* where `TaskBrief`
+    # declares a string. Invisible while the grader was never shown the field.
+    # The moment it is, every ladder renders a Python list repr that no real run
+    # produces, and calibrates against a prompt nobody will ever see in
+    # production. `validate` catches it here, before any call is paid for.
+    brief.validate(Config.load().caps.max_context_bytes)
+    return brief
 
 
 def _result(rung: dict) -> TaskResult:

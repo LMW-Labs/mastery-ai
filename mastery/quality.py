@@ -148,9 +148,26 @@ class QualityScore:
 def build_prompt(brief: TaskBrief, result: TaskResult) -> str:
     """The grading prompt.
 
-    Gets the rubric, the brief's criteria, and the return. Not the context
-    payload — the grader is judging the output against a fixed reference, not
-    re-doing the task or checking sources for itself.
+    Gets the rubric, what the task was asked to do — objective, success criteria,
+    constraints — and what came back. **Not the context payload**, which is the
+    line that matters: the grader judges the output against a fixed reference, it
+    does not re-do the task or check sources for itself.
+
+    Constraints and objective were originally withheld too, and that was wrong in
+    a way only calibration could find. `content`'s ladder failed non-monotonically
+    because two of its four dimensions ask whether the output honoured
+    instructions this prompt never showed: the angle lives in `objective`, the
+    word cap in `constraints`. `declared_constraints_honored` scored 2, 2, 2, 1
+    across rungs built to be 0, 1, 2, 3 — the rung that broke every constraint
+    scored 2, the rung that met them all scored 1. Not a noisy signal; no signal.
+    A relational question ("does this match what it was told to do") cannot be
+    answered from the output alone, and sixteen rubrics passed only because their
+    dimensions happen to be self-evidencing.
+
+    Adding these two does not reopen what the context exclusion closes. They are
+    short and declarative — the *instruction*, not the material. The grader still
+    cannot see the sources, the prior drafts, or the payload, so it still cannot
+    do the work over and grade its own version instead.
     """
     return _render(brief, result, rubric_for(brief.agent))
 
@@ -190,9 +207,20 @@ Use the anchors literally. If the output matches the "1" description, the score 
 1, even if it feels harsh. A rubric whose anchors are ignored produces numbers that
 drift, and drifting numbers are worse than none.
 
-## The task's own success criteria, for context
+## What the task was asked to do
 
+Objective: {brief.objective}
+
+Success criteria:
 {criteria}
+
+Constraints it was given:
+{brief.constraints}
+
+Judge conformance to this section only where a rubric dimension asks for it. It
+is here so that a dimension asking whether an instruction was followed has the
+instruction to check against; it is not an invitation to grade the output against
+your own idea of what the task should have been.
 
 ## What was returned
 

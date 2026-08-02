@@ -33,15 +33,22 @@ about the output*". Both halves can move:
   completely, because the instrument answered a different question.
 
 Only the first was bound at first, and the omission surfaced in the way these
-things do: `content`'s ladder failed because two of its four dimensions ask
-whether the output honoured instructions the grader is never shown — the angle
-lives in the context payload, the word limit in `constraints`, and neither
-reaches the prompt. The fix is to show the grader more. But under version-binding
-alone that fix would have silently voided all seventeen calibrations while every
-one of them went on reporting `calibrated` — version-binding's own trap, arriving
-through the door version-binding does not cover. Hence the fingerprint, and hence
-`PROMPT_CHANGED` as a verdict distinct from `STALE`: different cause, different
-repair, and collapsing them would hide which of the two actually moved.
+things do. `content`'s ladder failed — `[1.5, 1.25, 2.75, 2.5]` against intended
+`[0, 1, 2, 3]`, not monotonic — because two of its four dimensions ask whether
+the output honoured instructions the grader was never shown: the angle lives in
+`objective`, the word cap in `constraints`, and `quality.build_prompt` passed
+neither. The fix was to show the grader those two fields, and it worked
+(`[0.2, 1.2, 2.8, 3.0]`, spread 2.75).
+
+But that fix changed the instrument for all seventeen roles, and under
+version-binding alone it would have gone unnoticed: no rubric changed, so every
+calibration on file would have kept reporting `calibrated` about a grader that no
+longer existed. Version-binding's own trap, arriving through the door
+version-binding does not cover. Hence the fingerprint, and hence `PROMPT_CHANGED`
+as a verdict distinct from `STALE`: different cause, different repair — stale
+means rewrite the rungs against new anchors, prompt-changed means the rungs are
+still correct and only need re-running — and collapsing them would hide which of
+the two actually moved.
 
 A calibration that silently carried across either bump would be worse than none,
 since it would attest to markings nobody had checked.
