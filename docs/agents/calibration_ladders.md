@@ -421,7 +421,7 @@
     ]
   },
   "researcher": {
-    "rubric_version": "1",
+    "rubric_version": "2",
     "brief": {
       "objective": "Establish what the evidence actually shows about whether US church attendance declined between 2019 and 2024, and how much of any change is attributable to the pandemic rather than to a pre-existing trend.",
       "success_criteria": [
@@ -497,14 +497,14 @@
         "intended": 3,
         "label": "rd-943",
         "status": "partial",
-        "why": "Primary throughout, and the one place only secondary exists is stated as such; every claim traceable to a locatable source and a specific passage within it; covers the question including the hard attribution part, and states plainly where the evidence cannot answer it; sourced claims and the agent's reading are consistently and explicitly distinguished.",
+        "why": "Primary throughout, and the one place only secondary exists is stated as such; every claim carries both a source locator and a within-source pointer -- named table, figure, or section with a page -- so no claim requires searching the document; covers the question including the hard attribution part, and states plainly where the evidence cannot answer it; sourced claims and the agent's reading are consistently and explicitly distinguished.",
         "summary": "Attendance declined 2019-2024, and the published evidence establishes that a decline was already underway before 2020. It does not support apportioning the change between the pre-existing trend and a pandemic effect, and I say so rather than estimating.",
         "deliverables": [
           "SOURCE SAYS -- Gallup, 'Church Attendance Has Declined in Most US Religious Groups', gallup.com, published 25 March 2024, in the table 'Church attendance by religious group, 2000-2003, 2014-2017, 2021-2023': weekly or near-weekly attendance was 42% in 2000-2003, 34% in 2014-2017, and 30% in 2021-2023.",
-          "SOURCE SAYS -- Pew Research Center, 'Religious Landscape Study' (2023-24 wave), pewresearch.org, chapter on religious practices: 33% of US adults report attending religious services monthly or more.",
+          "SOURCE SAYS -- Pew Research Center, 'Religious Landscape Study' (2023-24 wave), pewresearch.org/religious-landscape-study, chapter 'Religious Practices and Experiences', in the figure 'Attendance at religious services': 33% of US adults report attending religious services monthly or more.",
           "SOURCE SAYS -- Gallup, same table as above: the 2000-2003 to 2014-2017 interval, which is entirely pre-pandemic, shows an 8-point fall.",
           "MY READING, NOT A SOURCE CLAIM -- because the pre-pandemic interval already shows an 8-point fall over roughly fourteen years, a model attributing the full 2019-2024 change to the pandemic is inconsistent with the earlier series. This is my inference from the two published intervals; no source in this set states it.",
-          "SECONDARY, AND STATED AS SUCH -- I found no primary attendance panel spanning 2019 through 2024 with consistent methodology. Denominational self-reports (e.g. Faith Communities Today summaries) suggest partial recovery, but these are self-administered congregational surveys with unreported response rates, and I am not treating them as equivalent evidence.",
+          "SECONDARY, AND STATED AS SUCH -- I found no primary attendance panel spanning 2019 through 2024 with consistent methodology. Faith Communities Today, 'Twenty Years of Congregational Change: the 2020 Faith Communities Today Overview', faithcommunitiestoday.org, in the section 'Worship Attendance' (p. 5, the median-attendance table), reports median weekly attendance falling from 137 in 2000 to 65 in 2020. These are self-administered congregational surveys with unreported response rates, and I am not treating them as equivalent evidence.",
           "WHAT THE EVIDENCE CANNOT ANSWER -- the attribution question as asked. Gallup's published intervals are multi-year aggregates that straddle 2020, so the series cannot be cut at the pandemic boundary from public tables. Decomposing trend from shock would need either the underlying annual microdata or a panel following the same respondents across 2019-2024. Neither is in the public releases I could reach."
         ],
         "risks": [
@@ -687,7 +687,7 @@
     ]
   },
   "strategy": {
-    "rubric_version": "1",
+    "rubric_version": "2",
     "brief": {
       "objective": "Recommend whether to build iOS now, invest further in Android, or pause feature work to reduce churn. One engineer, six months of runway.",
       "success_criteria": [
@@ -715,15 +715,15 @@
         "intended": 0,
         "label": "rd-970",
         "status": "complete",
-        "why": "Assumptions presented as facts; recommends an irreversible path without noting it is irreversible; ranks bad options as though one were clearly good; market sizing invented outright; ranked but on invented grounds.",
-        "summary": "Build iOS now. It is the clear winner.",
+        "why": "Assumptions presented as facts; market sizing invented outright; the irreversibility of a six-month single-engineer commitment never noted; two options described in comparable terms with neither marked preferred and no course of action named, leaving the reader to choose.",
+        "summary": "Two directions are available for the next two quarters. Both have a case.",
         "deliverables": [
-          "iOS is roughly 55% of the US faith-app market and those users spend about three times what Android users do, so the revenue upside is immediate.",
-          "Android is saturated and further investment there has diminishing returns.",
-          "Recommendation: commit the engineer to a six-month iOS build starting now."
+          "Option A, iOS: iOS is roughly 55% of the US faith-app market and those users spend about three times what Android users do, so the revenue upside is immediate.",
+          "Option B, Android depth: Android is where the install base already is, and the existing surface has room for roughly 40% more engagement per user.",
+          "Both are six-month commitments for the one engineer. Either could be defended to a board."
         ],
         "risks": [],
-        "next_step": "Begin iOS."
+        "next_step": "Whichever of the two the operator prefers."
       },
       {
         "intended": 1,
@@ -1477,7 +1477,7 @@
     ]
   },
   "user-research-agent": {
-    "rubric_version": "1",
+    "rubric_version": "2",
     "brief": {
       "objective": "Synthesise what the last 90 days of Play Store reviews say about FaithFeed.",
       "success_criteria": [
@@ -1520,7 +1520,7 @@
         "intended": 1,
         "label": "ff-931",
         "status": "complete",
-        "why": "Counts for some themes and impressions for others; bias mentioned nowhere so the reader assumes representativeness; themes broad enough that the count is not meaningful; frequency reported but intensity not distinguished from it; handles partially redacted yet still identifiable.",
+        "why": "Counts for some themes and impressions for others; bias mentioned nowhere so the reader assumes representativeness; themes broad enough that the count is not meaningful; frequency reported but intensity not distinguished from it; a direct identifier masked only reversibly -- 'prayerw****_deb' leaves enough to search on.",
         "summary": "Themes from the last 90 days of reviews.",
         "deliverables": [
           "Notifications: 61 reviews.",
@@ -1536,7 +1536,7 @@
         "intended": 2,
         "label": "ff-932",
         "status": "complete",
-        "why": "Counts throughout but denominators unstated; self-selection noted once in passing; mostly distinct themes though one bundles two different problems; intensity distinguished for the main theme only; quotes redacted but one is specific enough to identify its author.",
+        "why": "Counts throughout but denominators unstated; self-selection noted once in passing; mostly distinct themes though one bundles two different problems; intensity distinguished for the main theme only; no direct identifier survives, but one quote names a congregation and a city and the return does not flag it.",
         "summary": "Four themes across the review corpus. Reviews are self-selected.",
         "deliverables": [
           "Notifications not arriving: 61.",
