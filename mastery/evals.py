@@ -32,6 +32,7 @@ from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
+from . import calibration
 from .config import REPO_ROOT
 from .runlog import RunLog
 
@@ -154,7 +155,11 @@ def baseline_key(key: ScoreKey) -> str:
 
 
 def set_baseline(
-    records: list[ScoreRecord], *, label: str, path: Path = BASELINES_PATH
+    records: list[ScoreRecord],
+    *,
+    label: str,
+    path: Path = BASELINES_PATH,
+    calibration_path: Path | None = None,
 ) -> dict:
     """Record a baseline from a comparable set of scores.
 
@@ -163,9 +168,20 @@ def set_baseline(
     NOT a baseline). They are stored separately and never averaged: if they
     diverge, that divergence is information, and averaging it away would destroy
     the finding.
+
+    **Refuses unless the rubric is calibrated for this exact version.** A baseline
+    is the artifact that gets trusted — it is what STOP 6's tiering is measured
+    against — and one drawn through an instrument of unknown resolution is a
+    figure that looks like evidence without being any. Same principle as
+    `check_comparable` directly above: refuse rather than emit a number whose
+    meaning is undetermined. Scoring itself is not blocked by this; only the
+    promotion of scores into a baseline. See `mastery/calibration.py`.
     """
     check_comparable(records)
     key = records[0].key
+    calibration.require_calibrated(
+        key.agent, key.rubric_version, path=calibration_path or calibration.RESULTS_PATH
+    )
     data = load_baselines(path)
     data.setdefault("baselines", {})
 
@@ -210,6 +226,13 @@ def render(log_dir: Path) -> str:
         lines.append("")
     for key, group_records in sorted(group(records).items(), key=lambda kv: str(kv[0])):
         lines.append(str(key))
+        # Trust state on the same screen as the numbers. A reader who sees a trend
+        # without being told the instrument was never checked will assume it was;
+        # that assumption is exactly what let a flat 3.0 stand for days.
+        verdict, why = calibration.status(key.agent, key.rubric_version)
+        if not verdict.trusted:
+            lines.append(f"  [{verdict.value.upper()}] {why}")
+            lines.append("  these scores cannot carry a baseline until a ladder passes")
         try:
             check_comparable(group_records)
         except IncomparableScores as exc:  # pragma: no cover - grouping prevents it
