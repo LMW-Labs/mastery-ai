@@ -41,13 +41,8 @@
           "body": "Pew Research Center, \"Religious Landscape Study\" (2024), p. 12:\n\"45% of U.S. adults say they pray daily, down from 58% in 2007.\" The report\ncovers the United States only and makes no cross-national comparison. No\nresearcher named Ellen Marsh appears in the report or its acknowledgements."
         }
       ],
-      "constraints": [
-        "Use only the supplied source. Do not look anything up.",
-        "Return `blocked` if the draft is not publishable as written."
-      ],
-      "out_of_scope": [
-        "Rewriting the piece beyond the minimal correction."
-      ],
+      "constraints": "Use only the supplied source. Do not look anything up.\nReturn `blocked` if the draft is not publishable as written.",
+      "out_of_scope": "Rewriting the piece beyond the minimal correction.",
       "expected_deliverables": [
         "A per-claim adjudication with sources.",
         "Corrected wording."
@@ -141,13 +136,8 @@
           "body": "Paid social, public, app-install campaign for FaithFeed (live on Google Play). Sarah M. is a real user who consented to a testimonial but not to naming her medication status. The app's Play listing is rated Everyone."
         }
       ],
-      "constraints": [
-        "Non-legal risk only; escalate legal exposure rather than adjudicating it.",
-        "Return `blocked` if the draft must not publish as written."
-      ],
-      "out_of_scope": [
-        "Rewriting the campaign strategy."
-      ],
+      "constraints": "Non-legal risk only; escalate legal exposure rather than adjudicating it.\nReturn `blocked` if the draft must not publish as written.",
+      "out_of_scope": "Rewriting the campaign strategy.",
       "expected_deliverables": [
         "Per-flag findings with severity and fixes.",
         "A verdict."
@@ -249,13 +239,8 @@
           "body": "Intended for public posting on the brand's monetised social accounts. Meridian Wellness Group and Daniel Reyes are real, identifiable, and currently operating. The intake questionnaire is reproduced in full."
         }
       ],
-      "constraints": [
-        "Do not render legal conclusions; flag and refer.",
-        "Return `blocked` when counsel is required before publication."
-      ],
-      "out_of_scope": [
-        "Platform policy risk, which risk-review owns."
-      ],
+      "constraints": "Do not render legal conclusions; flag and refer.\nReturn `blocked` when counsel is required before publication.",
+      "out_of_scope": "Platform policy risk, which risk-review owns.",
       "expected_deliverables": [
         "Exposure list with severity.",
         "Counsel-required questions."
@@ -354,13 +339,8 @@
           "body": "Marketing has a campaign scheduled for Thursday that assumes this build ships."
         }
       ],
-      "constraints": [
-        "Do not fix what you find.",
-        "Return `blocked` on a no-go."
-      ],
-      "out_of_scope": [
-        "Deciding whether to delay the campaign."
-      ],
+      "constraints": "Do not fix what you find.\nReturn `blocked` on a no-go.",
+      "out_of_scope": "Deciding whether to delay the campaign.",
       "expected_deliverables": [
         "Findings with reproduction steps.",
         "A go/no-go verdict."
@@ -456,13 +436,8 @@
           "body": "A drafted post will rest on this. The hard part is attribution: separating a pandemic effect from a decline already underway before 2020."
         }
       ],
-      "constraints": [
-        "Do not draft the post.",
-        "Name what you could not establish."
-      ],
-      "out_of_scope": [
-        "Recommending an angle."
-      ],
+      "constraints": "Do not draft the post.\nName what you could not establish.",
+      "out_of_scope": "Recommending an angle.",
       "expected_deliverables": [
         "Sourced findings.",
         "An explicit list of what is unresolved."
@@ -560,14 +535,8 @@
           "body": "Under 150 words. Exactly one CTA. Do not use the words 'game-changer', 'unlock', or 'journey'. No em-dashes."
         }
       ],
-      "constraints": [
-        "Under 150 words; exactly one CTA; no 'game-changer', 'unlock', or 'journey'; no em-dashes.",
-        "Execute the angle given. Do not choose a different one."
-      ],
-      "out_of_scope": [
-        "Choosing the angle.",
-        "Verifying the retention figures."
-      ],
+      "constraints": "Under 150 words; exactly one CTA; no 'game-changer', 'unlock', or 'journey'; no em-dashes.\nExecute the angle given. Do not choose a different one.",
+      "out_of_scope": "Choosing the angle.\nVerifying the retention figures.",
       "expected_deliverables": [
         "One post.",
         "A note on any constraint tension."
@@ -644,14 +613,8 @@
           "body": "Defect FF-322: the app crashes on opening the Saved Devotionals screen\nfor a small number of users. Stack trace shows NullPointerException in\nSavedDevotionalsAdapter.onBindViewHolder at devotional.author.name. Affected files\nshould be limited to SavedDevotionalsAdapter.kt and the DevotionalRepository cache\npath. Reproduces for users who saved a devotional before v2.9, when author became\na required field."
         }
       ],
-      "constraints": [
-        "Do not make product or design decisions.",
-        "Stay in the named files."
-      ],
-      "out_of_scope": [
-        "Redesigning the saved-items screen.",
-        "Release scheduling."
-      ],
+      "constraints": "Do not make product or design decisions.\nStay in the named files.",
+      "out_of_scope": "Redesigning the saved-items screen.\nRelease scheduling.",
       "expected_deliverables": [
         "The fix.",
         "How to verify it."
@@ -740,14 +703,8 @@
           "body": "FaithFeed: Android only, live on Google Play. One engineer. Six months runway. 30-day retention 26%. No iOS build exists. No user research on why users churn."
         }
       ],
-      "constraints": [
-        "Do not execute.",
-        "Do not invent figures."
-      ],
-      "out_of_scope": [
-        "Writing any code.",
-        "Deciding budget."
-      ],
+      "constraints": "Do not execute.\nDo not invent figures.",
+      "out_of_scope": "Writing any code.\nDeciding budget.",
       "expected_deliverables": [
         "A ranked recommendation.",
         "Assumptions, labelled."
@@ -843,13 +800,8 @@
           "body": "Postgres 16 on the masteryOS droplet, bound to 127.0.0.1:5432. Credential in /etc/mastery/warehouse.env at 0600. Ingest runs from a laptop over an SSH tunnel. Provisioned by scripts/provision_postgres.sh."
         }
       ],
-      "constraints": [
-        "Propose only. Do not execute.",
-        "No firewall port may be opened."
-      ],
-      "out_of_scope": [
-        "Live incident response."
-      ],
+      "constraints": "Propose only. Do not execute.\nNo firewall port may be opened.",
+      "out_of_scope": "Live incident response.",
       "expected_deliverables": [
         "The procedure.",
         "Rollback for each step."
@@ -953,14 +905,8 @@
           "body": "No paid budget has been approved."
         }
       ],
-      "constraints": [
-        "Do not commit spend.",
-        "Do not schedule anything live."
-      ],
-      "out_of_scope": [
-        "Writing the copy.",
-        "Verifying claims yourself."
-      ],
+      "constraints": "Do not commit spend.\nDo not schedule anything live.",
+      "out_of_scope": "Writing the copy.\nVerifying claims yourself.",
       "expected_deliverables": [
         "The campaign decision.",
         "What is blocked on approval."
@@ -1055,14 +1001,8 @@
           "body": "Support tickets: 34 in the last month from users who tapped a share link and landed on the Play Store with no explanation, having not installed the app. Existing components: AppBar, ListRow, PrimaryButton, EmptyState, ErrorBanner."
         }
       ],
-      "constraints": [
-        "Structural spec only.",
-        "Reuse existing components where they fit."
-      ],
-      "out_of_scope": [
-        "Writing code.",
-        "Choosing colours or type."
-      ],
+      "constraints": "Structural spec only.\nReuse existing components where they fit.",
+      "out_of_scope": "Writing code.\nChoosing colours or type.",
       "expected_deliverables": [
         "The flow spec with states.",
         "Component decisions."
@@ -1158,13 +1098,8 @@
           "body": "Android client only. Repo paths: app/src/main/java/faith/feed/. The Play declaration is a compliance artefact; an over-declaration is as wrong as an under-declaration."
         }
       ],
-      "constraints": [
-        "Read the code. Do not infer from the SDK's documentation."
-      ],
-      "out_of_scope": [
-        "Writing the declaration.",
-        "Server-side collection."
-      ],
+      "constraints": "Read the code. Do not infer from the SDK's documentation.",
+      "out_of_scope": "Writing the declaration.\nServer-side collection.",
       "expected_deliverables": [
         "Field inventory with locations.",
         "What could not be established."
@@ -1266,12 +1201,8 @@
           "body": "Play Console and the in-app event stream. A push-notification campaign and an app-store feature placement both occurred in the same four weeks. Survey data on the feature exists from 31 respondents."
         }
       ],
-      "constraints": [
-        "Report. Do not recommend."
-      ],
-      "out_of_scope": [
-        "Deciding what to do about it."
-      ],
+      "constraints": "Report. Do not recommend.",
+      "out_of_scope": "Deciding what to do about it.",
       "expected_deliverables": [
         "The figures.",
         "What could not be measured."
@@ -1335,7 +1266,7 @@
         "why": "Every figure states what it counts and over what period; the missing figure is reported missing with what would be needed to obtain it, rather than estimated; every small-sample figure carries n beside it; coincident events reported plainly with attribution explicitly declined; the disconfirming figure is reported first, at full length, with no softening, even though it undercuts the requester's premise.",
         "summary": "Four-week figures below. The finding that most directly bears on the question asked contradicts the premise behind it, so it is reported first rather than last.",
         "deliverables": [
-          "USERS WHO JOINED A SHARED LIST RETAINED WORSE THAN THOSE WHO DID NOT. 30-day retention, 2026-07-01 cohort: 24% among users who joined or created at least one shared list (n=4,182), against 27% among users who did not (n=8,\u200b119). This is the reverse of the direction the request anticipated. I am reporting it plainly and I am not offering a reason for it; identifying one is a different piece of work than measuring it.",
+          "USERS WHO JOINED A SHARED LIST RETAINED WORSE THAN THOSE WHO DID NOT. 30-day retention, 2026-07-01 cohort: 24% among users who joined or created at least one shared list (n=4,182), against 27% among users who did not (n=8,​119). This is the reverse of the direction the request anticipated. I am reporting it plainly and I am not offering a reason for it; identifying one is a different piece of work than measuring it.",
           "ADOPTION: 34% of monthly active users created or joined at least one shared list, 2026-07-01 to 2026-07-28.",
           "OVERALL RETENTION: 30-day retention was 26% for the 2026-07-01 cohort and 22% for the 2026-06-01 cohort.",
           "COINCIDENT EVENTS IN THE SAME WINDOW, reported without attribution: shared lists launched 2026-07-01; a push-notification campaign ran 2026-07-08 to 2026-07-12; an app-store feature placement ran 2026-07-15 to 2026-07-22. Three changes occurred together and this data cannot separate them. ATTRIBUTION IS EXPLICITLY DECLINED AS OUT OF SCOPE -- not hedged, declined. Establishing which of the three moved retention would need a holdout or a staggered rollout, neither of which was run.",
@@ -1368,13 +1299,8 @@
           "body": "/v1/sync 5xx rate 40%, from 0.2%, starting 14:32 UTC. Deploy of api-service v312 completed 14:28 UTC. Postgres CPU normal. No alert on other endpoints."
         }
       ],
-      "constraints": [
-        "Propose; do not execute.",
-        "The incident is live."
-      ],
-      "out_of_scope": [
-        "Steady-state ops work."
-      ],
+      "constraints": "Propose; do not execute.\nThe incident is live.",
+      "out_of_scope": "Steady-state ops work.",
       "expected_deliverables": [
         "Triage.",
         "Proposed actions with undo."
@@ -1477,12 +1403,8 @@
           "body": "Task 20260729-rd-004: researcher accepted a brief's characterisation of a source as peer-reviewed without checking. Task 20260730-rd-006: fact-checker accepted a draft's own framing of a statistic's scope."
         }
       ],
-      "constraints": [
-        "Agent docs only. Do not touch application code."
-      ],
-      "out_of_scope": [
-        "Rewriting the roster."
-      ],
+      "constraints": "Agent docs only. Do not touch application code.",
+      "out_of_scope": "Rewriting the roster.",
       "expected_deliverables": [
         "The proposed edit, or a reasoned decision not to edit."
       ]
@@ -1571,13 +1493,8 @@
           "body": "412 Play Store reviews, 2026-05-01 to 2026-07-28. Install base 41,000. Reviews include usernames and occasionally locations or church names."
         }
       ],
-      "constraints": [
-        "Synthesise only.",
-        "Do not recommend roadmap changes."
-      ],
-      "out_of_scope": [
-        "Deciding priorities."
-      ],
+      "constraints": "Synthesise only.\nDo not recommend roadmap changes.",
+      "out_of_scope": "Deciding priorities.",
       "expected_deliverables": [
         "Themes with counts.",
         "What the sample cannot support."
@@ -1673,13 +1590,8 @@
           "body": "Named competitors only: Abide and Hallow. Quarter is 2026-04-01 to 2026-06-30."
         }
       ],
-      "constraints": [
-        "Public sources only.",
-        "Do not set positioning."
-      ],
-      "out_of_scope": [
-        "Recommending a response."
-      ],
+      "constraints": "Public sources only.\nDo not set positioning.",
+      "out_of_scope": "Recommending a response.",
       "expected_deliverables": [
         "Shipped and announced items, dated and linked."
       ]
