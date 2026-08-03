@@ -1,0 +1,4 @@
+{
+  "_note": "Roots delegations in the FaithFeed app rather than in mastery-ai. Without this, config.cwd defaults to REPO_ROOT (mastery/config.py) and every delegated Read/Glob/Grep reads the orchestrator's own source -- ui-ux, visual-design, and mobile-dev cannot see the app at all. Pasting the app's files into the brief instead is not a workaround: caps.max_context_bytes is 60000 and an over-limit payload is rejected, never truncated. Only the keys Config.load knows are read; this one is ignored. Use: mastery --config config/faithfeed.json run <brief>",
+  "cwd": "C:\\Users\\awyri\\StudioProjects\\faithfeed"
+}

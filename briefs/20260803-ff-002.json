@@ -1,0 +1,41 @@
+{
+  "task_id": "20260803-ff-002",
+  "agent": "visual-design",
+  "urgency": "normal — runs after the operator has chosen a direction in 20260803-ff-001. It is the last step before mobile-dev can be briefed, so its completeness decides how much guessing the implementation involves.",
+  "objective": "Expand the chosen direction from 20260803-ff-001 into an implementation-ready specification. Every token named and valued, every legacy constant mapped to its replacement, and an explicit decision on the dark-palette constants that are currently painted into a light-only app. The output is what mobile-dev implements from, so anything left open here becomes a choice made by whoever writes the code.",
+  "success_criteria": [
+    "Every token in the chosen direction is named and valued, with nothing carried over as 'as proposed' or left to the implementer.",
+    "Every legacy constant in the survey is mapped to a named replacement token, renamed, or retired with a stated reason — no constant is unaddressed.",
+    "The dark-palette constants carry one explicit decision, stated as a choice with its consequence: rename in place, remap to light values, or build real dark mode.",
+    "Application rules state what mobile-dev does when a call site's current value maps to no token.",
+    "The font change is specified concretely: which families are declared where, which declarations are added, and which references are removed.",
+    "Contrast ratios are given for every pair the final token set creates, with any failing pair named and its permitted uses restricted.",
+    "The spec names its own migration order for the token groups, so mobile-dev can be briefed in more than one pass without the passes conflicting."
+  ],
+  "context": [
+    {
+      "label": "The accepted output of 20260803-ff-001 and the operator's chosen direction",
+      "body": "<<< FILL: paste the accepted deliverables from 20260803-ff-001, and state plainly which direction the operator chose and any modifications they asked for. This is the one input this task cannot proceed without — expanding the wrong direction produces a complete, well-formed, useless spec. >>>"
+    },
+    {
+      "label": "Where to read the current visual system",
+      "body": "You are running with the FaithFeed repository as your working directory. Re-read lib/theme/ and pubspec.yaml directly rather than relying on what the previous task reported about them — this task produces the mapping mobile-dev implements from, so it needs the constants as they are now, not as they were summarised. Glob lib/screens/ and lib/widgets/ for the call sites the mapping has to cover.\n\nIf a path is missing, return status \"blocked\" and name it rather than substituting a similar file."
+    },
+    {
+      "label": "Measured survey of the current visual system",
+      "body": "<<< FILL: paste the JSON output of `python scripts/ui_survey.py <faithfeed root>`, the same payload supplied to 20260803-ff-001. Re-run it rather than reusing the earlier paste if the app has changed since. The legacy-constant list in it is the checklist success criterion 2 is measured against: a constant absent from the survey will be absent from the mapping and will still be in the code. >>>"
+    }
+  ],
+  "constraints": "Tokens, mapping, and application rules only — no code, no diffs, no edits.\n\nThe font fix is in scope and non-negotiable. Specify it concretely enough that mobile-dev adds declarations and removes references without deciding anything.\n\nEvery legacy constant gets a disposition. If you decline to map one, say retired and say why. Silence about a constant is the failure mode this task exists to prevent: it leaves a call site reading a value nobody chose.\n\nState the dark-mode decision as a decision, with what it costs. All three options are defensible and they are not equivalent — remapping in place is cheapest and forecloses dark mode, building real dark mode is the largest change and the only one that makes the constant names honest.\n\nWhere this spec departs from what was proposed in 20260803-ff-001, say so and say why. A silent change between the direction the operator approved and the spec that ships is the operator's decision being reversed without them.",
+  "out_of_scope": "Writing or editing any application code. Deciding flows, screen structure, or component behaviour — that is ui-ux. Deciding which screens ship in which release — that is the operator's. Revisiting the direction choice; that was made at the gate after 20260803-ff-001, and reopening it here spends a delegation to re-ask a settled question. Producing the manual test steps or the QA plan — those are mobile-dev's and qa's respectively.",
+  "approval_gates_touched": "none — this produces a specification. Nothing is published, promoted, or spent as a result of it, and no code changes. Implementing it is a separate task that enters the release pipeline.",
+  "expected_deliverables": [
+    "The complete token set for the chosen direction, every token named and valued",
+    "The legacy constant mapping, one line per constant, covering every constant in the survey",
+    "The dark-mode decision, stated as a choice with its consequence",
+    "Application rules for call sites whose current value maps to no token",
+    "The font specification: declarations added, references removed, families used",
+    "Contrast ratios for every pair, with failing pairs named and their uses restricted",
+    "A migration order for the token groups"
+  ]
+}

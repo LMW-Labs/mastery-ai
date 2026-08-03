@@ -92,6 +92,18 @@ _AGENTS: tuple[Agent, ...] = (
     Agent("ops", 1, "VPS, automation, portability, steady state", "Live incidents"),
     # Tier 2 — on demand
     Agent("ui-ux", 2, "Flows, screens, component specs", "Code, release scope"),
+    Agent(
+        "visual-design",
+        2,
+        "Visual system: colour, type, elevation, motion",
+        "Flows, screen structure, code",
+        # Budgets, for the reason in the field comments above. This role reads a
+        # theme file and the call sites that bypass it, and each Read/Glob spends
+        # a turn — the 6-turn default is a survey of two files. Sized against
+        # fact-checker, which does comparable reading.
+        max_turns=20,
+        timeout_seconds=600,
+    ),
     Agent("content", 2, "Copy, hooks, CTAs, scripts", "Choosing the angle, verifying claims"),
     Agent(
         "fact-checker",

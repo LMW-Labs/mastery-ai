@@ -19,6 +19,7 @@ System-level rules, pipelines, caps, and contracts live in the root `CLAUDE.md`.
 | Agent | Owns | Does not own |
 |---|---|---|
 | [ui-ux](ui-ux.md) | Flows, screens, component specs | Code, release scope |
+| [visual-design](visual-design.md) | Visual system: colour, type, elevation, motion | Flows, screen structure, code |
 | [content](content.md) | Copy, hooks, CTAs, scripts | Choosing the angle, verifying claims |
 | [fact-checker](fact-checker.md) | Verification pass on drafted output | New evidence discovery |
 | [legal-review](legal-review.md) | Legal exposure, counsel escalation | Platform policy, publication clearance |
@@ -37,7 +38,7 @@ System-level rules, pipelines, caps, and contracts live in the root `CLAUDE.md`.
 - Task brief in: `task_brief_template.md`
 - Structured output: `structured_output_schema.md`
 - Manager verdict: `manager_verdict_schema.md` — accept / revise / reject
-- Routing logic: `manager_decision_rubric.md` — rewritten for the full 18-agent roster
+- Routing logic: `manager_decision_rubric.md` — rewritten for the full 19-agent roster
 
 ## Enforcement note
 Nothing in these files is self-enforcing. Caps, retries, timeouts, tool allowlists, pipeline

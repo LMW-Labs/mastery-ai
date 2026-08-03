@@ -72,7 +72,7 @@ class TestRoster(unittest.TestCase):
         self.assertEqual(missing, [], f"agents with no doc: {missing}")
 
     def test_roster_matches_readme_count(self):
-        self.assertEqual(len(roster.all_agents()), 18)
+        self.assertEqual(len(roster.all_agents()), 19)
 
     def test_manager_is_not_delegatable(self):
         self.assertNotIn("manager", [a.name for a in roster.DELEGATABLE])

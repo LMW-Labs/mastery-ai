@@ -44,6 +44,21 @@ def _check(config: Config) -> int:
     except Exception as exc:
         problems.append(f"manager_verdict_schema.md: {exc}")
 
+    # Checked here because nothing downstream ever complains about it. `cwd` is
+    # what every delegated Read/Glob/Grep resolves against, and a wrong one does
+    # not raise: the tools succeed and return nothing, the agent truthfully
+    # reports it found no files, and the run costs full price to tell you so.
+    # At the shell that is indistinguishable from a model failure, and the config
+    # is the last place anyone looks. Free to check, so check it.
+    if not config.cwd.exists():
+        problems.append(
+            f"cwd {config.cwd} does not exist. Delegations read files relative to it, "
+            f"so every Read/Glob/Grep would return nothing and the agent would report "
+            f"an empty repo."
+        )
+    elif not config.cwd.is_dir():
+        problems.append(f"cwd {config.cwd} is not a directory")
+
     if problems:
         print("FAIL")
         for p in problems:
@@ -61,6 +76,10 @@ def _check(config: Config) -> int:
     print(f"  model             {config.delegation.model}")
     print(f"  denied tools      {', '.join(config.delegation.denied_tools)}")
     print(f"  auth mode         {config.auth.mode}")
+    # Which repo a delegation will actually read. Shown because the default is
+    # this repo, which is right for working on the orchestrator and wrong for
+    # every task about an app it manages.
+    print(f"  cwd               {config.cwd}")
 
     # Coverage, not a failure. An uncalibrated rubric still runs and still scores;
     # it just cannot carry a baseline. Reporting it here means the number is in

@@ -1,0 +1,41 @@
+{
+  "task_id": "20260803-ff-001",
+  "agent": "visual-design",
+  "urgency": "normal — no release is waiting on this. It gates the styling work that follows, so the operator's choice between the directions is the thing to get right, not the turnaround.",
+  "objective": "Propose two to three visual directions for a high-end, high-tech FaithFeed, each as a complete token set rather than a mood description. Read the current theme and the call sites that bypass it from the repository you are running in, and specify each direction against what the build can actually load. The operator will choose one direction; a follow-up task expands it into the per-call-site mapping mobile-dev implements from.",
+  "success_criteria": [
+    "Two to three directions, each with a complete token table: colour, typography, elevation, radius, spacing, and motion.",
+    "Every token carries a concrete value — hex, px, ms, or numeric weight. No adjectives standing in for values.",
+    "Every legacy theme constant named in the survey carries a disposition: mapped to a replacement, renamed, or retired with a reason.",
+    "Every foreground/background pair the tokens create carries a computed contrast ratio and the standard it meets, including any pair that fails.",
+    "Typography is specified against families the build declares and can load; any family requiring a new declaration is named as a dependency, and any family the app references but cannot load is identified as a silent fallback.",
+    "Each direction states its own treatment of the decorative gradients and of the glass/blur effects.",
+    "Each direction states its light and dark story per token group, including whether dark mode is in scope at all.",
+    "The directions differ across several token groups at once, not only in accent colour."
+  ],
+  "context": [
+    {
+      "label": "Where to read the current visual system",
+      "body": "You are running with the FaithFeed repository as your working directory, so read these rather than waiting to be given them. Start with lib/theme/ — the theme file is the single source of the current tokens, and it is where the font family is declared. Then read pubspec.yaml for which font families and which UI dependencies are actually declared, and list assets/fonts/ for what is present on disk. Glob lib/screens/ and lib/widgets/ to sample how call sites style themselves today.\n\nIf a path here does not exist, do not guess at its contents or substitute a similar file — return status \"blocked\" and name the path that is missing. A wrong assumption about the current theme invalidates every direction built on it."
+    },
+    {
+      "label": "Measured survey of the current visual system",
+      "body": "<<< FILL: paste the JSON output of `python scripts/ui_survey.py <faithfeed root>` from the mastery-ai repo. It carries the file inventory, the counts for each way the system is bypassed (inline TextStyle, hardcoded colours, raw BorderRadius.circular, Theme.of(context), BackdropFilter), the legacy constants and their reference counts, and both per-file rankings. Supply the measured output rather than a summary of it — the legacy-constant list is what success criterion 3 is checked against, so an incomplete list silently narrows the task. >>>"
+    },
+    {
+      "label": "Fixed brand assets and constraints",
+      "body": "<<< FILL: name the logo/brand colours as hex, and state which are fixed and may not be redesigned. Also state whether dark mode is wanted at all, or whether the app stays light-only. Both are operator calls, not inferences: the brand colours bound what the palette can reconcile to, and the dark-mode answer decides whether the legacy dark-palette constants get real dark values or are retired. >>>"
+    }
+  ],
+  "constraints": "Tokens and rationale only — no code, no diffs, no edits. You have no write tool and are not expected to have one.\n\nThe font fix is in scope and non-negotiable for every direction. A family the build cannot load renders as a silent fallback, so a direction specified against an unloadable family is not a direction — it is the current bug with new names. Whichever families you specify must either already be declared and loadable, or be named as a dependency with what declaring them requires.\n\nSpecify against what the repository actually contains, not against what the survey says it contains, where the two disagree. If they disagree, say so — the survey is generated and can be stale.\n\nMake the directions genuinely different. Three variations on one palette is one direction, and gives the operator nothing to choose between.",
+  "out_of_scope": "Writing or editing any application code, including the theme file itself. Deciding flows, screen structure, or component behaviour — that is ui-ux. Deciding which screens migrate first or what ships in a release — that is the operator's, informed by strategy. Redesigning the logo or brand marks. Producing the per-call-site mapping for mobile-dev — that is the follow-up task, after a direction is chosen.",
+  "approval_gates_touched": "none — this produces a specification. Nothing is published, promoted, or spent as a result of it, and no code changes.",
+  "expected_deliverables": [
+    "Two to three directions, each a complete token table with concrete values",
+    "The legacy constant disposition, one line per constant",
+    "Contrast ratios, computed per foreground/background pair, with failures called out",
+    "The font situation: what is declared, what is on disk, what cannot load, and what each direction needs",
+    "Each direction's treatment of the decorative gradients and the glass/blur effects",
+    "Each direction's light/dark story, stated per token group"
+  ]
+}

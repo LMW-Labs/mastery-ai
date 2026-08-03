@@ -1083,6 +1083,103 @@
       }
     ]
   },
+  "visual-design": {
+    "rubric_version": "1",
+    "brief": {
+      "objective": "Propose two visual directions for the FaithFeed Android app as complete token sets, and map the legacy theme constants onto whichever tokens replace them.",
+      "success_criteria": [
+        "Every token carries a concrete value -- hex, px, ms, or numeric weight.",
+        "Every legacy constant named in the context carries a disposition: mapped, renamed, or retired.",
+        "Every foreground/background pair the tokens create carries a computed contrast ratio and the standard it meets.",
+        "Typography is specified against families the build declares and can load.",
+        "Each token group states its light and dark values, or states that dark is out of scope.",
+        "The two directions differ across several token groups, not only in accent colour."
+      ],
+      "context": [
+        {
+          "label": "current theme",
+          "body": "lib/theme/app_theme.dart declares fontFamily: 'Urbanist' in four places. 'Urbanist' is not declared in pubspec.yaml and is not in assets/fonts/, so Flutter falls back silently and the app renders in Roboto. google_fonts is a declared dependency with zero uses. Lora-Medium.ttf and Lora-SemiBold.ttf are on disk and undeclared. Legacy constants still referenced across the app: onSurfaceVariant, onSurface, surface, primaryPurple, accentAmber -- the last two are aliases pointing at blue and peach values respectively. The app is light-only; those constants hold near-black and near-white values from an earlier dark palette. Brand blues, fixed and not redesignable: #1d5fa7 and #64aeed."
+        }
+      ],
+      "constraints": "Tokens and mapping only.\nDo not redesign the logo or brand marks.\nSpecify against fonts the build can actually load.",
+      "out_of_scope": "Writing code.\nChanging flows or screen structure.\nDeciding which screens migrate first.",
+      "expected_deliverables": [
+        "Two token sets, each complete.",
+        "The legacy constant mapping.",
+        "Contrast ratios."
+      ]
+    },
+    "rungs": [
+      {
+        "intended": 0,
+        "label": "ff-950",
+        "status": "complete",
+        "why": "Palette and scale described in adjectives with no values; new tokens proposed with no reference to what they replace; contrast not mentioned; names a family absent from the build with no note that it needs adding; no mention of light or dark; one direction supplied where two were asked for.",
+        "summary": "A cleaner, more premium look for FaithFeed.",
+        "deliverables": [
+          "Move to a deeper, more confident blue with a warmer neutral behind it, and tighten the spacing so the whole thing feels less cramped.",
+          "Set everything in Satoshi -- it reads as far more high-end than what is there now.",
+          "Shadows should be softer and the corners rounder."
+        ],
+        "risks": [],
+        "next_step": "Hand to mobile-dev."
+      },
+      {
+        "intended": 1,
+        "label": "ff-951",
+        "status": "complete",
+        "why": "Some values given but the type scale is left as prose; a general replacement strategy stated with no individual constant mapped; contrast claimed in words with no ratio; uses the shipped families but does not distinguish what is declared from what is merely on disk; a single sentence on light-only with no per-token consequence; two directions named that differ only in accent colour.",
+        "summary": "Two directions, both built on the brand blues.",
+        "deliverables": [
+          "Direction A -- primary #1d5fa7, surface #FFFFFF, accent #64aeed. Direction B -- the same, with the accent swapped to #F2A65A.",
+          "Type: Lora for headings, with the body face a step smaller and the captions smaller again. Weights as needed.",
+          "The legacy dark-palette constants should all be swept and replaced with the new surface tokens as the screens are migrated.",
+          "Contrast is high throughout -- text stays very readable on the light surfaces.",
+          "Radius 12px, spacing on a 4px grid. The app is light-only."
+        ],
+        "risks": [],
+        "next_step": "Hand to mobile-dev."
+      },
+      {
+        "intended": 2,
+        "label": "ff-952",
+        "status": "complete",
+        "why": "Every group has values but one individual token is named without one; the constants the brief calls out are mapped while others in the supplied context are left unaddressed and the gap is not flagged; ratios given for the main text pairs but not for the disabled or on-accent pairs; declared families used and the distinction made, but a family needing a new declaration is proposed without stating it as a dependency; most groups carry a light/dark disposition and one is silent; the directions differ in palette and type but converge on identical depth, shape, and motion.",
+        "summary": "Two directions with full palettes and a type scale, plus the constant mapping.",
+        "deliverables": [
+          "Direction A 'Chapel' -- primary #1d5fa7, primaryContainer #D9E7F6, surface #FFFFFF, surfaceVariant #F1F4F8, outline #C7D0DA, error #B3261E. Direction B 'Almanac' -- primary #14425C, primaryContainer #DCE8EE, surface #FBFAF7, surfaceVariant #EFEBE3, outline #D3CCC0, error #A03328.",
+          "Type, both directions: Lora SemiBold 28/34 display, Lora Medium 22/28 title, body and label set in the declared sans. Caption sits below label.",
+          "Lora-Medium and Lora-SemiBold are on disk but undeclared; declare both. Urbanist is referenced and cannot load, which is why everything currently renders in Roboto. Set the sans through google_fonts.",
+          "Mapping: onSurfaceVariant -> surfaceVariant, onSurface -> onSurface (value corrected to #1A1C1E), surface -> surface.",
+          "Contrast: onSurface on surface 15.8:1, primary on surface 6.1:1 -- both pass WCAG AA.",
+          "Light values given per group above. Dark is out of scope for colour; the type and radius scales are mode-independent.",
+          "Both directions: elevation ladder 0/1/3/6dp, radius 12px, motion 200ms standard easing."
+        ],
+        "risks": [],
+        "next_step": "Hand to mobile-dev."
+      },
+      {
+        "intended": 3,
+        "label": "ff-953",
+        "status": "complete",
+        "why": "Every token in every group carries a concrete value; every legacy constant in scope carries a disposition and the retired one is named with a reason; every pair the token set creates carries a computed ratio including the pairs that fail and are called out as failing; every family is declared or named as a dependency, and the family that cannot load is identified as a silent fallback; every group states light and dark or states dark out of scope, and the constants carrying the wrong mode's values are named; the directions differ across several groups at once and each states its own treatment of the effects in scope.",
+        "summary": "Two directions, each a complete token set, with every legacy constant disposed of and contrast computed per pair.",
+        "deliverables": [
+          "DIRECTION A 'Chapel'. Colour: primary #1d5fa7, onPrimary #FFFFFF, primaryContainer #D9E7F6, onPrimaryContainer #0B2C4E, secondary #64aeed, onSecondary #06263F, surface #FFFFFF, onSurface #1A1C1E, surfaceVariant #F1F4F8, onSurfaceVariant #43474E, outline #73777F, outlineVariant #C7D0DA, error #B3261E, onError #FFFFFF. Type: Lora SemiBold 28/34/-0.2, Lora Medium 22/28/0, Inter Regular 16/24/0, Inter Medium 14/20/0.1, Inter Regular 12/16/0.4. Elevation 0/1/3/6/8dp at rgba(26,28,30,0.08-0.16). Radius 4/8/12/20/full. Spacing 4/8/12/16/24/32. Motion 150ms enter, 200ms standard, 300ms emphasised, cubic-bezier(0.2,0,0,1). Gradients: retired as decoration, retained only as the two structural header washes. Glass: retired -- see the dependency note.",
+          "DIRECTION B 'Almanac'. Colour: primary #14425C, onPrimary #FFFFFF, primaryContainer #DCE8EE, onPrimaryContainer #06222F, secondary #C2703A, onSecondary #FFFFFF, surface #FBFAF7, onSurface #1C1B18, surfaceVariant #EFEBE3, onSurfaceVariant #4A463E, outline #7C776C, outlineVariant #D3CCC0, error #A03328, onError #FFFFFF. Type: Lora SemiBold 32/38/-0.4, Lora Medium 24/30/0, Inter Regular 16/26/0.1, Inter Medium 14/20/0.1, Inter Regular 12/16/0.4. Elevation 0/1/2dp only, at rgba(28,27,24,0.06-0.10) -- this direction carries depth with the outline and the warm surface split rather than with shadow. Radius 2/4/8/12/full. Spacing 4/8/12/16/24/40. Motion 120ms enter, 180ms standard, 240ms emphasised, cubic-bezier(0.4,0,0.2,1). Gradients: all 15 decorative gradients retired, replaced by the surfaceVariant split. Glass: retired.",
+          "LEGACY CONSTANT DISPOSITION, both directions. onSurfaceVariant (768 refs) -> mapped to onSurfaceVariant, value replaced -- it currently holds #CAC4D0, a dark-mode value, on a light background. onSurface (591) -> mapped, value replaced from #E6E1E5 for the same reason. surface (350) -> mapped, value replaced from #1C1B1F. primaryPurple -> renamed to primary; the alias already pointed at a blue, so the name was the only purple thing about it. accentAmber -> renamed to secondary in A and retired in B, which has no amber role; B's warm accent is #C2703A and is not a rename of it. All four legacy dark values are named here because a call site reading onSurface today gets a near-white on a white surface.",
+          "CONTRAST, computed per pair. Direction A: onSurface/surface 15.9:1 AAA; onSurfaceVariant/surface 8.9:1 AAA; onSurfaceVariant/surfaceVariant 8.3:1 AAA; primary/surface 6.2:1 AA; onPrimary/primary 6.2:1 AA; onPrimaryContainer/primaryContainer 11.4:1 AAA; onSecondary/secondary 8.1:1 AAA; onError/error 5.9:1 AA; outline/surface 4.6:1 AA for non-text only. FAILS: secondary #64aeed as text on surface is 2.1:1 and must not carry text -- it is a fill and border role only, stated so in the application rules. Direction B: onSurface/surface 16.4:1 AAA; onSurfaceVariant/surface 8.1:1 AAA; primary/surface 11.2:1 AAA; onSecondary/secondary 4.7:1 AA; onError/error 7.3:1 AAA; outlineVariant/surface 1.5:1, non-text only and marked as such.",
+          "FONTS. Lora-Medium.ttf and Lora-SemiBold.ttf are on disk and undeclared -- both directions declare them in pubspec.yaml, no new asset needed. Inter comes through google_fonts, which is already a declared dependency with zero current uses, so no new dependency either. Urbanist is referenced in four places in app_theme.dart plus eight further call sites and is declared nowhere and present nowhere: it is a silent fallback, which is why the app currently renders entirely in Roboto, and it is the single change that alters every screen. No family in either direction requires a licence the project does not hold.",
+          "LIGHT/DARK. Both directions are specified light-first because the app ships light-only. Colour: light values given per token above; dark is out of scope and no dark values are proposed. Type, elevation, radius, spacing, and motion: mode-independent, so they carry across unchanged if dark is built later. The three legacy constants above are the dark-mode residue and are the reason this has to be stated rather than assumed."
+        ],
+        "risks": [
+          "Glass is retired in both directions. The glassmorphism dependency is declared with zero imports and the 16 BackdropFilter sites do not amount to a system; keeping the effect would mean building it, which is a dependency decision and not mine to make.",
+          "Direction B's outlineVariant at 1.5:1 is deliberately below text contrast. If it is ever used for text rather than for a divider the direction fails accessibility at that call site."
+        ],
+        "next_step": "Operator picks a direction. Then a second pass expands the chosen one into the per-call-site mapping mobile-dev needs."
+      }
+    ]
+  },
   "data-model-agent": {
     "rubric_version": "1",
     "brief": {
