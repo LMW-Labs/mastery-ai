@@ -10,7 +10,9 @@ from __future__ import annotations
 
 import io
 import sys
+import tempfile
 import unittest
+from pathlib import Path
 
 from mastery.cli import _force_utf8_stdio
 from mastery.orchestrator import DelegationOutcome, Outcome, summarize
@@ -85,6 +87,50 @@ class SummarizeTests(unittest.TestCase):
         self.assertIn("6700", text)
         self.assertIn("403", text)
         self.assertIn("Failed after 2 attempt(s)", text)
+
+
+class CheckCwdTests(unittest.TestCase):
+    """`mastery check` has to catch a `cwd` that points nowhere.
+
+    Regression guard for the failure this check exists to make impossible: a
+    config naming a repo that is not on this machine passes every other check,
+    and the delegation it authorises spends full price to report an empty repo.
+    """
+
+    def _check(self, cwd) -> tuple[int, str]:
+        from dataclasses import replace
+
+        from mastery.cli import _check
+        from mastery.config import Config
+
+        buffer = io.StringIO()
+        stdout, sys.stdout = sys.stdout, buffer
+        try:
+            code = _check(replace(Config(), cwd=cwd))
+        finally:
+            sys.stdout = stdout
+        return code, buffer.getvalue()
+
+    def test_a_cwd_that_does_not_exist_fails_the_check(self):
+        code, output = self._check(Path("/nonexistent/StudioProjects/faithfeed"))
+        self.assertEqual(code, 1)
+        self.assertIn("FAIL", output)
+        self.assertIn("faithfeed", output)
+
+    def test_a_cwd_that_is_a_file_fails_the_check(self):
+        with tempfile.NamedTemporaryFile(suffix=".json") as handle:
+            code, output = self._check(Path(handle.name))
+        self.assertEqual(code, 1)
+        self.assertIn("not a directory", output)
+
+    def test_a_real_directory_passes_and_is_reported(self):
+        with tempfile.TemporaryDirectory() as directory:
+            code, output = self._check(Path(directory))
+            self.assertEqual(code, 0)
+            self.assertIn("OK", output)
+            # Printed, not just accepted — the operator has to be able to see
+            # which repo a run will read before paying for it.
+            self.assertIn(directory, output)
 
 
 if __name__ == "__main__":

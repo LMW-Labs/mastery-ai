@@ -796,6 +796,71 @@
       }
     ]
   },
+  "visual-design": {
+    "rubric_version": "1",
+    "dimensions": [
+      {
+        "dimension": "tokens_carry_values",
+        "asks": "Does every token carry a concrete value rather than a description of one?",
+        "anchors": {
+          "0": "The palette and scale are described in adjectives -- 'deeper blue', 'tighter spacing' -- with no values anywhere.",
+          "1": "Some values given; a whole token group (a scale, a ladder, a palette ramp) is left as prose.",
+          "2": "Every group has values, but at least one individual token is named without one.",
+          "3": "Every token in every group carries a concrete value -- hex, px, ms, or a numeric weight -- and nothing is left for the implementer to pick."
+        }
+      },
+      {
+        "dimension": "legacy_constants_disposed",
+        "asks": "Does every legacy constant named in the brief get an explicit disposition -- mapped, renamed, or retired?",
+        "anchors": {
+          "0": "New tokens proposed with no reference to what they replace.",
+          "1": "A general replacement strategy is stated, but no individual constant is mapped.",
+          "2": "The constants the brief calls out by name are mapped; others named in the supplied context are left unaddressed and the gap is not flagged.",
+          "3": "Every legacy constant in the brief's scope carries a disposition, and any it declines to map is named as retired with a reason."
+        }
+      },
+      {
+        "dimension": "contrast_stated_numerically",
+        "asks": "Is contrast given as a ratio against a named standard, rather than asserted?",
+        "anchors": {
+          "0": "Contrast is not mentioned.",
+          "1": "Contrast is claimed in words -- 'high contrast', 'readable on light' -- with no ratio.",
+          "2": "Ratios given for the main text pairs, but not for the secondary, disabled, or on-accent pairs the tokens also create.",
+          "3": "Every foreground/background pair the token set creates carries a computed ratio and the standard it meets, including the pairs that fail and are called out as failing."
+        }
+      },
+      {
+        "dimension": "specified_against_shipped_fonts",
+        "asks": "Is the typography specified against families the build actually declares and can load?",
+        "anchors": {
+          "0": "A family is named that is absent from the build, with no note that it would need adding.",
+          "1": "The shipped families are used, but the return does not distinguish what is declared from what is merely on disk.",
+          "2": "Declared families are used and the distinction is made, but a family requiring a new declaration is proposed without stating it as a dependency.",
+          "3": "Every family is either already declared and loadable, or named as a dependency with what declaring it requires -- and any family the app references but cannot load is identified as a silent fallback."
+        }
+      },
+      {
+        "dimension": "light_dark_stated",
+        "asks": "Is the light/dark story stated per token group, including whether dark mode exists at all?",
+        "anchors": {
+          "0": "No mention of light or dark.",
+          "1": "A single sentence declaring the app light-only or dark-capable, with no per-token consequence.",
+          "2": "Most groups carry a light/dark disposition; at least one is silent.",
+          "3": "Every token group states its light and dark values or states explicitly that dark is out of scope, and any constant carrying the wrong mode's value is named."
+        }
+      },
+      {
+        "dimension": "directions_genuinely_distinct",
+        "asks": "Where more than one direction was asked for, are they substantively different rather than variations on one?",
+        "anchors": {
+          "0": "One direction supplied where several were asked for.",
+          "1": "Several named, differing only in accent colour or in one scale value.",
+          "2": "Genuinely different in palette or type, but converging on identical treatment of depth, shape, and motion.",
+          "3": "Each direction differs across several token groups at once, and each states its own treatment of the effects in scope, so choosing between them is a real choice."
+        }
+      }
+    ]
+  },
   "competitor-intelligence-agent": {
     "rubric_version": "2",
     "dimensions": [
