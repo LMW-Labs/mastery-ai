@@ -75,7 +75,22 @@ class Agent:
 _AGENTS: tuple[Agent, ...] = (
     # Tier 1 — always available
     Agent("manager", 1, "Routing, context delegation, verification, approvals", "Execution work"),
-    Agent("mobile-dev", 1, "App code, builds, release prep", "Design decisions, QA sign-off"),
+    Agent(
+        "mobile-dev",
+        1,
+        "App code, builds, release prep",
+        "Design decisions, QA sign-off",
+        # Budgets, same reasoning as visual-design below. This role returns whole
+        # file contents in its deliverables — it has no write tool, so a theme
+        # rebuild is ~1,000 lines emitted as text, on top of the Reads that spend
+        # a turn each. The 6-turn / 300s default is sized for a one-file bug fix;
+        # 20260803-ff-002 produced a smaller payload at 20 turns and still ran
+        # ~500s. Raised so a legitimate task is not failed by the clock. These are
+        # budgets, not guardrails — the guardrails are the tool list and
+        # permission_mode, which are untouched.
+        max_turns=20,
+        timeout_seconds=600,
+    ),
     Agent(
         "researcher",
         1,
