@@ -23,7 +23,7 @@
     "silent skipping is the bypass the STOP 7 pin exists to catch."
   ],
   "researcher": {
-    "rubric_version": "1",
+    "rubric_version": "2",
     "dimensions": [
       {
         "dimension": "source_primacy",
@@ -41,8 +41,8 @@
         "anchors": {
           "0": "Claims with no citation, or citations too vague to follow.",
           "1": "Sources named but not locatable — no URL, section, or identifier.",
-          "2": "Every source locatable; the specific passage sometimes left to the reader.",
-          "3": "Every claim traceable to a locatable source and a specific passage within it."
+          "2": "Every source is locatable, but at least one claim leaves the reader to find the passage within it.",
+          "3": "Every claim carries both a source locator (URL, DOI, or document identifier) and a within-source pointer (named table, figure, section, page, or quoted phrase). No claim requires the reader to search the document."
         }
       },
       {
@@ -357,7 +357,7 @@
     ]
   },
   "legal-review": {
-    "rubric_version": "1",
+    "rubric_version": "2",
     "dimensions": [
       {
         "dimension": "non_advice_framing",
@@ -405,14 +405,14 @@
         "anchors": {
           "0": "Severity unrelated to commercial/public/named-party status.",
           "1": "Named private individual in commercial public content not treated as elevated.",
-          "2": "Elevation applied broadly; one factor of the three under-weighted.",
-          "3": "Severity explicitly reflects commercial use, public distribution, and identifiability of a real party."
+          "2": "The three factors are applied across the assessment, but at least one exposure's severity does not say which of them drive it.",
+          "3": "The three factors -- commercial use, public distribution, and identifiability of a real party -- are named for the assessment, and every exposure's severity states which of them drive that particular rating."
         }
       }
     ]
   },
   "marketing": {
-    "rubric_version": "1",
+    "rubric_version": "2",
     "dimensions": [
       {
         "dimension": "figure_provenance",
@@ -458,8 +458,8 @@
         "dimension": "decision_specificity",
         "asks": "Did it actually decide what runs, where, when, and whether it continues?",
         "anchors": {
-          "0": "Produced options with no decision.",
-          "1": "A decision so hedged it does not constrain execution.",
+          "0": "Two or more directions are laid out in comparable terms with none marked as chosen, and the return ends without naming what runs -- the operator is left to pick.",
+          "1": "A campaign is named but hedged until it does not constrain execution: no surface, no date, or explicitly deferred to a later call.",
           "2": "Decides the what; leaves where or when unresolved without saying why.",
           "3": "States what runs, on which surface, when, and the condition under which it stops."
         }
@@ -522,7 +522,7 @@
     ]
   },
   "strategy": {
-    "rubric_version": "1",
+    "rubric_version": "2",
     "dimensions": [
       {
         "dimension": "assumptions_marked",
@@ -568,8 +568,8 @@
         "dimension": "recommendation_decisiveness",
         "asks": "Is there a ranked recommendation rather than a survey of possibilities?",
         "anchors": {
-          "0": "Options listed with no ranking or recommendation.",
-          "1": "A recommendation so qualified it commits to nothing.",
+          "0": "Two or more options are described in comparable terms with none marked preferred, and the return ends without naming a course of action -- the reader is left to choose.",
+          "1": "A course of action is named but hedged until it does not constrain execution: no owner, no start condition, or explicitly deferred to a later decision.",
           "2": "Ranked, but the reasoning for the top choice is thin.",
           "3": "Ranked, with the deciding factor named and the runner-up's case stated fairly."
         }
@@ -632,7 +632,7 @@
     ]
   },
   "metrics-agent": {
-    "rubric_version": "1",
+    "rubric_version": "2",
     "dimensions": [
       {
         "dimension": "definition_and_window_attached",
@@ -796,8 +796,73 @@
       }
     ]
   },
-  "competitor-intelligence-agent": {
+  "visual-design": {
     "rubric_version": "1",
+    "dimensions": [
+      {
+        "dimension": "tokens_carry_values",
+        "asks": "Does every token carry a concrete value rather than a description of one?",
+        "anchors": {
+          "0": "The palette and scale are described in adjectives -- 'deeper blue', 'tighter spacing' -- with no values anywhere.",
+          "1": "Some values given; a whole token group (a scale, a ladder, a palette ramp) is left as prose.",
+          "2": "Every group has values, but at least one individual token is named without one.",
+          "3": "Every token in every group carries a concrete value -- hex, px, ms, or a numeric weight -- and nothing is left for the implementer to pick."
+        }
+      },
+      {
+        "dimension": "legacy_constants_disposed",
+        "asks": "Does every legacy constant named in the brief get an explicit disposition -- mapped, renamed, or retired?",
+        "anchors": {
+          "0": "New tokens proposed with no reference to what they replace.",
+          "1": "A general replacement strategy is stated, but no individual constant is mapped.",
+          "2": "The constants the brief calls out by name are mapped; others named in the supplied context are left unaddressed and the gap is not flagged.",
+          "3": "Every legacy constant in the brief's scope carries a disposition, and any it declines to map is named as retired with a reason."
+        }
+      },
+      {
+        "dimension": "contrast_stated_numerically",
+        "asks": "Is contrast given as a ratio against a named standard, rather than asserted?",
+        "anchors": {
+          "0": "Contrast is not mentioned.",
+          "1": "Contrast is claimed in words -- 'high contrast', 'readable on light' -- with no ratio.",
+          "2": "Ratios given for the main text pairs, but not for the secondary, disabled, or on-accent pairs the tokens also create.",
+          "3": "Every foreground/background pair the token set creates carries a computed ratio and the standard it meets, including the pairs that fail and are called out as failing."
+        }
+      },
+      {
+        "dimension": "specified_against_shipped_fonts",
+        "asks": "Is the typography specified against families the build actually declares and can load?",
+        "anchors": {
+          "0": "A family is named that is absent from the build, with no note that it would need adding.",
+          "1": "The shipped families are used, but the return does not distinguish what is declared from what is merely on disk.",
+          "2": "Declared families are used and the distinction is made, but a family requiring a new declaration is proposed without stating it as a dependency.",
+          "3": "Every family is either already declared and loadable, or named as a dependency with what declaring it requires -- and any family the app references but cannot load is identified as a silent fallback."
+        }
+      },
+      {
+        "dimension": "light_dark_stated",
+        "asks": "Is the light/dark story stated per token group, including whether dark mode exists at all?",
+        "anchors": {
+          "0": "No mention of light or dark.",
+          "1": "A single sentence declaring the app light-only or dark-capable, with no per-token consequence.",
+          "2": "Most groups carry a light/dark disposition; at least one is silent.",
+          "3": "Every token group states its light and dark values or states explicitly that dark is out of scope, and any constant carrying the wrong mode's value is named."
+        }
+      },
+      {
+        "dimension": "directions_genuinely_distinct",
+        "asks": "Where more than one direction was asked for, are they substantively different rather than variations on one?",
+        "anchors": {
+          "0": "One direction supplied where several were asked for.",
+          "1": "Several named, differing only in accent colour or in one scale value.",
+          "2": "Genuinely different in palette or type, but converging on identical treatment of depth, shape, and motion.",
+          "3": "Each direction differs across several token groups at once, and each states its own treatment of the effects in scope, so choosing between them is a real choice."
+        }
+      }
+    ]
+  },
+  "competitor-intelligence-agent": {
+    "rubric_version": "2",
     "dimensions": [
       {
         "dimension": "public_sources_only",
@@ -843,16 +908,16 @@
         "dimension": "paraphrase_discipline",
         "asks": "Is competitor copy paraphrased, with quotes only where exact wording is the point?",
         "anchors": {
-          "0": "Competitor copy reproduced at length.",
-          "1": "Long quotes where a paraphrase would serve.",
-          "2": "Mostly paraphrased, with one over-long quote.",
-          "3": "Paraphrased throughout; short quotes only where the exact wording is itself the finding."
+          "0": "Competitor copy reproduced as a block: a passage of 50 words or more, or several passages used in place of summary.",
+          "1": "More than one quote runs past 25 words where a paraphrase would carry the same finding.",
+          "2": "Paraphrased apart from a single quote that runs past 25 words.",
+          "3": "Paraphrased throughout; every quote is 25 words or fewer, and the return says why the exact wording is itself the finding."
         }
       }
     ]
   },
   "user-research-agent": {
-    "rubric_version": "1",
+    "rubric_version": "2",
     "dimensions": [
       {
         "dimension": "counts_not_impressions",
@@ -896,12 +961,12 @@
       },
       {
         "dimension": "quote_redaction",
-        "asks": "Are identifying details redacted from quotes?",
+        "asks": "Is identifying detail removed from quotes, both direct identifiers and indirect ones that would single out an author?",
         "anchors": {
-          "0": "Usernames or contact details reproduced.",
-          "1": "Handles partially redacted but still identifiable.",
-          "2": "Redacted, but a quote is specific enough to identify its author.",
-          "3": "All identifying detail removed, and quotes checked for indirect identifiability before use."
+          "0": "A direct identifier is reproduced verbatim: username, handle, email, phone, or full name.",
+          "1": "Direct identifiers are masked, but reversibly: a partial handle, initials, or a redaction leaving enough characters to search on.",
+          "2": "No direct identifier survives, but at least one quote carries indirect identifiers -- a named organisation, congregation, employer, or location -- and the return does not flag them.",
+          "3": "No direct identifier survives, and every quote is either free of indirect identifiers or has them generalised, with that check stated explicitly."
         }
       }
     ]

@@ -55,6 +55,7 @@ Read the linked doc before delegating. Full index: `docs/agents/README.md`.
 | Agent | Owns | Does not own |
 |---|---|---|
 | [ui-ux](docs/agents/ui-ux.md) | Flows, screens, component specs | Code, release scope |
+| [visual-design](docs/agents/visual-design.md) | Visual system: colour, type, elevation, motion | Flows, screen structure, code |
 | [content](docs/agents/content.md) | Copy, hooks, CTAs, scripts | Choosing the angle, verifying claims |
 | [fact-checker](docs/agents/fact-checker.md) | Verification pass on drafted output | New evidence discovery |
 | [legal-review](docs/agents/legal-review.md) | Legal exposure, counsel escalation | Platform policy, publication clearance |

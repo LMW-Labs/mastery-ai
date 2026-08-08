@@ -9,7 +9,7 @@ actually enforced, and where.
 |---|---|
 | `config.py` | The caps, as enforced values. One place to change a limit. |
 | `ids.py` | Task IDs — same pattern as the output schema, so a bad echo fails validation. |
-| `roster.py` | The 18 agents as routing data. `tests/test_contracts.py` asserts it matches `docs/agents/`. |
+| `roster.py` | The 19 agents as routing data. `tests/test_contracts.py` asserts it matches `docs/agents/`. |
 | `brief.py` | The delegation contract. Rejects unfilled and over-limit briefs. |
 | `gates.py` | Approval gates. Checked before work is briefed. |
 | `schema.py` | Parse, validate, and branch on `status`. No repair path. |

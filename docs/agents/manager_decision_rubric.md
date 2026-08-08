@@ -1,7 +1,7 @@
 # manager_decision_rubric
 
 Routing logic for the manager. Applied in order — the first rule that fires decides.
-Covers the full 18-agent roster in `README.md`.
+Covers the full 19-agent roster in `README.md`.
 
 Selection produces **exactly one** agent per brief. A request needing two agents is split
 into two sequential briefs, each routed through this rubric on its own.

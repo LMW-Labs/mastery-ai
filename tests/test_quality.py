@@ -225,7 +225,7 @@ class TestRubricCoverage(OrchestratorTestCase):
 
         unrubriced = sorted(a.name for a in DELEGATABLE if not quality.has_rubric(a.name))
         self.assertEqual(unrubriced, [], f"agents that cannot run for want of a rubric: {unrubriced}")
-        self.assertEqual(len(DELEGATABLE), 17)
+        self.assertEqual(len(DELEGATABLE), 18)
 
 
 # --------------------------------------------------------------------------
