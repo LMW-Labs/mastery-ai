@@ -152,7 +152,7 @@ class TestHappyPath(OrchestratorTestCase):
     async def test_complete_still_goes_through_manager_verification(self):
         """A `complete` status is a claim, not a clearance."""
         orch, runner = self.orch([result_json(), verdict_json()])
-        outcome = await orch.execute(a_brief())
+        outcome = await orch.execute(a_brief(agent="content"))
 
         self.assertIs(outcome.outcome, Outcome.ACCEPTED)
         self.assertIsNotNone(outcome.manager_verdict)
@@ -452,7 +452,7 @@ class TestCaps(OrchestratorTestCase):
     async def test_subagent_turn_cap_is_passed_through(self):
         self.config = replace(self.config, caps=Caps(max_subagent_turns=3))
         orch, runner = self.orch([result_json(), verdict_json()])
-        await orch.execute(a_brief())
+        await orch.execute(a_brief(agent="content"))
 
         self.assertEqual(runner.max_turns[0], 3)
 
