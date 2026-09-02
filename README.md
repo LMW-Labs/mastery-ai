@@ -6,18 +6,6 @@ gates, and verifies every return before the pipeline continues.
 
 Design and constraints: [CLAUDE.md](CLAUDE.md). Per-agent detail: [`docs/agents/`](docs/agents/).
 
-## Output
-
-Finished work, newest first. These are the pages worth opening from a phone.
-
-| What | Status |
-|---|---|
-| [HJR-192 debunk — content drafts](docs/content/20260728-hjr192-drafts.md) | Accepted. **Not cleared for publication** — fact-checker, risk-review, and legal-review still stand between these and a post. |
-| [HJR-192 — evidence base](docs/research/20260728-rd-001-hjr192.md) | Refused by the verdict on sourcing provenance; admitted by operator override, recorded in the file. |
-| [Promoter liability — addendum](docs/research/20260728-rd-002-promoter-liability.md) | Accepted. 26 U.S.C. § 6700, § 7402, and *United States v. Kirk*. |
-
-Nothing here publishes itself. Publishing is manual and stays the operator's.
-
 ## Running it
 
 ```sh
